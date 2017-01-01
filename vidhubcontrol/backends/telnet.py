@@ -1,47 +1,9 @@
 import asyncio
-import queue
-import telnetlib
-import threading
-import time
 
 from pydispatch import Property
 
+from vidhubcontrol import aiotelnetlib
 from vidhubcontrol.backends.base import BackendBase
-
-class ClientThread(threading.Thread):
-    def __init__(self, backend):
-        super(ClientThread, self).__init__()
-        self.backend = backend
-        self.running = threading.Event()
-        self.rx_queue = queue.Queue()
-        self.tx_queue = queue.Queue()
-        self.stopped = threading.Event()
-        self.client = None
-    def run(self):
-        self.running.set()
-        self.client = telnetlib.Telnet(
-            self.backend.hostaddr, self.backend.hostport, timeout=.1)
-        while self.running.is_set():
-            rx = self.client.read_very_eager()
-            if len(rx):
-                self.rx_queue.put_nowait(rx)
-            try:
-                tx_data = self.tx_queue.get_nowait()
-            except queue.Empty:
-                tx_data = None
-            if tx_data is not None:
-                self.client.write(tx_data)
-                self.tx_queue.task_done()
-            if self.running.is_set() and not len(rx) and tx_data is None:
-                time.sleep(.1)
-        self.client.close()
-        self.stopped.set()
-    async def stop(self):
-        self.running.clear()
-        while not self.stopped.is_set():
-            await asyncio.sleep(.1)
-    async def write(self, data):
-        self.tx_queue.put_nowait(data)
 
 class TelnetBackend(BackendBase):
     DEFAULT_PORT = 9990
@@ -67,13 +29,9 @@ class TelnetBackend(BackendBase):
     async def read_loop(self):
         print('read_loop')
         while self.read_enabled:
-            try:
-                rx_bfr = self.client.rx_queue.get_nowait()
-            except queue.Empty:
-                rx_bfr = None
-            if rx_bfr is not None:
+            rx_bfr = await self.client.read_very_eager()
+            if len(rx_bfr):
                 self.rx_bfr += rx_bfr
-                self.client.rx_queue.task_done()
                 if True:#self.rx_bfr.endswith(b'\n\n'):
                     print(self.rx_bfr.decode('UTF-8'))
                     await self.parse_rx_bfr()
@@ -89,8 +47,7 @@ class TelnetBackend(BackendBase):
     async def do_connect(self):
         self.rx_bfr = b''
         print('connecting')
-        c = self.client = ClientThread(self)
-        c.start()
+        c = self.client = await aiotelnetlib.Telnet(self.hostaddr, self.hostport)
         self.prelude_parsed = False
         self.read_enabled = True
         self.read_coro = asyncio.ensure_future(self.read_loop(), loop=self.event_loop)
@@ -104,7 +61,8 @@ class TelnetBackend(BackendBase):
             await asyncio.wait([self.read_coro], loop=self.event_loop)
             self.read_coro = None
         if self.client is not None:
-            await self.client.stop()
+            await self.client.close_async()
+        self.client = None
         print('disconnected')
     async def wait_for_response(self, prelude=False):
         print('wait_for_response...')
