@@ -1,9 +1,12 @@
 import asyncio
+import logging
 
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
 from vidhubcontrol.backends.base import BackendBase
+
+logger = logging.getLogger(__name__)
 
 class TelnetBackend(BackendBase):
     DEFAULT_PORT = 9990
@@ -27,13 +30,12 @@ class TelnetBackend(BackendBase):
         self.rx_bfr = b''
         self.response_ready = asyncio.Event()
     async def read_loop(self):
-        print('read_loop')
         while self.read_enabled:
             rx_bfr = await self.client.read_very_eager()
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
                 if True:#self.rx_bfr.endswith(b'\n\n'):
-                    print(self.rx_bfr.decode('UTF-8'))
+                    logger.debug(self.rx_bfr.decode('UTF-8'))
                     await self.parse_rx_bfr()
                     self.rx_bfr = b''
             await asyncio.sleep(.1)
@@ -42,20 +44,20 @@ class TelnetBackend(BackendBase):
         if not self.connected:
             c = await self.connect()
         s = '\n'.join(['---> {}'.format(line) for line in data.decode('UTF-8').splitlines()])
-        print(s)
+        logger.debug(s)
         await c.write(data)
     async def do_connect(self):
         self.rx_bfr = b''
-        print('connecting')
+        logger.debug('connecting')
         c = self.client = await aiotelnetlib.Telnet(self.hostaddr, self.hostport)
         self.prelude_parsed = False
         self.read_enabled = True
         self.read_coro = asyncio.ensure_future(self.read_loop(), loop=self.event_loop)
         await self.wait_for_response(prelude=True)
-        print('prelude parsed')
+        logger.debug('prelude parsed')
         return c
     async def do_disconnect(self):
-        print('disconnecting')
+        logger.debug('disconnecting')
         self.read_enabled = False
         if self.read_coro is not None:
             await asyncio.wait([self.read_coro], loop=self.event_loop)
@@ -63,9 +65,9 @@ class TelnetBackend(BackendBase):
         if self.client is not None:
             await self.client.close_async()
         self.client = None
-        print('disconnected')
+        logger.debug('disconnected')
     async def wait_for_response(self, prelude=False):
-        print('wait_for_response...')
+        logger.debug('wait_for_response...')
         while self.read_enabled:
             await self.response_ready.wait()
             self.response_ready.clear()
@@ -76,7 +78,7 @@ class TelnetBackend(BackendBase):
                     await asyncio.sleep(.1)
             if self.ack_or_nak is not None:
                 resp = self.ack_or_nak
-                print('ack_or_nak: {}'.format(resp))
+                logger.debug('ack_or_nak: {}'.format(resp))
                 self.ack_or_nak = None
                 return resp
     async def parse_rx_bfr(self):

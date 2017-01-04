@@ -27,18 +27,15 @@ class BackendBase(Dispatcher):
         )
         asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def connect(self):
-        print('connecting...')
         if self.connected:
             return self.client
         self.connected = True
         r = await self.do_connect()
-        print(r)
         if r is False:
             self.connected = False
         else:
             if self.client is not None:
                 self.client = r
-            print('connected')
         return r
     async def disconnect(self):
         if not self.connected:
