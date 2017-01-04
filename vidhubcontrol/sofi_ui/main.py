@@ -139,6 +139,48 @@ class OutputButtons(ButtonGrid):
         i = int(data_id.split('_')[1])
         self.vidhub_view.selected_output = i
 
+class PresetButtons(SofiDataId):
+    presets = ListProperty()
+    record_enable = Property(False)
+    num_presets = 8
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.vidhub = kwargs.get('vidhub')
+        self.widget = Container()
+        self.presets = [[]]*8
+        h = Heading(text='Presets')
+        self.widget.addelement(h)
+        btngrp = ButtonGroup(justified=True)
+        for i in range(self.num_presets):
+            attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), i)}
+            btn = Button(text=str(i+1), cl='preset-btn', attrs=attrs)
+            btngrp.addelement(btn)
+        self.widget.addelement(btngrp)
+        attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), 'record')}
+        self.record_enable_btn = Button(text='Record', attrs=attrs)
+        self.widget.addelement(self.record_enable_btn)
+        self.bind(record_enable=self.on_record_enable)
+    def on_record_enable(self, instance, value, **kwargs):
+        id_key = self.record_enable_btn.attrs[self.sofi_data_id_key]
+        selector = "[{}='{}']".format(self.sofi_data_id_key, id_key)
+        if value:
+            self.app.addclass(selector, 'btn-danger')
+        else:
+            self.app.removeclass(selector, 'btn-danger')
+    async def on_click(self, data_id):
+        if data_id.split('_')[0] != self.get_data_id():
+            return
+        if data_id.split('_')[1] == 'record':
+            self.record_enable = not self.record_enable
+            return
+        i = int(data_id.split('_')[1])
+        if self.record_enable:
+            self.presets[i] = self.vidhub.crosspoints[:]
+            self.record_enable = False
+        elif len(self.presets[i]):
+            args = [(i, v) for i, v in enumerate(self.presets[i])]
+            await self.vidhub.set_crosspoints(*args)
+
 class VidHubView(SofiDataId):
     selected_output = Property(0)
     def __init__(self, **kwargs):
@@ -146,6 +188,7 @@ class VidHubView(SofiDataId):
         self.vidhub = kwargs.get('vidhub')
         self.input_buttons = InputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.output_buttons = OutputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
+        self.preset_buttons = PresetButtons(vidhub=self.vidhub, app=self.app)
         self.widget = Container()
         row = Row()
         col = Column(count=12)
@@ -157,9 +200,15 @@ class VidHubView(SofiDataId):
         row.addelement(col)
         col.addelement(self.output_buttons.widget)
         self.widget.addelement(row)
+        row = Row()
+        col = Column(count=12)
+        row.addelement(col)
+        col.addelement(self.preset_buttons.widget)
+        self.widget.addelement(row)
     async def on_click(self, data_id):
         await self.input_buttons.on_click(data_id)
         await self.output_buttons.on_click(data_id)
+        await self.preset_buttons.on_click(data_id)
 
 class App(object):
     def __init__(self, **kwargs):
