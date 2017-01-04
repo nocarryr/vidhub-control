@@ -13,6 +13,7 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty
 
 from vidhubcontrol.backends.dummy import DummyBackend
+from vidhubcontrol.backends.telnet import TelnetBackend
 logger = logging.getLogger(__name__)
 
 class SofiDataId(Dispatcher):
@@ -232,4 +233,14 @@ class App(object):
         await self.vidhub_view.on_click(data_id)
 
 if __name__ == '__main__':
-    App(vidhub=DummyBackend()).start()
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('--addr', dest='hostaddr')
+    p.add_argument('--port', dest='hostport', default=9990)
+    args = p.parse_args()
+    o = vars(args)
+    if o.get('hostaddr'):
+        vidhub = TelnetBackend(**o)
+    else:
+        vidhub = DummyBackend()
+    App(vidhub=vidhub).start()
