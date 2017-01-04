@@ -7,6 +7,9 @@ class BackendBase(Dispatcher):
     crosspoints = ListProperty()
     output_labels = ListProperty()
     input_labels = ListProperty()
+    crosspoint_control = ListProperty()
+    output_label_control = ListProperty()
+    input_label_control = ListProperty()
     device_model = Property()
     device_id = Property()
     device_version = Property()
@@ -21,9 +24,12 @@ class BackendBase(Dispatcher):
         self.bind(
             num_outputs=self.on_num_outputs,
             num_inputs=self.on_num_inputs,
-            output_labels=self.on_prop_set,
-            input_labels=self.on_prop_set,
-            crosspoints=self.on_prop_set,
+            output_labels=self.on_prop_feedback,
+            input_labels=self.on_prop_feedback,
+            crosspoints=self.on_prop_feedback,
+            output_label_control=self.on_prop_control,
+            input_label_control=self.on_prop_control,
+            crosspoint_control=self.on_prop_control,
         )
         asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def connect(self):
@@ -73,22 +79,30 @@ class BackendBase(Dispatcher):
         if value != len(self.crosspoints):
             self.crosspoints = [0] * value
         self.input_labels = [''] * value
-    def on_prop_set(self, instance, value, **kwargs):
-        pass
-        # if not self.connected:
-        #     return
-        # if not self.prelude_parsed:
-        #     return
-        # prop = kwargs.get('property')
-        # if prop.name in self.pending_properties:
-        #     return
-        # coro = None
-        # args = [(i, v) for i, v in enumerate(value)]
-        # if prop.name == 'crosspoints':
-        #     coro = self.set_crosspoints
-        # elif prop.name == 'output_labels':
-        #     coro = self.set_output_labels
-        # elif prop.name == 'input_labels':
-        #     coro = self.set_input_labels
-        # if coro is not None:
-        #     asyncio.run_coroutine_threadsafe(coro, *args, loop=self.event_loop)
+    def on_prop_feedback(self, instance, value, **kwargs):
+        prop = kwargs.get('property')
+        if prop.name == 'crosspoints':
+            self.crosspoint_control = value[:]
+        elif prop.name == 'output_labels':
+            self.output_label_control = value[:]
+        elif prop.name == 'input_labels':
+            self.input_label_control = value[:]
+    def on_prop_control(self, instance, value, **kwargs):
+        if not self.connected:
+            return
+        if not self.prelude_parsed:
+            return
+        prop = kwargs.get('property')
+        keys = kwargs.get('keys')
+        if keys is None:
+            return
+        coro = None
+        args = [(key, value[key]) for key in keys]
+        if prop.name == 'crosspoint_control':
+            coro = self.set_crosspoints
+        elif prop.name == 'output_label_control':
+            coro = self.set_output_labels
+        elif prop.name == 'input_label_control':
+            coro = self.set_input_labels
+        if coro is not None:
+            tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
