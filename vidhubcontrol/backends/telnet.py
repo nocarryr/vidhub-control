@@ -209,10 +209,10 @@ if __name__ == '__main__':
 
         lbls = []
         for i, lbl in enumerate(t.input_labels):
-            if lbl.islower():
+            if lbl.istitle():
                 lbl = lbl.upper()
             else:
-                lbl = lbl.lower()
+                lbl = lbl.title()
             lbls.append((i, lbl))
         orig_lbls = t.input_labels[:]
         await t.set_input_labels(*lbls)
@@ -220,10 +220,10 @@ if __name__ == '__main__':
 
         lbls = []
         for i, lbl in enumerate(t.output_labels):
-            if lbl.islower():
+            if lbl.istitle():
                 lbl = lbl.upper()
             else:
-                lbl = lbl.lower()
+                lbl = lbl.title()
             lbls.append((i, lbl))
         orig_lbls = t.output_labels[:]
         await t.set_output_labels(*lbls)
