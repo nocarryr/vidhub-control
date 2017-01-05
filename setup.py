@@ -10,6 +10,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'python-dispatch',
+        'json-object-factory',
     ],
     platforms=['any'],
     classifiers = [

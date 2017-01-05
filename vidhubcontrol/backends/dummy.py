@@ -4,6 +4,9 @@ import logging
 from vidhubcontrol.backends.base import BackendBase
 
 class DummyBackend(BackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.device_id = kwargs.get('device_id', 'dummy')
     async def do_connect(self):
         self.num_outputs = 12
         self.num_inputs = 12

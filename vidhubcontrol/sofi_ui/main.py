@@ -12,8 +12,10 @@ from sofi.ui import (
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty
 
-from vidhubcontrol.backends.dummy import DummyBackend
-from vidhubcontrol.backends.telnet import TelnetBackend
+from vidhubcontrol.config import Config
+
+config = Config.load()
+
 logger = logging.getLogger(__name__)
 
 class SofiDataId(Dispatcher):
@@ -289,7 +291,7 @@ if __name__ == '__main__':
     args = p.parse_args()
     o = vars(args)
     if o.get('hostaddr'):
-        vidhub = TelnetBackend(**o)
+        vidhub = config.build_backend('TelnetBackend', **o)
     else:
-        vidhub = DummyBackend()
+        vidhub = config.build_backend('DummyBackend', device_id='dummy')
     App(vidhub=vidhub).start()
