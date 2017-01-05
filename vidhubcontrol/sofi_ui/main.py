@@ -89,7 +89,7 @@ class ButtonGrid(SofiDataId):
                 self.app.addclass(selector, 'btn-primary')
             else:
                 self.app.removeclass(selector, 'btn-primary')
-                self.app.addclass(selector, 'btn-secondary')
+                self.app.addclass(selector, 'btn-default')
     def on_labels_set(self, instance, value, **kwargs):
         keys = kwargs.get('keys')
         if keys is None:
