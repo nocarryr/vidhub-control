@@ -149,26 +149,35 @@ class OutputButtons(ButtonGrid):
         self.vidhub_view.selected_output = i
 
 class PresetButtons(SofiDataId):
-    presets = ListProperty()
     record_enable = Property(False)
+    preset_buttons = ListProperty()
     num_presets = 8
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub = kwargs.get('vidhub')
         self.widget = Container()
-        self.presets = [[]]*8
         h = Heading(text='Presets')
         self.widget.addelement(h)
         btngrp = ButtonGroup(justified=True)
         for i in range(self.num_presets):
+            try:
+                preset = self.vidhub.presets[i]
+                name = preset.name
+            except IndexError:
+                name = str(i+1)
             attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), i)}
-            btn = Button(text=str(i+1), cl='preset-btn', attrs=attrs)
+            btn = Button(text=name, cl='preset-btn', attrs=attrs)
             btngrp.addelement(btn)
+            self.preset_buttons.append(btn)
         self.widget.addelement(btngrp)
         attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), 'record')}
         self.record_enable_btn = Button(text='Record', attrs=attrs)
         self.widget.addelement(self.record_enable_btn)
         self.bind(record_enable=self.on_record_enable)
+        self.vidhub.bind(
+            on_preset_added=self.on_preset_added,
+            on_preset_active=self.on_preset_active,
+        )
     def on_record_enable(self, instance, value, **kwargs):
         id_key = self.record_enable_btn.attrs[self.sofi_data_id_key]
         selector = "[{}='{}']".format(self.sofi_data_id_key, id_key)
@@ -176,6 +185,35 @@ class PresetButtons(SofiDataId):
             self.app.addclass(selector, 'btn-danger')
         else:
             self.app.removeclass(selector, 'btn-danger')
+    def on_preset_added(self, *args, **kwargs):
+        preset = kwargs.get('preset')
+        try:
+            btn = self.preset_buttons[preset.index]
+        except IndexError:
+            return
+        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        self.app.text(selector, preset.name)
+        preset.bind(name=self.on_preset_name)
+    def on_preset_name(self, instance, value, **kwargs):
+        try:
+            btn = self.preset_buttons[instance.index]
+        except IndexError:
+            return
+        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        self.app.text(selector, value)
+    def on_preset_active(self, *args, **kwargs):
+        preset = kwargs.get('preset')
+        try:
+            btn = self.preset_buttons[preset.index]
+        except IndexError:
+            return
+        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        if preset.active:
+            self.app.removeclass(selector, 'btn-default')
+            self.app.addclass(selector, 'btn-primary')
+        else:
+            self.app.removeclass(selector, 'btn-primary')
+            self.app.addclass(selector, 'btn-default')
     async def on_click(self, data_id):
         if data_id.split('_')[0] != self.get_data_id():
             return
@@ -184,11 +222,14 @@ class PresetButtons(SofiDataId):
             return
         i = int(data_id.split('_')[1])
         if self.record_enable:
-            self.presets[i] = self.vidhub.crosspoints[:]
+            await self.vidhub.store_preset(index=i)
             self.record_enable = False
-        elif len(self.presets[i]):
-            args = [(i, v) for i, v in enumerate(self.presets[i])]
-            await self.vidhub.set_crosspoints(*args)
+        else:
+            try:
+                preset = self.vidhub.presets[i]
+            except IndexError:
+                return
+            await preset.recall()
 
 class VidHubView(SofiDataId):
     selected_output = Property(0)

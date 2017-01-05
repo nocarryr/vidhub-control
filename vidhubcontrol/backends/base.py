@@ -10,6 +10,7 @@ class BackendBase(Dispatcher):
     crosspoint_control = ListProperty()
     output_label_control = ListProperty()
     input_label_control = ListProperty()
+    presets = ListProperty()
     device_model = Property()
     device_id = Property()
     device_version = Property()
@@ -18,6 +19,7 @@ class BackendBase(Dispatcher):
     connected = Property(False)
     running = Property(False)
     prelude_parsed = Property(False)
+    _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
         self.client = None
         self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
@@ -31,6 +33,15 @@ class BackendBase(Dispatcher):
             input_label_control=self.on_prop_control,
             crosspoint_control=self.on_prop_control,
         )
+        presets = kwargs.get('presets', [])
+        for pst_data in presets:
+            pst_data['backend'] = self
+            preset = Preset(**pst_data)
+            self.presets.append(preset)
+            preset.bind(
+                on_preset_stored=self.on_preset_stored,
+                active=self.on_preset_active,
+            )
         asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def connect(self):
         if self.connected:
@@ -67,6 +78,35 @@ class BackendBase(Dispatcher):
         raise NotImplementedError()
     async def set_input_labels(self, *args):
         raise NotImplementedError()
+    async def add_preset(self, name=None):
+        index = len(self.presets)
+        preset = Preset(backend=self, name=name, index=index)
+        self.presets.append(preset)
+        preset.bind(
+            on_preset_stored=self.on_preset_stored,
+            active=self.on_preset_active,
+        )
+        self.emit('on_preset_added', backend=self, preset=preset)
+        return preset
+    async def store_preset(self, outputs_to_store=None, name=None, index=None, clear_current=True):
+        if index is not None:
+            while True:
+                try:
+                    preset = self.presets[index]
+                except IndexError:
+                    preset = None
+                if preset is not None:
+                    break
+                await self.add_preset()
+        if name is not None:
+            preset.name = name
+        await preset.store(outputs_to_store, clear_current)
+        return preset
+    def on_preset_stored(self, *args, **kwargs):
+        kwargs['backend'] = self
+        self.emit('on_preset_stored', *args, **kwargs)
+    def on_preset_active(self, instance, value, **kwargs):
+        self.emit('on_preset_active', backend=self, preset=instance, value=value)
     def on_num_outputs(self, instance, value, **kwargs):
         if value == len(self.output_labels):
             return
@@ -106,3 +146,61 @@ class BackendBase(Dispatcher):
             coro = self.set_input_labels
         if coro is not None:
             tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
+
+class Preset(Dispatcher):
+    name = Property()
+    index = Property()
+    crosspoints = DictProperty()
+    active = Property(False)
+    _events_ = ['on_preset_stored']
+    def __init__(self, **kwargs):
+        self.backend = kwargs.get('backend')
+        self.index = kwargs.get('index')
+        name = kwargs.get('name')
+        if name is None:
+            name = 'Preset {}'.format(self.index + 1)
+        self.name = name
+        self.crosspoints = kwargs.get('crosspoints', {})
+        if self.backend.connected and self.backend.prelude_parsed:
+            self.check_active()
+        else:
+            self.backend.bind(prelude_parsed=self.on_backend_ready)
+        self.backend.bind(crosspoints=self.on_backend_crosspoints)
+    async def store(self, outputs_to_store=None, clear_current=True):
+        if outputs_to_store is None:
+            outputs_to_store = range(self.backend.num_outputs)
+        if clear_current:
+            self.crosspoints = {}
+        for out_idx in outputs_to_store:
+            self.crosspoints[out_idx] = self.backend.crosspoints[out_idx]
+        self.active = True
+        self.emit('on_preset_stored', preset=self)
+    async def recall(self):
+        if not len(self.crosspoints):
+            return
+        args = [(i, v) for i, v in self.crosspoints.items()]
+        await self.backend.set_crosspoints(*args)
+    def check_active(self, keys=None):
+        if not len(self.crosspoints):
+            self.active = False
+            return
+        if keys is not None:
+            keys = set(keys) & set(self.crosspoints.keys())
+        else:
+            keys = self.crosspoints.keys()
+        for out_idx in keys:
+            in_idx = self.crosspoints[out_idx]
+            if self.backend.crosspoints[out_idx] != in_idx:
+                self.active = False
+                return
+        self.active = True
+    def on_backend_ready(self, instance, value, **kwargs):
+        if not value:
+            return
+        self.backend.unbind(self.on_backend_ready)
+        self.check_active()
+    def on_backend_crosspoints(self, instance, value, **kwargs):
+        if not self.backend.prelude_parsed:
+            return
+        keys = kwargs.get('keys')
+        self.check_active(keys)
