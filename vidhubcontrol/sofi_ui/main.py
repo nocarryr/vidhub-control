@@ -106,6 +106,10 @@ class InputButtons(ButtonGrid):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub.bind(crosspoints=self.on_vidhub_crosspoints)
+    def build_buttons(self):
+        self.button_states = [False]*self.vidhub.num_inputs
+        self.on_selected_output(self.vidhub_view, self.vidhub_view.selected_output)
+        super().build_buttons()
     def on_vidhub_crosspoints(self, instance, value, **kwargs):
         self.on_selected_output(self.vidhub_view, self.vidhub_view.selected_output)
     def on_selected_output(self, instance, value, **kwargs):
@@ -128,6 +132,10 @@ class OutputButtons(ButtonGrid):
     num_buttons_property = 'num_outputs'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+    def build_buttons(self):
+        self.button_states = [False]*self.vidhub.num_outputs
+        self.on_selected_output(self.vidhub_view, self.vidhub_view.selected_output)
+        super().build_buttons()
     def on_selected_output(self, instance, value, **kwargs):
         for i, state in enumerate(self.button_states):
             if not state:
