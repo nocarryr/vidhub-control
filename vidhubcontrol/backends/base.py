@@ -180,15 +180,11 @@ class Preset(Dispatcher):
             return
         args = [(i, v) for i, v in self.crosspoints.items()]
         await self.backend.set_crosspoints(*args)
-    def check_active(self, keys=None):
+    def check_active(self):
         if not len(self.crosspoints):
             self.active = False
             return
-        if keys is not None:
-            keys = set(keys) & set(self.crosspoints.keys())
-        else:
-            keys = self.crosspoints.keys()
-        for out_idx in keys:
+        for out_idx, in_idx in self.crosspoints.items():
             in_idx = self.crosspoints[out_idx]
             if self.backend.crosspoints[out_idx] != in_idx:
                 self.active = False
@@ -202,5 +198,4 @@ class Preset(Dispatcher):
     def on_backend_crosspoints(self, instance, value, **kwargs):
         if not self.backend.prelude_parsed:
             return
-        keys = kwargs.get('keys')
-        self.check_active(keys)
+        self.check_active()
