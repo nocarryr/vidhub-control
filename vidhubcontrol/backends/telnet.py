@@ -49,7 +49,12 @@ class TelnetBackend(BackendBase):
     async def do_connect(self):
         self.rx_bfr = b''
         logger.debug('connecting')
-        c = self.client = await aiotelnetlib.Telnet(self.hostaddr, self.hostport)
+        try:
+            c = self.client = await aiotelnetlib.Telnet(self.hostaddr, self.hostport)
+        except OSError as e:
+            logger.error(e)
+            self.client = None
+            return False
         self.prelude_parsed = False
         self.read_enabled = True
         self.read_coro = asyncio.ensure_future(self.read_loop(), loop=self.event_loop)
