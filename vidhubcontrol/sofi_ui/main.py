@@ -172,10 +172,16 @@ class PresetButtons(SofiDataId):
             try:
                 preset = self.vidhub.presets[i]
                 name = preset.name
+                active = preset.active
             except IndexError:
                 name = str(i+1)
+                active = False
             attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), i)}
-            btn = Button(text=name, cl='preset-btn', attrs=attrs)
+            if active:
+                severity = 'primary'
+            else:
+                severity = 'default'
+            btn = Button(text=name, cl='preset-btn', severity=severity, attrs=attrs)
             btngrp.addelement(btn)
             self.preset_buttons.append(btn)
         self.widget.addelement(btngrp)
