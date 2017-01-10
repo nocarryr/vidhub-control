@@ -7,6 +7,7 @@ logging.basicConfig(format="%(asctime)s [%(levelname)s] - %(funcName)s: %(messag
 from sofi.app import Sofi
 from sofi.ui import (
     Container, Heading, View, Row, Column, ButtonGroup, Button,
+    Navbar, Dropdown, DropdownItem, PageHeader,
 )
 
 from pydispatch import Dispatcher, Property
@@ -22,6 +23,12 @@ class SofiDataId(Dispatcher):
     sofi_data_id_key = 'data-sofi-id'
     def __init__(self, **kwargs):
         self.app = kwargs.get('app')
+    def remove(self):
+        if hasattr(self, 'vidhub'):
+            self.vidhub.unbind(self)
+        selector = "[{}='{}']".format(self.sofi_data_id_key, self.get_data_id())
+        self.app.remove(selector)
+        logger.info('remove {}'.format(selector))
     def get_data_id(self):
         return str(id(self))
     def get_data_id_attr(self):
@@ -157,7 +164,7 @@ class PresetButtons(SofiDataId):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub = kwargs.get('vidhub')
-        self.widget = Container()
+        self.widget = Container(attrs=self.get_data_id_attr())
         h = Heading(text='Presets')
         self.widget.addelement(h)
         btngrp = ButtonGroup(justified=True)
@@ -180,6 +187,10 @@ class PresetButtons(SofiDataId):
             on_preset_added=self.on_preset_added,
             on_preset_active=self.on_preset_active,
         )
+    def remove(self):
+        for preset in self.vidhub.presets:
+            preset.unbind(self)
+        super().remove()
     def on_record_enable(self, instance, value, **kwargs):
         id_key = self.record_enable_btn.attrs[self.sofi_data_id_key]
         selector = "[{}='{}']".format(self.sofi_data_id_key, id_key)
@@ -235,13 +246,29 @@ class PresetButtons(SofiDataId):
 
 class VidHubView(SofiDataId):
     selected_output = Property(0)
+    vidhub = Property()
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.input_buttons = None
+        self.output_buttons = None
+        self.preset_buttons = None
+        self.widget = Container(attrs=self.get_data_id_attr())
+        self.bind(vidhub=self.on_vidhub)
         self.vidhub = kwargs.get('vidhub')
+    def on_vidhub(self, instance, value, **kwargs):
+        for attr in ['input_buttons', 'output_buttons', 'preset_buttons']:
+            obj = getattr(self, attr)
+            if obj is not None:
+                obj.remove()
+            setattr(self, attr, None)
+        del self.widget._children[:]
+        if self.vidhub is not None:
+            self.build_view()
+    def build_view(self):
         self.input_buttons = InputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.output_buttons = OutputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.preset_buttons = PresetButtons(vidhub=self.vidhub, app=self.app)
-        self.widget = Container()
+        self.widget.addelement(PageHeader(text=str(self.vidhub.device_id)))
         row = Row()
         col = Column(count=12)
         row.addelement(col)
@@ -257,26 +284,65 @@ class VidHubView(SofiDataId):
         row.addelement(col)
         col.addelement(self.preset_buttons.widget)
         self.widget.addelement(row)
+        if self.app.loaded:
+            selector = "[{}='{}']".format(self.sofi_data_id_key, self.get_data_id())
+            self.app.replace(selector, str(self.widget))
     async def on_click(self, data_id):
-        await self.input_buttons.on_click(data_id)
-        await self.output_buttons.on_click(data_id)
-        await self.preset_buttons.on_click(data_id)
+        for attr in ['input_buttons', 'output_buttons', 'preset_buttons']:
+            obj = getattr(self, attr)
+            if obj is None:
+                return
+            await obj.on_click(data_id)
 
 class App(object):
     def __init__(self, **kwargs):
         self.vidhub = kwargs.get('vidhub')
         self.app = Sofi()
+        self.app.loaded = False
         self.app.register('init', self.oninit)
         self.app.register('load', self.onload)
     def start(self):
         self.app.start()
     async def oninit(self, e):
         await self.vidhub.connect()
-        v = View()
+        v = self.view = View()
+        nav = Navbar(brand='Vidhub Control')
+        dr = Dropdown('Select Device')
+        for device_id, vidhub in config.vidhubs.items():
+            dr.addelement(DropdownItem(
+                str(device_id),
+                cl='device-select',
+                attrs={'data-device-id':str(device_id)},
+            ))
+        dr.addelement(DropdownItem(
+            'None',
+            cl='device-select',
+            attrs={'data-device-id':'NONE'}
+        ))
+        nav.adddropdown(dr)
+        v.addelement(nav)
         self.vidhub_view = VidHubView(vidhub=self.vidhub, app=self.app)
         v.addelement(self.vidhub_view.widget)
         self.app.load(str(v))
+        self.app.loaded = True
     async def onload(self, e):
+        self.app.register('click', self.on_device_select_click, selector='.device-select')
+        self.app.register('click', self.on_click, selector='button')
+    async def on_device_select_click(self, e):
+        self.app.unregister('click', self.on_click, selector='button')
+        device_id = e['event_object']['currentTarget']['data-device-id']
+        if device_id == 'NONE':
+            self.vidhub = None
+            self.vidhub_view.vidhub = None
+            return
+        if device_id not in config.vidhubs:
+            for key in config.vidhubs.keys():
+                if str(key) == device_id:
+                    device_id = key
+                    break
+        self.vidhub = config.vidhubs[device_id].backend
+        logger.info('switching to vidhub {!r}'.format(self.vidhub))
+        self.vidhub_view.vidhub = self.vidhub
         self.app.register('click', self.on_click, selector='button')
     async def on_click(self, e):
         data_id = e['event_object']['target']['data-sofi-id']
