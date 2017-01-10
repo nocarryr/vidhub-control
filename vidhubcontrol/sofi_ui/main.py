@@ -7,7 +7,7 @@ logging.basicConfig(format="%(asctime)s [%(levelname)s] - %(funcName)s: %(messag
 from sofi.app import Sofi
 from sofi.ui import (
     Container, Heading, View, Row, Column, ButtonGroup, Button,
-    Navbar, Dropdown, DropdownItem, PageHeader,
+    Navbar, Dropdown, DropdownItem, PageHeader, Span,
 )
 
 from pydispatch import Dispatcher, Property
@@ -259,22 +259,67 @@ class VidHubView(SofiDataId):
         self.output_buttons = None
         self.preset_buttons = None
         self.widget = Container(attrs=self.get_data_id_attr())
+        self.connection_icon = None
+        self.connection_btn = None
         self.bind(vidhub=self.on_vidhub)
         self.vidhub = kwargs.get('vidhub')
     def on_vidhub(self, instance, value, **kwargs):
+        old = kwargs.get('old')
+        if old is not None:
+            old.unbind(self)
         for attr in ['input_buttons', 'output_buttons', 'preset_buttons']:
             obj = getattr(self, attr)
             if obj is not None:
                 obj.remove()
             setattr(self, attr, None)
         del self.widget._children[:]
+        self.connection_icon = None
+        self.connection_btn = None
         if self.vidhub is not None:
+            self.vidhub.bind(connected=self.on_vidhub_connected)
             self.build_view()
+    def on_vidhub_connected(self, instance, value, **kwargs):
+        if self.connection_icon is None:
+            return
+        states = {True:'glyphicon glyphicon-ok-circle', False:'glyphicon glyphicon-ban-circle'}
+        self.connection_icon.cl = states[value]
+
+        states = {True:'btn btn-success', False:'btn btn-warning'}
+        self.connection_btn._children[0] = 'Connect ' if not value else 'Disconnect '
+
+        selector = '#{}'.format(self.connection_btn.ident)
+        self.app.removeclass(selector, states[not value])
+        self.app.addclass(selector, states[value])
+        self.app.replace(selector, ''.join([str(c) for c in self.connection_btn._children]))
+
     def build_view(self):
         self.input_buttons = InputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.output_buttons = OutputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.preset_buttons = PresetButtons(vidhub=self.vidhub, app=self.app)
-        self.widget.addelement(PageHeader(text=str(self.vidhub.device_id)))
+
+        row = Row()
+        col = Column(count=4)
+        h = PageHeader(text=str(self.vidhub.device_id))
+        col.addelement(h)
+        row.addelement(col)
+
+        col = Column(count=4, ident='connection_container')
+        if self.vidhub.connected:
+            cl = 'glyphicon glyphicon-ok-circle'
+        else:
+            cl = 'glyphicon glyphicon-ban-circle'
+        ico = self.connection_icon = Span(cl=cl, ident='connection_icon', attrs={'aria-hidden':'true'})
+        btn = self.connection_btn = Button(
+            severity='warning' if not self.vidhub.connected else 'success',
+            ident='connection_btn',
+        )
+        btn._parent = col
+        btn._children.append('Connect ' if not self.vidhub.connected else 'Disconnect ')
+        btn.addelement(ico)
+        col.addelement(btn)
+        row.addelement(col)
+        self.widget.addelement(row)
+
         row = Row()
         col = Column(count=12)
         row.addelement(col)
@@ -293,7 +338,20 @@ class VidHubView(SofiDataId):
         if self.app.loaded:
             selector = "[{}='{}']".format(self.sofi_data_id_key, self.get_data_id())
             self.app.replace(selector, str(self.widget))
-    async def on_click(self, data_id):
+    async def on_click(self, e):
+        ident = e['event_object']['target'].get('id')
+        if self.connection_btn is not None and ident == self.connection_btn.ident:
+            if self.vidhub is None:
+                return
+            if self.vidhub.connected:
+                await self.vidhub.disconnect()
+            else:
+                await self.vidhub.connect()
+            return
+        data_id = e['event_object']['target'].get('data-sofi-id')
+        if data_id is None:
+            return
+        logger.info(data_id)
         for attr in ['input_buttons', 'output_buttons', 'preset_buttons']:
             obj = getattr(self, attr)
             if obj is None:
@@ -351,9 +409,7 @@ class App(object):
         self.vidhub_view.vidhub = self.vidhub
         self.app.register('click', self.on_click, selector='button')
     async def on_click(self, e):
-        data_id = e['event_object']['target']['data-sofi-id']
-        logger.info(data_id)
-        await self.vidhub_view.on_click(data_id)
+        await self.vidhub_view.on_click(e)
 
 if __name__ == '__main__':
     import argparse
