@@ -31,7 +31,14 @@ class TelnetBackend(BackendBase):
         self.response_ready = asyncio.Event()
     async def read_loop(self):
         while self.read_enabled:
-            rx_bfr = await self.client.read_very_eager()
+            try:
+                rx_bfr = await self.client.read_very_eager()
+            except Exception as e:
+                self.client = None
+                self.read_enabled = False
+                self.connected = False
+                logger.error(e)
+                return
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
                 if True:#self.rx_bfr.endswith(b'\n\n'):
@@ -40,12 +47,19 @@ class TelnetBackend(BackendBase):
                     self.rx_bfr = b''
             await asyncio.sleep(.1)
     async def send_to_client(self, data):
-        c = self.client
         if not self.connected:
             c = await self.connect()
+        c = self.client
+        if not c:
+            return
         s = '\n'.join(['---> {}'.format(line) for line in data.decode('UTF-8').splitlines()])
         logger.debug(s)
-        await c.write(data)
+        try:
+            await c.write(data)
+        except Exception as e:
+            self.client = None
+            self.connected = False
+            logger.error(e)
     async def do_connect(self):
         self.rx_bfr = b''
         logger.debug('connecting')
