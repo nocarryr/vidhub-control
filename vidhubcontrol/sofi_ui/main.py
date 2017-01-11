@@ -7,7 +7,7 @@ logging.basicConfig(format="%(asctime)s [%(levelname)s] - %(funcName)s: %(messag
 from sofi.app import Sofi
 from sofi.ui import (
     Container, Heading, View, Row, Column, ButtonGroup, Button,
-    Navbar, Dropdown, DropdownItem, PageHeader, Span,
+    Navbar, Dropdown, DropdownItem, PageHeader, Span, Element,
 )
 
 from pydispatch import Dispatcher, Property
@@ -26,13 +26,24 @@ class SofiDataId(Dispatcher):
     def remove(self):
         if hasattr(self, 'vidhub'):
             self.vidhub.unbind(self)
-        selector = "[{}='{}']".format(self.sofi_data_id_key, self.get_data_id())
+        selector = self.get_selector()
         self.app.remove(selector)
         logger.info('remove {}'.format(selector))
     def get_data_id(self):
         return str(id(self))
-    def get_data_id_attr(self):
-        return {self.sofi_data_id_key:self.get_data_id()}
+    def get_data_id_attr(self, extra=None):
+        if extra is not None:
+            s = '{}_{}'.format(self.get_data_id(), extra)
+        else:
+            s = self.get_data_id()
+        return {self.sofi_data_id_key:s}
+    def get_selector(self, extra='', **kwargs):
+        obj = kwargs.get('obj', self)
+        if isinstance(obj, Element):
+            if obj.attrs and self.sofi_data_id_key in obj.attrs:
+                kwargs.setdefault('data_id', obj.attrs[self.sofi_data_id_key])
+        data_id = kwargs.get('data_id', self.get_data_id())
+        return "[{}='{}{}']".format(self.sofi_data_id_key, data_id, extra)
 
 class ButtonGrid(SofiDataId):
     label_property = None
@@ -78,8 +89,7 @@ class ButtonGrid(SofiDataId):
                 severity = 'primary'
             else:
                 severity = 'default'
-            attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), i)}
-            btn = Button(text=lbl, severity=severity, attrs=attrs)
+            btn = Button(text=lbl, severity=severity, attrs=self.get_data_id_attr(i))
             self.buttons.append(btn)
             btngrp.addelement(btn)
 
@@ -91,8 +101,7 @@ class ButtonGrid(SofiDataId):
         for key in keys:
             state = value[key]
             btn = self.buttons[key]
-            selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
-            #selector = "[{}='{}_{}']".format(self.sofi_data_id_key, self.get_data_id(), key)
+            selector = self.get_selector(obj=btn)
             if state:
                 self.app.removeclass(selector, 'btn-default')
                 self.app.addclass(selector, 'btn-primary')
@@ -106,7 +115,7 @@ class ButtonGrid(SofiDataId):
         for key in keys:
             lbl = value[key]
             btn = self.buttons[key]
-            selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+            selector = self.get_selector(obj=btn)
             self.app.text(selector, lbl)
 
 class InputButtons(ButtonGrid):
@@ -176,7 +185,7 @@ class PresetButtons(SofiDataId):
             except IndexError:
                 name = str(i+1)
                 active = False
-            attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), i)}
+            attrs = self.get_data_id_attr(i)
             if active:
                 severity = 'primary'
             else:
@@ -185,8 +194,7 @@ class PresetButtons(SofiDataId):
             btngrp.addelement(btn)
             self.preset_buttons.append(btn)
         self.widget.addelement(btngrp)
-        attrs = {self.sofi_data_id_key:'{}_{}'.format(self.get_data_id(), 'record')}
-        self.record_enable_btn = Button(text='Record', attrs=attrs)
+        self.record_enable_btn = Button(text='Record', attrs=self.get_data_id_attr('record'))
         self.widget.addelement(self.record_enable_btn)
         self.bind(record_enable=self.on_record_enable)
         self.vidhub.bind(
@@ -198,8 +206,7 @@ class PresetButtons(SofiDataId):
             preset.unbind(self)
         super().remove()
     def on_record_enable(self, instance, value, **kwargs):
-        id_key = self.record_enable_btn.attrs[self.sofi_data_id_key]
-        selector = "[{}='{}']".format(self.sofi_data_id_key, id_key)
+        selector = self.get_selector(obj=self.record_enable_btn)
         if value:
             self.app.addclass(selector, 'btn-danger')
         else:
@@ -210,7 +217,7 @@ class PresetButtons(SofiDataId):
             btn = self.preset_buttons[preset.index]
         except IndexError:
             return
-        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        selector = self.get_selector(obj=btn)
         self.app.text(selector, preset.name)
         preset.bind(name=self.on_preset_name)
     def on_preset_name(self, instance, value, **kwargs):
@@ -218,7 +225,7 @@ class PresetButtons(SofiDataId):
             btn = self.preset_buttons[instance.index]
         except IndexError:
             return
-        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        selector = self.get_selector(obj=btn)
         self.app.text(selector, value)
     def on_preset_active(self, *args, **kwargs):
         preset = kwargs.get('preset')
@@ -226,7 +233,7 @@ class PresetButtons(SofiDataId):
             btn = self.preset_buttons[preset.index]
         except IndexError:
             return
-        selector = "[{}='{}']".format(self.sofi_data_id_key, btn.attrs[self.sofi_data_id_key])
+        selector = self.get_selector(obj=btn)
         if preset.active:
             self.app.removeclass(selector, 'btn-default')
             self.app.addclass(selector, 'btn-primary')
@@ -336,8 +343,7 @@ class VidHubView(SofiDataId):
         col.addelement(self.preset_buttons.widget)
         self.widget.addelement(row)
         if self.app.loaded:
-            selector = "[{}='{}']".format(self.sofi_data_id_key, self.get_data_id())
-            self.app.replace(selector, str(self.widget))
+            self.app.replace(self.get_selector(), str(self.widget))
     async def on_click(self, e):
         ident = e['event_object']['target'].get('id')
         if self.connection_btn is not None and ident == self.connection_btn.ident:
