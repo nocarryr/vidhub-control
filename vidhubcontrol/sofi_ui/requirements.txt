@@ -1,1 +1,1 @@
-git+https://github.com/nocarryr/sofi.git@nocarryr-patch-1#egg=sofi
+git+https://github.com/nocarryr/sofi.git@nocarryr-develop#egg=sofi
