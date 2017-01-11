@@ -6,7 +6,7 @@ logging.basicConfig(format="%(asctime)s [%(levelname)s] - %(funcName)s: %(messag
 
 from sofi.app import Sofi
 from sofi.ui import (
-    Container, Heading, View, Row, Column, ButtonGroup, Button,
+    Container, Heading, View, Row, Column, ButtonGroup, Button, Div, Input,
     Navbar, Dropdown, DropdownItem, PageHeader, Span, Element,
 )
 
@@ -44,6 +44,87 @@ class SofiDataId(Dispatcher):
                 kwargs.setdefault('data_id', obj.attrs[self.sofi_data_id_key])
         data_id = kwargs.get('data_id', self.get_data_id())
         return "[{}='{}{}']".format(self.sofi_data_id_key, data_id, extra)
+
+class InlineTextEdit(SofiDataId):
+    label_text = Property()
+    initial = Property()
+    value = Property()
+    input_type = Property('text')
+    hidden = Property(True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.label_text = kwargs.get('label', '')
+        self.initial = kwargs.get('initial', '')
+        self.hidden = kwargs.get('hidden', True)
+        self.input_type = kwargs.get('input_type', 'text')
+        if self.hidden:
+            cl = 'panel hidden'
+        else:
+            cl = 'panel'
+        self.widget = Div(cl=cl, attrs=self.get_data_id_attr())
+        body = Div(cl='panel-body')
+
+        grp = Div(cl='input-group')
+        self.label_widget = Span(
+            text=self.label_text,
+            cl='input-group-addon',
+            attrs=self.get_data_id_attr('label'),
+        )
+        attrs = self.get_data_id_attr('input')
+        attrs['value'] = self.initial
+        self.input_widget = Input(
+            inputtype=self.input_type,
+            attrs=attrs,
+        )
+        grp.addelement(self.label_widget)
+        grp.addelement(self.input_widget)
+        body.addelement(grp)
+
+        btngrp = ButtonGroup()
+        self.ok_btn = Button(text='Ok', cl='text-edit-btn', severity='primary', attrs=self.get_data_id_attr('ok'))
+        self.cancel_btn = Button(text='Cancel', cl='text-edit-btn', attrs=self.get_data_id_attr('cancel'))
+        btngrp.addelement(self.ok_btn)
+        btngrp.addelement(self.cancel_btn)
+        body.addelement(btngrp)
+
+        self.widget.addelement(body)
+
+        self.bind(
+            label_text=self.on_label_text,
+            initial=self.on_initial,
+            hidden=self.on_hidden,
+        )
+        self.app.register('load', self.on_app_load)
+    async def on_app_load(self, *args):
+        self.app.register('click', self.on_btn_click, '.text-edit-btn')
+    async def on_btn_click(self, e):
+        data_id = e['event_object']['target'].get('data-sofi-id')
+        if not data_id:
+            return
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        selector = self.get_selector(obj=self.input_widget)
+        if data_id[1] == 'ok':
+            self.value = await self.app.get_property(selector, 'value')
+        elif data_id[1] == 'cancel':
+            self.input_widget.attrs['value'] = self.initial
+            self.app.property(selector, 'value', self.initial)
+        self.hidden = True
+    def on_label_text(self, instance, value, **kwargs):
+        selector = self.get_selector(obj=self.label_widget)
+        self.app.text(selector, value)
+    def on_initial(self, instance, value, **kwargs):
+        if self.input_widget.attrs['value'] == value:
+            return
+        self.input_widget.attrs['value'] = value
+        selector = self.get_selector(obj=self.input_widget)
+        self.app.attr(selector, 'value', value)
+    def on_hidden(self, instance, value, **kwargs):
+        if value:
+            self.app.addclass(self.get_selector(), 'hidden')
+        else:
+            self.app.removeclass(self.get_selector(), 'hidden')
 
 class ButtonGrid(SofiDataId):
     label_property = None
@@ -168,6 +249,8 @@ class OutputButtons(ButtonGrid):
 
 class PresetButtons(SofiDataId):
     record_enable = Property(False)
+    edit_enable = Property(False)
+    edit_preset = Property()
     preset_buttons = ListProperty()
     num_presets = 8
     def __init__(self, **kwargs):
@@ -176,10 +259,13 @@ class PresetButtons(SofiDataId):
         self.widget = Container(attrs=self.get_data_id_attr())
         h = Heading(text='Presets')
         self.widget.addelement(h)
+        row = Row()
+        col = Column(count=12)
         btngrp = ButtonGroup(justified=True)
         for i in range(self.num_presets):
             try:
                 preset = self.vidhub.presets[i]
+                preset.bind(name=self.on_preset_name)
                 name = preset.name
                 active = preset.active
             except IndexError:
@@ -193,10 +279,32 @@ class PresetButtons(SofiDataId):
             btn = Button(text=name, cl='preset-btn', severity=severity, attrs=attrs)
             btngrp.addelement(btn)
             self.preset_buttons.append(btn)
-        self.widget.addelement(btngrp)
+        col.addelement(btngrp)
+        row.addelement(col)
+        self.widget.addelement(row)
+
+        row = Row()
+        col = Column(count=4)
+        btngrp = ButtonGroup()
+        self.edit_enable_btn = Button(text='Edit Name', attrs=self.get_data_id_attr('edit'))
         self.record_enable_btn = Button(text='Record', attrs=self.get_data_id_attr('record'))
-        self.widget.addelement(self.record_enable_btn)
-        self.bind(record_enable=self.on_record_enable)
+        btngrp.addelement(self.edit_enable_btn)
+        btngrp.addelement(self.record_enable_btn)
+        col.addelement(btngrp)
+        row.addelement(col)
+
+        col = Column(count=4)
+        self.edit_widget = InlineTextEdit(app=self.app)
+        self.edit_widget.bind(value=self.on_edit_widget_value)
+        col.addelement(self.edit_widget.widget)
+        row.addelement(col)
+
+        self.widget.addelement(row)
+
+        self.bind(
+            edit_enable=self.on_edit_enable,
+            record_enable=self.on_record_enable,
+        )
         self.vidhub.bind(
             on_preset_added=self.on_preset_added,
             on_preset_active=self.on_preset_active,
@@ -205,12 +313,31 @@ class PresetButtons(SofiDataId):
         for preset in self.vidhub.presets:
             preset.unbind(self)
         super().remove()
+    def on_edit_enable(self, instance, value, **kwargs):
+        selector = self.get_selector(obj=self.edit_enable_btn)
+        if value:
+            self.record_enable = False
+            self.app.removeclass(selector, 'btn-default')
+            self.app.addclass(selector, 'btn-primary')
+        else:
+            self.app.removeclass(selector, 'btn-primary')
+            self.app.addclass(selector, 'btn-default')
     def on_record_enable(self, instance, value, **kwargs):
         selector = self.get_selector(obj=self.record_enable_btn)
         if value:
+            self.edit_enable = False
             self.app.addclass(selector, 'btn-danger')
         else:
             self.app.removeclass(selector, 'btn-danger')
+    def on_edit_widget_value(self, instance, value, **kwargs):
+        if not self.edit_enable:
+            return
+        if not self.edit_preset:
+            return
+        self.edit_enable = False
+        preset = self.edit_preset
+        self.edit_preset = None
+        preset.name = value
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         try:
@@ -241,13 +368,27 @@ class PresetButtons(SofiDataId):
             self.app.removeclass(selector, 'btn-primary')
             self.app.addclass(selector, 'btn-default')
     async def on_click(self, data_id):
-        if data_id.split('_')[0] != self.get_data_id():
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
             return
-        if data_id.split('_')[1] == 'record':
+        if data_id[1] == 'edit':
+            self.edit_enable = not self.edit_enable
+            return
+        if data_id[1] == 'record':
             self.record_enable = not self.record_enable
             return
-        i = int(data_id.split('_')[1])
-        if self.record_enable:
+        i = int(data_id[1])
+        if self.edit_enable:
+            try:
+                preset = self.vidhub.presets[i]
+            except IndexError:
+                preset = None
+            if preset is None:
+                return
+            self.edit_preset = preset
+            self.edit_widget.initial = preset.name
+            self.edit_widget.hidden = False
+        elif self.record_enable:
             await self.vidhub.store_preset(index=i)
             self.record_enable = False
         else:
