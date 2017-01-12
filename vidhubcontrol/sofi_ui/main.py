@@ -189,7 +189,10 @@ class ButtonGrid(SofiDataId):
         self.widget.addelement(btngrp)
 
         self.edit_widget = InlineTextEdit(app=self.app)
-        self.edit_widget.bind(value=self.on_edit_widget_value)
+        self.edit_widget.bind(
+            value=self.on_edit_widget_value,
+            hidden=self.on_edit_widget_hidden,
+        )
         self.widget.addelement(self.edit_widget.widget)
 
         self.bind(
@@ -228,6 +231,10 @@ class ButtonGrid(SofiDataId):
             self.app.removeclass(selector, 'btn-primary')
             self.app.addclass(selector, 'btn-default')
             self.edit_widget.hidden = True
+    def on_edit_widget_hidden(self, instance, value, **kwargs):
+        if value:
+            self.edit_enable = False
+            self.edit_index = None
     def on_edit_widget_value(self, instance, value, **kwargs):
         if not self.edit_enable:
             return
@@ -362,7 +369,10 @@ class PresetButtons(SofiDataId):
 
         col = Column(count=4)
         self.edit_widget = InlineTextEdit(app=self.app)
-        self.edit_widget.bind(value=self.on_edit_widget_value)
+        self.edit_widget.bind(
+            value=self.on_edit_widget_value,
+            hidden=self.on_edit_widget_hidden,
+        )
         col.addelement(self.edit_widget.widget)
         row.addelement(col)
 
@@ -396,6 +406,10 @@ class PresetButtons(SofiDataId):
             self.app.addclass(selector, 'btn-danger')
         else:
             self.app.removeclass(selector, 'btn-danger')
+    def on_edit_widget_hidden(self, instance, value, **kwargs):
+        if value:
+            self.edit_enable = False
+            self.edit_preset = None
     def on_edit_widget_value(self, instance, value, **kwargs):
         if not self.edit_enable:
             return
@@ -405,6 +419,7 @@ class PresetButtons(SofiDataId):
         preset = self.edit_preset
         self.edit_preset = None
         preset.name = value
+        self.edit_widget.hidden = True
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         try:
