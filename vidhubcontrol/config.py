@@ -146,12 +146,14 @@ class VidhubConfig(ConfigBase):
     backend_name = Property()
     hostaddr = Property()
     hostport = Property(9990)
+    device_name = Property()
     device_id = Property()
     presets = ListProperty()
     _conf_attrs = [
         'backend_name',
         'hostaddr',
         'hostport',
+        'device_name',
         'device_id',
         'presets',
     ]
@@ -169,7 +171,17 @@ class VidhubConfig(ConfigBase):
         pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
         for preset in self.backend.presets:
             preset.bind(**pkwargs)
-        self.backend.bind(on_preset_added=self.on_preset_added)
+        if self.backend.device_name != self.device_name:
+            self.device_name = self.backend.device_name
+        self.backend.bind(
+            device_name=self.on_backend_prop_change,
+            on_preset_added=self.on_preset_added,
+        )
+        if hasattr(self.backend, 'hostport'):
+            self.backend.bind(
+                hostaddr=self.on_backend_prop_change,
+                hostport=self.on_backend_prop_change,
+            )
     @classmethod
     def from_existing(cls, backend):
         kwargs = dict(
@@ -177,6 +189,7 @@ class VidhubConfig(ConfigBase):
             backend_name=backend.__class__.__name__,
             hostaddr=getattr(backend, 'hostaddr', None),
             hostport=getattr(backend, 'hostport', None),
+            device_name=backend.device_name,
             device_id=backend.device_id,
             presets=[],
         )
@@ -202,6 +215,10 @@ class VidhubConfig(ConfigBase):
         if prop.name == 'crosspoints':
             value = value.copy()
         self.presets[instance.index][prop.name] = value
+        self.emit('trigger_save')
+    def on_backend_prop_change(self, instance, value, **kwargs):
+        prop = kwargs.get('property')
+        setattr(self, prop.name, value)
         self.emit('trigger_save')
     def _get_conf_data(self):
         d = super()._get_conf_data()

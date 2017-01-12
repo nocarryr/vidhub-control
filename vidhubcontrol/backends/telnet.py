@@ -19,6 +19,8 @@ class TelnetBackend(BackendBase):
         'VIDEO OUTPUT ROUTING:',
         'CONFIGURATION:',
     ]
+    hostaddr = Property()
+    hostport = Property(DEFAULT_PORT)
     def __init__(self, **kwargs):
         self.read_enabled = False
         self.current_section = None
