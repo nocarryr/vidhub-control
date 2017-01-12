@@ -6,6 +6,9 @@ from pydispatch.properties import DictProperty
 
 import zeroconf
 
+def convert_bytes_dict(d):
+    return {str(k):str(d[k]) for k in d.keys()}
+
 class ServiceInfo(Dispatcher):
     properties = DictProperty()
     _attrs = ['type', 'name', 'address', 'port', 'properties']
@@ -18,7 +21,7 @@ class ServiceInfo(Dispatcher):
         for attr in cls._attrs:
             val = getattr(info, attr)
             if attr == 'properties':
-                val = val.copy()
+                val = convert_bytes_dict(val)
             elif attr == 'address':
                 val = ipaddress.ip_address(val)
             kwargs[attr] = val
