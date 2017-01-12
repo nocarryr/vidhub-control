@@ -1,10 +1,12 @@
 import os
 import json
+import asyncio
 
 import jsonfactory
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
+from vidhubcontrol.discovery import BMDDiscovery
 from vidhubcontrol.backends.dummy import DummyBackend
 from vidhubcontrol.backends.telnet import TelnetBackend
 
@@ -25,15 +27,34 @@ class ConfigBase(Dispatcher):
         return d
 
 class Config(ConfigBase):
+    USE_DISCOVERY = True
     vidhubs = DictProperty()
     _conf_attrs = ['vidhubs']
     def __init__(self, **kwargs):
         self.filename = kwargs.get('filename', DEFAULT_FILENAME)
+        self.loop = kwargs.get('loop', asyncio.get_event_loop())
         vidhubs = kwargs.get('vidhubs', {})
         for vidhub_data in vidhubs.values():
             vidhub = VidhubConfig(**vidhub_data)
             self.vidhubs[vidhub.device_id] = vidhub
             vidhub.bind(trigger_save=self.on_vidhub_trigger_save)
+        self.discovery_listener = None
+        self.discovery_lock = asyncio.Lock()
+        if self.USE_DISCOVERY:
+            asyncio.ensure_future(self.start(), loop=self.loop)
+    async def start(self):
+        if not self.USE_DISCOVERY:
+            return
+        self.discovery_listener = BMDDiscovery(self.loop)
+        self.discovery_listener.bind(
+            service_added=self.on_discovery_service_added,
+        )
+        await self.discovery_listener.start()
+    async def stop(self):
+        if self.discovery_listener is None:
+            return
+        await self.discovery_listener.stop()
+        self.discovery_listener = None
     def build_backend(self, backend_name, **kwargs):
         for vidhub in self.vidhubs.values():
             if vidhub.backend_name != backend_name:
@@ -67,6 +88,31 @@ class Config(ConfigBase):
             return
         self.vidhubs[value] = vidhub
         self.save()
+    async def add_discovered_vidhub(self, info, device_id):
+        async with self.discovery_lock:
+            if device_id in self.vidhubs:
+                return
+            addr = str(info.address)
+            backend = await TelnetBackend.create_async(
+                hostaddr=addr,
+                hostport=int(info.port),
+                event_loop=self.loop,
+            )
+            if backend is None:
+                return
+            if backend.device_id != device_id:
+                await backend.disconect()
+                return
+            self.add_vidhub(backend)
+    def on_discovery_service_added(self, info, **kwargs):
+        if kwargs.get('class') != 'Videohub':
+            return
+        device_id = kwargs.get('id')
+        if device_id is None:
+            return
+        if device_id in self.vidhubs:
+            return
+        asyncio.ensure_future(self.add_discovered_vidhub(info, device_id))
     def on_vidhub_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
@@ -82,10 +128,10 @@ class Config(ConfigBase):
         with open(filename, 'w') as f:
             f.write(s)
     @classmethod
-    def load(cls, filename=None):
+    def load(cls, filename=None, **kwargs):
         if filename is None:
             filename = DEFAULT_FILENAME
-        kwargs = {'filename':filename}
+        kwargs['filename'] = filename
         filename = os.path.expanduser(filename)
         if os.path.exists(filename):
             with open(filename, 'r') as f:

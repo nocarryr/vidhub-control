@@ -11,6 +11,7 @@ setup(
     install_requires=[
         'python-dispatch',
         'json-object-factory',
+        'zeroconf',
     ],
     platforms=['any'],
     classifiers = [
