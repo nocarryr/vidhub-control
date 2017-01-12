@@ -142,7 +142,7 @@ class BMDDiscovery(Listener):
         await super().remove_service_info(info, **kwargs)
 
 
-if __name__ == '__main__':
+def main():
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
     listener = BMDDiscovery(loop)
@@ -153,10 +153,13 @@ if __name__ == '__main__':
 
     listener.bind(service_added=on_service_added, service_removed=on_service_removed)
 
-    async def main():
+    async def run():
         await listener.start()
         await asyncio.sleep(5)
         print(listener.services)
         await listener.stop()
 
-    loop.run_until_complete(main())
+    loop.run_until_complete(run())
+
+if __name__ == '__main__':
+    main()
