@@ -4,6 +4,57 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
 class BackendBase(Dispatcher):
+    """Base class for communicating with devices
+
+    Attributes:
+        device_id (str): The unique id as reported by the switcher.
+        device_version (str): The firmware version as reported by the switcher.
+        device_model (str): The model name as reported by the switcher.
+        num_outputs (int): The number of outputs as reported by the switcher.
+        num_inputs (int): The number of inputs as reported by the switcher.
+
+        crosspoints (list): This represents the currently active routing of the
+            switcher. Each element in the ``list`` represents an output (the
+            zero-based index of the ``list``) with its selected index as the
+            value (also zero-based).
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        output_labels (list): A ``list`` containing the names of each output
+            as reported by the switcher
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        input_labels (list): A ``list`` containing the names of each input
+            as reported by the switcher
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        crosspoint_control (list): This is similar to :attr:`~BackendBase.crosspoints`
+            but if modified from outside code, the crosspoint changes will be
+            set on the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        output_label_control (list): This is similar to :attr:~BackendBase.output_labels`
+            but if modified from outside code, the label changes will be written
+            to the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        input_label_control (list): This is similar to :attr:~BackendBase.input_labels`
+            but if modified from outside code, the label changes will be written
+            to the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        presets (list): The currently available (stored) ``list`` of :class:`Preset`
+            instances
+            :class:`pydispatch.properties.ListProperty`
+        connected (bool): A flag indicating the connection status.
+            :class:`pydispatch.properties.Property`
+
+    Events:
+        on_preset_added: This :class:`~pydispatch.dispatch.Event` is emitted
+            when a new :class:`Preset` has been added.
+        on_preset_stored: This :class:`~pydispatch.dispatch.Event` is emitted
+            when an existing :class:`Preset` has been recorded (updated).
+        on_preset_active: This :class:`~pydispatch.dispatch.Event` is emitted
+            when an existing :class:`Preset` has determined that its stored
+            routing information is currently active on the switcher.
+
+    """
     crosspoints = ListProperty()
     output_labels = ListProperty()
     input_labels = ListProperty()
@@ -76,18 +127,78 @@ class BackendBase(Dispatcher):
     async def get_status(self):
         raise NotImplementedError()
     async def set_crosspoint(self, out_idx, in_idx):
+        """Set a single crosspoint on the switcher
+
+        Arguments:
+            out_idx (int): The output to be set (zero-based)
+            in_idx (int): The input to switch the output (out_idx) to (zero-based)
+
+        """
         raise NotImplementedError()
     async def set_crosspoints(self, *args):
+        """Set multiple crosspoints in one method call
+
+        This is useful for setting many routing changes as it reduces the number
+        of commands sent to the switcher.
+
+        Arguments:
+            *args: Any number of output/input pairs to set. These should be given
+                as ``tuples`` of ``(out_idx, in_idx)`` as defined in
+                :meth:`~BackendBase.set_crosspoint`. They can be discontinuous
+                and unordered.
+
+        """
         raise NotImplementedError()
     async def set_output_label(self, out_idx, label):
+        """Set the label (name) of an output
+
+        Arguments:
+            out_idx (int): The output to be set (zero-based)
+            label (str): The label for the output
+        """
         raise NotImplementedError()
     async def set_output_labels(self, *args):
+        """Set multiple output labels in one method call
+
+        This is useful for setting many labels as it reduces the number
+        of commands sent to the switcher.
+
+        Arguments:
+            *args: Any number of output/label pairs to set. These should be given
+                as ``tuples`` of ``(out_idx, label)`` as defined in
+                :meth:`~BackendBase.set_output_label`. They can be discontinuous
+                and unordered.
+
+        """
         raise NotImplementedError()
     async def set_input_label(self, in_idx, label):
+        """Set the label (name) of an input
+
+        Arguments:
+            in_idx (int): The input to be set (zero-based)
+            label (str): The label for the input
+        """
         raise NotImplementedError()
     async def set_input_labels(self, *args):
+        """Set multiple input labels in one method call
+
+        This is useful for setting many labels as it reduces the number
+        of commands sent to the switcher.
+
+        Arguments:
+            *args: Any number of input/label pairs to set. These should be given
+                as ``tuples`` of ``(in_idx, label)`` as defined in
+                :meth:`~BackendBase.set_input_label`. They can be discontinuous
+                and unordered.
+
+        """
         raise NotImplementedError()
     async def add_preset(self, name=None):
+        """Adds a new :class:`Preset` instance
+
+        This method is used internally and should not normally be called outside
+        of this module. Instead, see :meth:`~BackendBase.store_preset`
+        """
         index = len(self.presets)
         preset = Preset(backend=self, name=name, index=index)
         self.presets.append(preset)
@@ -98,6 +209,32 @@ class BackendBase(Dispatcher):
         self.emit('on_preset_added', backend=self, preset=preset)
         return preset
     async def store_preset(self, outputs_to_store=None, name=None, index=None, clear_current=True):
+        """Store the current switcher state to a :class:`Preset`
+
+        Arguments:
+            outputs_to_store (optional): An iterable of the output numbers
+                (zero-based) that should be saved in the preset. If given, only
+                these outputs will be recorded and when recalled, any output
+                not in this argument will be unchanged. If not given or ``None``,
+                all outputs will be recorded.
+            name (optional): The name to be given to the preset. If not provided
+                or ``None`` the preset will be given a name based off of its index.
+            index (optional): The index for the preset. If given and the preset
+                exists in the :attr:`~BackendBase.presets` list, that preset
+                will be updated. If there is no preset found with the index,
+                a new one will be created. If not given or ``None``, the next
+                available index will be used and a new preset will be created.
+            clear_current (bool): If ``True``, any previously existing data will
+                be removed from the preset (if it exists). If ``False``, the
+                data (if existing) will be merged with the current switcher state.
+                Default is ``True``
+
+        Returns:
+            The :class:`Preset` instance that was created or updated
+
+        This method is a ``coroutine``
+
+        """
         if index is not None:
             while True:
                 try:
@@ -157,6 +294,20 @@ class BackendBase(Dispatcher):
             tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
 
 class Preset(Dispatcher):
+    """Stores and recalls routing information
+
+    Attributes:
+        name: The name of the preset.
+            This is a :class:`pydispatch.Property`
+        index (int): The index of the preset as it is stored in the
+            :attr:`~BackendBase.presets` container.
+        crosspoints (dict): The crosspoints that this preset has stored.
+            This is a :class:`~pydispatch.properties.DictProperty`
+        active (bool): A flag indicating whether all of the crosspoints stored
+            in this preset are currently active on the switcher.
+            This is a :class:`pydispatch.Property`
+
+    """
     name = Property()
     index = Property()
     crosspoints = DictProperty()
