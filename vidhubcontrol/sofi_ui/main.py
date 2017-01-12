@@ -590,5 +590,8 @@ class App(object):
     async def onclose(self, *args):
         await config.stop()
 
-if __name__ == '__main__':
+def run_app():
     App().start()
+
+if __name__ == '__main__':
+    run_app()

@@ -13,6 +13,11 @@ setup(
         'json-object-factory',
         'zeroconf',
     ],
+    entry_points={
+        'console_scripts':[
+            'vidhubcontrol-web = vidhubcontrol.sofi_ui.main:run_app',
+        ],
+    },
     platforms=['any'],
     classifiers = [
         'Development Status :: 3 - Alpha',
