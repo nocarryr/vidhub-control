@@ -513,6 +513,7 @@ class App(object):
         self.app_registered = False
         self.app.register('init', self.oninit)
         self.app.register('load', self.onload)
+        self.app.register('close', self.onclose)
         config.bind(vidhubs=self.on_config_vidhubs)
     def start(self):
         self.app.start()
@@ -586,6 +587,8 @@ class App(object):
         self.app.register('click', self.on_click, selector='button')
     async def on_click(self, e):
         await self.vidhub_view.on_click(e)
+    async def onclose(self, *args):
+        await config.stop()
 
 if __name__ == '__main__':
     App().start()
