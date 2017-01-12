@@ -7,7 +7,7 @@ from pydispatch.properties import DictProperty
 import zeroconf
 
 def convert_bytes_dict(d):
-    return {str(k):str(d[k]) for k in d.keys()}
+    return {str(k, 'UTF-8'):str(d[k], 'UTF-8') for k in d.keys()}
 
 class ServiceInfo(Dispatcher):
     properties = DictProperty()
