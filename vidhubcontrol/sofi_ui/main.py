@@ -510,26 +510,53 @@ class App(object):
         self.vidhub = kwargs.get('vidhub')
         self.app = Sofi()
         self.app.loaded = False
+        self.app_registered = False
         self.app.register('init', self.oninit)
         self.app.register('load', self.onload)
+        config.bind(vidhubs=self.on_config_vidhubs)
     def start(self):
         self.app.start()
-    async def oninit(self, e):
-        await self.vidhub.connect()
-        v = self.view = View()
-        nav = Navbar(brand='Vidhub Control')
-        dr = Dropdown('Select Device')
-        for device_id, vidhub in config.vidhubs.items():
-            dr.addelement(DropdownItem(
+    def on_config_vidhubs(self, instance, value, **kwargs):
+        if not self.app.loaded:
+            return
+        need_refresh = False
+        for device_id, vidhub in value.items():
+            if device_id in self.device_dropdown_items:
+                continue
+            dritem = DropdownItem(
                 str(device_id),
                 cl='device-select',
                 attrs={'data-device-id':str(device_id)},
-            ))
+            )
+            self.device_dropdown_items[device_id] = dritem
+            self.device_dropdown.addelement(dritem)
+            need_refresh = True
+        if need_refresh:
+            self.app.replace(
+                '#{}'.format(self.device_dropdown.ident),
+                ''.join([str(dr) for dr in self.device_dropdown._children]),
+            )
+            if self.app_registered:
+                self.app.unregister('click', self.on_device_select_click, selector='.device-select')
+                self.app.register('click', self.on_device_select_click, selector='.device-select')
+    async def oninit(self, e):
+        v = self.view = View()
+        nav = Navbar(brand='Vidhub Control')
+        dr = self.device_dropdown = Dropdown('Select Device', ident='device_dropdown')
+        self.device_dropdown_items = {}
         dr.addelement(DropdownItem(
             'None',
             cl='device-select',
             attrs={'data-device-id':'NONE'}
         ))
+        for device_id, vidhub in config.vidhubs.items():
+            dritem = DropdownItem(
+                str(device_id),
+                cl='device-select',
+                attrs={'data-device-id':str(device_id)},
+            )
+            self.device_dropdown_items[device_id] = dritem
+            dr.addelement(dritem)
         nav.adddropdown(dr)
         v.addelement(nav)
         self.vidhub_view = VidHubView(vidhub=self.vidhub, app=self.app)
@@ -539,6 +566,7 @@ class App(object):
     async def onload(self, e):
         self.app.register('click', self.on_device_select_click, selector='.device-select')
         self.app.register('click', self.on_click, selector='button')
+        self.app_registered = True
     async def on_device_select_click(self, e):
         self.app.unregister('click', self.on_click, selector='button')
         device_id = e['event_object']['currentTarget']['data-device-id']
@@ -552,6 +580,7 @@ class App(object):
                     device_id = key
                     break
         self.vidhub = config.vidhubs[device_id].backend
+        await self.vidhub.connect()
         logger.info('switching to vidhub {!r}'.format(self.vidhub))
         self.vidhub_view.vidhub = self.vidhub
         self.app.register('click', self.on_click, selector='button')
@@ -559,14 +588,4 @@ class App(object):
         await self.vidhub_view.on_click(e)
 
 if __name__ == '__main__':
-    import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument('--addr', dest='hostaddr')
-    p.add_argument('--port', dest='hostport', default=9990)
-    args = p.parse_args()
-    o = vars(args)
-    if o.get('hostaddr'):
-        vidhub = config.build_backend('TelnetBackend', **o)
-    else:
-        vidhub = config.build_backend('DummyBackend', device_id='dummy')
-    App(vidhub=vidhub).start()
+    App().start()
