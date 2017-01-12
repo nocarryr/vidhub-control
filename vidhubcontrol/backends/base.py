@@ -42,7 +42,16 @@ class BackendBase(Dispatcher):
                 on_preset_stored=self.on_preset_stored,
                 active=self.on_preset_active,
             )
-        asyncio.ensure_future(self.connect(), loop=self.event_loop)
+        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
+    @classmethod
+    async def create_async(cls, **kwargs):
+        obj = cls(**kwargs)
+        await obj.connect_fut
+        if not obj.connected or not obj.prelude_parsed:
+            return None
+        if obj.device_id is None:
+            return None
+        return obj
     async def connect(self):
         if self.connected:
             return self.client
