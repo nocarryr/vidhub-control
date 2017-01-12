@@ -160,6 +160,7 @@ def main():
         await listener.stop()
 
     loop.run_until_complete(run())
+    return listener
 
 if __name__ == '__main__':
     main()
