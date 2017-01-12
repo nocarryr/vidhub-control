@@ -124,21 +124,24 @@ class BMDDiscovery(Listener):
     def __init__(self, mainloop, service_type='_blackmagic._tcp.local.'):
         super().__init__(mainloop, service_type)
     async def add_service_info(self, info, **kwargs):
-        if info.properties.get('class') == 'Videohub':
-            self.vidhubs[info.properties['unique id']] = info
-            kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
+        device_cls = info.properties.get('class')
+        bmd_id = info.properties.get('unique id', '').upper()
+        if device_cls == 'Videohub':
+            self.vidhubs[bmd_id] = info
+            kwargs.update({'class':device_cls, 'id':bmd_id})
         elif info.properties.get('class') == 'SmartView':
-            self.smart_views[info.properties['unique id']] = info
-            kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
+            self.smart_views[bmd_id] = info
+            kwargs.update({'class':device_cls, 'id':bmd_id})
         await super().add_service_info(info, **kwargs)
     async def remove_service_info(self, info, **kwargs):
-        bmd_id = info.properties.get('unique id')
-        if bmd_id in self.vidhubs and info.properties.get('class') == 'Videohub':
+        device_cls = info.properties.get('class')
+        bmd_id = info.properties.get('unique id', '').upper()
+        if bmd_id in self.vidhubs and device_cls == 'Videohub':
             del self.vidhubs[bmd_id]
-            kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
-        elif bmd_id in self.smart_views and info.properties.get('class') == 'SmartView':
+            kwargs.update({'class':device_cls, 'id':bmd_id})
+        elif bmd_id in self.smart_views and device_cls == 'SmartView':
             del self.smart_views[bmd_id]
-            kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
+            kwargs.update({'class':device_cls, 'id':bmd_id})
         await super().remove_service_info(info, **kwargs)
 
 
