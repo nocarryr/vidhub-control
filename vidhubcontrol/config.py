@@ -55,6 +55,8 @@ class Config(ConfigBase):
             return
         await self.discovery_listener.stop()
         self.discovery_listener = None
+        for vidhub in self.vidhubs.values():
+            await vidhub.disconnect()
     def build_backend(self, backend_name, **kwargs):
         for vidhub in self.vidhubs.values():
             if vidhub.backend_name != backend_name:
