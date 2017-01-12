@@ -51,6 +51,7 @@ class InlineTextEdit(SofiDataId):
     value = Property()
     input_type = Property('text')
     hidden = Property(True)
+    registered = Property(False)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.label_text = kwargs.get('label', '')
@@ -96,9 +97,15 @@ class InlineTextEdit(SofiDataId):
         )
         self.app.register('load', self.on_app_load)
     async def on_app_load(self, *args):
+        if self.registered:
+            return
+        self.registered = True
         self.app.register('click', self.on_btn_click, '.text-edit-btn')
     async def on_btn_click(self, e):
-        data_id = e['event_object']['target'].get('data-sofi-id')
+        if isinstance(e, dict):
+            data_id = e['event_object']['target'].get('data-sofi-id')
+        else:
+            data_id = e
         if not data_id:
             return
         data_id = data_id.split('_')
@@ -132,6 +139,8 @@ class ButtonGrid(SofiDataId):
     labels = ListProperty()
     buttons = ListProperty()
     button_states = ListProperty()
+    edit_enable = Property(False)
+    edit_index = Property()
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub = kwargs.get('vidhub')
@@ -174,7 +183,19 @@ class ButtonGrid(SofiDataId):
             self.buttons.append(btn)
             btngrp.addelement(btn)
 
-        self.bind(button_states=self.on_button_state)
+        btngrp = ButtonGroup()
+        self.edit_enable_btn = Button(text='Edit Name', attrs=self.get_data_id_attr('edit'))
+        btngrp.addelement(self.edit_enable_btn)
+        self.widget.addelement(btngrp)
+
+        self.edit_widget = InlineTextEdit(app=self.app)
+        self.edit_widget.bind(value=self.on_edit_widget_value)
+        self.widget.addelement(self.edit_widget.widget)
+
+        self.bind(
+            button_states=self.on_button_state,
+            edit_enable=self.on_edit_enable,
+        )
     def on_button_state(self, instance, value, **kwargs):
         keys = kwargs.get('keys')
         if keys is None:
@@ -198,6 +219,40 @@ class ButtonGrid(SofiDataId):
             btn = self.buttons[key]
             selector = self.get_selector(obj=btn)
             self.app.text(selector, lbl)
+    def on_edit_enable(self, instance, value, **kwargs):
+        selector = self.get_selector(obj=self.edit_enable_btn)
+        if value:
+            self.app.removeclass(selector, 'btn-default')
+            self.app.addclass(selector, 'btn-primary')
+        else:
+            self.app.removeclass(selector, 'btn-primary')
+            self.app.addclass(selector, 'btn-default')
+            self.edit_widget.hidden = True
+    def on_edit_widget_value(self, instance, value, **kwargs):
+        if not self.edit_enable:
+            return
+        if self.edit_index is None:
+            return
+        self.edit_enable = False
+        prop_name = self.label_property.rstrip('s')
+        prop_name = '_'.join([prop_name, 'control'])
+        prop = getattr(self.vidhub, prop_name)
+        prop[self.edit_index] = value
+        self.edit_index = None
+    async def on_click(self, data_id):
+        if not self.edit_widget.registered:
+            await self.edit_widget.on_btn_click(data_id)
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            self.edit_enable = not self.edit_enable
+            return
+        elif self.edit_enable:
+            self.edit_index = int(data_id[1])
+            prop = getattr(self.vidhub, self.label_property)
+            self.edit_widget.initial = prop[self.edit_index]
+            self.edit_widget.hidden = False
 
 class InputButtons(ButtonGrid):
     label_property = 'input_labels'
@@ -220,9 +275,15 @@ class InputButtons(ButtonGrid):
         self.button_states[i] = True
         logger.info('selected_output={}, crosspoint={}'.format(value, i))
     async def on_click(self, data_id):
-        if data_id.split('_')[0] != self.get_data_id():
+        await super().on_click(data_id)
+        if self.edit_enable:
             return
-        i = int(data_id.split('_')[1])
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            return
+        i = int(data_id[1])
         await self.vidhub.set_crosspoint(self.vidhub_view.selected_output, i)
 
 
@@ -242,9 +303,15 @@ class OutputButtons(ButtonGrid):
             self.button_states[i] = False
         self.button_states[value] = True
     async def on_click(self, data_id):
-        if data_id.split('_')[0] != self.get_data_id():
+        await super().on_click(data_id)
+        if self.edit_enable:
             return
-        i = int(data_id.split('_')[1])
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            return
+        i = int(data_id[1])
         self.vidhub_view.selected_output = i
 
 class PresetButtons(SofiDataId):
