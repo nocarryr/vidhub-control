@@ -435,6 +435,8 @@ class PresetButtons(SofiDataId):
             self.app.removeclass(selector, 'btn-primary')
             self.app.addclass(selector, 'btn-default')
     async def on_click(self, data_id):
+        if not self.edit_widget.registered:
+            await self.edit_widget.on_btn_click(data_id)
         data_id = data_id.split('_')
         if data_id[0] != self.get_data_id():
             return
