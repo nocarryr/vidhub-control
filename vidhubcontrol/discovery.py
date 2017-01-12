@@ -127,7 +127,7 @@ class BMDDiscovery(Listener):
         elif info.properties.get('class') == 'SmartView':
             self.smart_views[info.properties['unique id']] = info
             kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
-        super().add_service_info(info, **kwargs)
+        await super().add_service_info(info, **kwargs)
     async def remove_service_info(self, info, **kwargs):
         bmd_id = info.properties.get('unique id')
         if bmd_id in self.vidhubs and info.properties.get('class') == 'Videohub':
@@ -136,7 +136,7 @@ class BMDDiscovery(Listener):
         elif bmd_id in self.smart_views and info.properties.get('class') == 'SmartView':
             del self.smart_views[bmd_id]
             kwargs.update({'class':info.properties['class'], 'id':info.properties['unique id']})
-        super().remove_service_info(info, **kwargs)
+        await super().remove_service_info(info, **kwargs)
 
 
 if __name__ == '__main__':
