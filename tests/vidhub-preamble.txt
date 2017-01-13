@@ -1,0 +1,74 @@
+PROTOCOL PREAMBLE:
+Version: 2.7
+
+VIDEOHUB DEVICE:
+Device present: true
+Model name: Smart Videohub CleanSwitch 12x12
+Friendly name: Smart Videohub CleanSwitch 12x12
+Unique ID: a0b2c3d4e5f6
+Video inputs: 12
+Video processing units: 0
+Video outputs: 12
+Video monitoring outputs: 0
+Serial ports: 0
+
+INPUT LABELS:
+0 FOH PC
+1 Stage SDI
+2 Input 3
+3 Input 4
+4 Input 5
+5 Input 6
+6 Input 7
+7 Input 8
+8 Input 9
+9 Swt PGM
+10 Swt AUX
+11 Audio/SDI
+
+OUTPUT LABELS:
+0 Main Proj
+1 Lobby TV
+2 Swt In3
+3 Swt In4
+4 WFM
+5 Audio/SDI
+6 Output 7
+7 Output 8
+8 Encoder 3
+9 Encoder 4
+10 Fiber Feed 1
+11 Fiber Feed 2
+
+VIDEO OUTPUT LOCKS:
+0 U
+1 U
+2 U
+3 U
+4 U
+5 U
+6 U
+7 U
+8 U
+9 U
+10 U
+11 U
+
+VIDEO OUTPUT ROUTING:
+0 0
+1 9
+2 0
+3 1
+4 10
+5 9
+6 1
+7 1
+8 11
+9 11
+10 11
+11 0
+
+CONFIGURATION:
+Take Mode: true
+
+END PRELUDE:
