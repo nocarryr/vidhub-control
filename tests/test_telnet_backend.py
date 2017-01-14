@@ -26,3 +26,5 @@ async def test_telnet_vidhub(mocked_vidhub_telnet_device, vidhub_telnet_response
         await backend.set_output_labels(*((i, lbl) for i, lbl in enumerate(out_lbls)))
         assert backend.input_labels == in_lbls
         assert backend.output_labels == out_lbls
+
+    await backend.disconnect()
