@@ -62,6 +62,7 @@ class BackendBase(Dispatcher):
     output_label_control = ListProperty()
     input_label_control = ListProperty()
     presets = ListProperty()
+    device_name = Property()
     device_model = Property()
     device_id = Property()
     device_version = Property()
@@ -72,6 +73,7 @@ class BackendBase(Dispatcher):
     prelude_parsed = Property(False)
     _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
+        self.device_name = kwargs.get('device_name')
         self.client = None
         self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
         self.bind(
@@ -83,7 +85,10 @@ class BackendBase(Dispatcher):
             output_label_control=self.on_prop_control,
             input_label_control=self.on_prop_control,
             crosspoint_control=self.on_prop_control,
+            device_id=self.on_device_id,
         )
+        if self.device_id is None:
+            self.device_id = kwargs.get('device_id')
         presets = kwargs.get('presets', [])
         for pst_data in presets:
             pst_data['backend'] = self
@@ -292,6 +297,12 @@ class BackendBase(Dispatcher):
             coro = self.set_input_labels
         if coro is not None:
             tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
+    def on_device_id(self, instance, value, **kwargs):
+        if value is None:
+            return
+        if self.device_name is None:
+            self.device_name = value
+        self.unbind(self.on_device_id)
 
 class Preset(Dispatcher):
     """Stores and recalls routing information

@@ -1,0 +1,10 @@
+language: python
+python: "3.5"
+install:
+    - pip install -U pip setuptools wheel
+    - pip install -r requirements-test.txt
+    - pip install -e .
+script:
+    - py.test --cov-config .coveragerc --cov=vidhubcontrol
+after_success:
+    - coveralls

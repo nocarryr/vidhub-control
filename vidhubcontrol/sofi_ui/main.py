@@ -51,6 +51,7 @@ class InlineTextEdit(SofiDataId):
     value = Property()
     input_type = Property('text')
     hidden = Property(True)
+    registered = Property(False)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.label_text = kwargs.get('label', '')
@@ -96,9 +97,15 @@ class InlineTextEdit(SofiDataId):
         )
         self.app.register('load', self.on_app_load)
     async def on_app_load(self, *args):
+        if self.registered:
+            return
+        self.registered = True
         self.app.register('click', self.on_btn_click, '.text-edit-btn')
     async def on_btn_click(self, e):
-        data_id = e['event_object']['target'].get('data-sofi-id')
+        if isinstance(e, dict):
+            data_id = e['event_object']['target'].get('data-sofi-id')
+        else:
+            data_id = e
         if not data_id:
             return
         data_id = data_id.split('_')
@@ -132,6 +139,8 @@ class ButtonGrid(SofiDataId):
     labels = ListProperty()
     buttons = ListProperty()
     button_states = ListProperty()
+    edit_enable = Property(False)
+    edit_index = Property()
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub = kwargs.get('vidhub')
@@ -174,7 +183,22 @@ class ButtonGrid(SofiDataId):
             self.buttons.append(btn)
             btngrp.addelement(btn)
 
-        self.bind(button_states=self.on_button_state)
+        btngrp = ButtonGroup()
+        self.edit_enable_btn = Button(text='Edit Name', attrs=self.get_data_id_attr('edit'))
+        btngrp.addelement(self.edit_enable_btn)
+        self.widget.addelement(btngrp)
+
+        self.edit_widget = InlineTextEdit(app=self.app)
+        self.edit_widget.bind(
+            value=self.on_edit_widget_value,
+            hidden=self.on_edit_widget_hidden,
+        )
+        self.widget.addelement(self.edit_widget.widget)
+
+        self.bind(
+            button_states=self.on_button_state,
+            edit_enable=self.on_edit_enable,
+        )
     def on_button_state(self, instance, value, **kwargs):
         keys = kwargs.get('keys')
         if keys is None:
@@ -198,6 +222,44 @@ class ButtonGrid(SofiDataId):
             btn = self.buttons[key]
             selector = self.get_selector(obj=btn)
             self.app.text(selector, lbl)
+    def on_edit_enable(self, instance, value, **kwargs):
+        selector = self.get_selector(obj=self.edit_enable_btn)
+        if value:
+            self.app.removeclass(selector, 'btn-default')
+            self.app.addclass(selector, 'btn-primary')
+        else:
+            self.app.removeclass(selector, 'btn-primary')
+            self.app.addclass(selector, 'btn-default')
+            self.edit_widget.hidden = True
+    def on_edit_widget_hidden(self, instance, value, **kwargs):
+        if value:
+            self.edit_enable = False
+            self.edit_index = None
+    def on_edit_widget_value(self, instance, value, **kwargs):
+        if not self.edit_enable:
+            return
+        if self.edit_index is None:
+            return
+        self.edit_enable = False
+        prop_name = self.label_property.rstrip('s')
+        prop_name = '_'.join([prop_name, 'control'])
+        prop = getattr(self.vidhub, prop_name)
+        prop[self.edit_index] = value
+        self.edit_index = None
+    async def on_click(self, data_id):
+        if not self.edit_widget.registered:
+            await self.edit_widget.on_btn_click(data_id)
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            self.edit_enable = not self.edit_enable
+            return
+        elif self.edit_enable:
+            self.edit_index = int(data_id[1])
+            prop = getattr(self.vidhub, self.label_property)
+            self.edit_widget.initial = prop[self.edit_index]
+            self.edit_widget.hidden = False
 
 class InputButtons(ButtonGrid):
     label_property = 'input_labels'
@@ -220,9 +282,15 @@ class InputButtons(ButtonGrid):
         self.button_states[i] = True
         logger.info('selected_output={}, crosspoint={}'.format(value, i))
     async def on_click(self, data_id):
-        if data_id.split('_')[0] != self.get_data_id():
+        await super().on_click(data_id)
+        if self.edit_enable:
             return
-        i = int(data_id.split('_')[1])
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            return
+        i = int(data_id[1])
         await self.vidhub.set_crosspoint(self.vidhub_view.selected_output, i)
 
 
@@ -242,9 +310,15 @@ class OutputButtons(ButtonGrid):
             self.button_states[i] = False
         self.button_states[value] = True
     async def on_click(self, data_id):
-        if data_id.split('_')[0] != self.get_data_id():
+        await super().on_click(data_id)
+        if self.edit_enable:
             return
-        i = int(data_id.split('_')[1])
+        data_id = data_id.split('_')
+        if data_id[0] != self.get_data_id():
+            return
+        if data_id[1] == 'edit':
+            return
+        i = int(data_id[1])
         self.vidhub_view.selected_output = i
 
 class PresetButtons(SofiDataId):
@@ -295,7 +369,10 @@ class PresetButtons(SofiDataId):
 
         col = Column(count=4)
         self.edit_widget = InlineTextEdit(app=self.app)
-        self.edit_widget.bind(value=self.on_edit_widget_value)
+        self.edit_widget.bind(
+            value=self.on_edit_widget_value,
+            hidden=self.on_edit_widget_hidden,
+        )
         col.addelement(self.edit_widget.widget)
         row.addelement(col)
 
@@ -329,6 +406,10 @@ class PresetButtons(SofiDataId):
             self.app.addclass(selector, 'btn-danger')
         else:
             self.app.removeclass(selector, 'btn-danger')
+    def on_edit_widget_hidden(self, instance, value, **kwargs):
+        if value:
+            self.edit_enable = False
+            self.edit_preset = None
     def on_edit_widget_value(self, instance, value, **kwargs):
         if not self.edit_enable:
             return
@@ -338,6 +419,7 @@ class PresetButtons(SofiDataId):
         preset = self.edit_preset
         self.edit_preset = None
         preset.name = value
+        self.edit_widget.hidden = True
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         try:
@@ -368,6 +450,8 @@ class PresetButtons(SofiDataId):
             self.app.removeclass(selector, 'btn-primary')
             self.app.addclass(selector, 'btn-default')
     async def on_click(self, data_id):
+        if not self.edit_widget.registered:
+            await self.edit_widget.on_btn_click(data_id)
         data_id = data_id.split('_')
         if data_id[0] != self.get_data_id():
             return
@@ -401,15 +485,25 @@ class PresetButtons(SofiDataId):
 class VidHubView(SofiDataId):
     selected_output = Property(0)
     vidhub = Property()
+    edit_enable = Property(False)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_buttons = None
         self.output_buttons = None
         self.preset_buttons = None
         self.widget = Container(attrs=self.get_data_id_attr())
+        self.edit_widget = InlineTextEdit(app=self.app)
+        self.edit_widget.bind(
+            value=self.on_edit_widget_value,
+            hidden=self.on_edit_widget_hidden,
+        )
+        self.edit_vidhub_btn = Button(text='Rename', ident='edit_vidhub_btn')
         self.connection_icon = None
         self.connection_btn = None
-        self.bind(vidhub=self.on_vidhub)
+        self.bind(
+            vidhub=self.on_vidhub,
+            edit_enable=self.on_edit_enable,
+        )
         self.vidhub = kwargs.get('vidhub')
     def on_vidhub(self, instance, value, **kwargs):
         old = kwargs.get('old')
@@ -421,10 +515,14 @@ class VidHubView(SofiDataId):
                 obj.remove()
             setattr(self, attr, None)
         del self.widget._children[:]
+        self.edit_enable = False
         self.connection_icon = None
         self.connection_btn = None
         if self.vidhub is not None:
-            self.vidhub.bind(connected=self.on_vidhub_connected)
+            self.vidhub.bind(
+                device_name=self.on_vidhub_device_name,
+                connected=self.on_vidhub_connected,
+            )
             self.build_view()
     def on_vidhub_connected(self, instance, value, **kwargs):
         if self.connection_icon is None:
@@ -439,7 +537,8 @@ class VidHubView(SofiDataId):
         self.app.removeclass(selector, states[not value])
         self.app.addclass(selector, states[value])
         self.app.replace(selector, ''.join([str(c) for c in self.connection_btn._children]))
-
+    def on_vidhub_device_name(self, instance, value, **kwargs):
+        self.app.replace('#vidhub_device_name', '<h1>{}</h1>'.format(value))
     def build_view(self):
         self.input_buttons = InputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
         self.output_buttons = OutputButtons(vidhub_view=self, vidhub=self.vidhub, app=self.app)
@@ -447,8 +546,13 @@ class VidHubView(SofiDataId):
 
         row = Row()
         col = Column(count=4)
-        h = PageHeader(text=str(self.vidhub.device_id))
+        h = PageHeader(text=str(self.vidhub.device_id), ident='vidhub_device_name')
         col.addelement(h)
+        row.addelement(col)
+
+        col = Column(count=4)
+        col.addelement(self.edit_widget.widget)
+        col.addelement(self.edit_vidhub_btn)
         row.addelement(col)
 
         col = Column(count=4, ident='connection_container')
@@ -485,8 +589,34 @@ class VidHubView(SofiDataId):
         self.widget.addelement(row)
         if self.app.loaded:
             self.app.replace(self.get_selector(), str(self.widget))
+    def on_edit_enable(self, instance, value, **kwargs):
+        selector = '#{}'.format(self.edit_vidhub_btn.ident)
+        if value:
+            self.app.removeclass(selector, 'btn-default')
+            self.app.addclass(selector, 'btn-primary')
+            self.edit_widget.initial = self.vidhub.device_name
+            self.edit_widget.hidden = False
+        else:
+            self.app.removeclass(selector, 'btn-primary')
+            self.app.addclass(selector, 'btn-default')
+            self.edit_widget.hidden = True
+    def on_edit_widget_hidden(self, instance, value, **kwargs):
+        if value:
+            self.edit_enable = False
+    def on_edit_widget_value(self, instance, value, **kwargs):
+        if not self.edit_enable:
+            return
+        if self.vidhub is None:
+            return
+        self.vidhub.device_name = value
+        self.edit_enable = False
     async def on_click(self, e):
+        if self.edit_enable:
+            await self.edit_widget.on_btn_click(e)
         ident = e['event_object']['target'].get('id')
+        if ident == self.edit_vidhub_btn.ident and self.vidhub is not None:
+            self.edit_enable = not self.edit_enable
+            return
         if self.connection_btn is not None and ident == self.connection_btn.ident:
             if self.vidhub is None:
                 return
@@ -525,12 +655,13 @@ class App(object):
             if device_id in self.device_dropdown_items:
                 continue
             dritem = DropdownItem(
-                str(device_id),
+                str(vidhub.device_name),
                 cl='device-select',
                 attrs={'data-device-id':str(device_id)},
             )
             self.device_dropdown_items[device_id] = dritem
             self.device_dropdown.addelement(dritem)
+            vidhub.bind(device_name=self.on_vidhub_device_name)
             need_refresh = True
         if need_refresh:
             self.app.replace(
@@ -540,6 +671,10 @@ class App(object):
             if self.app_registered:
                 self.app.unregister('click', self.on_device_select_click, selector='.device-select')
                 self.app.register('click', self.on_device_select_click, selector='.device-select')
+    def on_vidhub_device_name(self, instance, value, **kwargs):
+        dritem = self.device_dropdown_items[instance.device_id]
+        selector = ".device-select[data-device-id={}]".format(instance.device_id)
+        self.app.replace(selector, '<a href="#">{}</a>'.format(value))
     async def oninit(self, e):
         v = self.view = View()
         nav = Navbar(brand='Vidhub Control')
@@ -552,11 +687,12 @@ class App(object):
         ))
         for device_id, vidhub in config.vidhubs.items():
             dritem = DropdownItem(
-                str(device_id),
+                str(vidhub.device_name),
                 cl='device-select',
                 attrs={'data-device-id':str(device_id)},
             )
             self.device_dropdown_items[device_id] = dritem
+            vidhub.bind(device_name=self.on_vidhub_device_name)
             dr.addelement(dritem)
         nav.adddropdown(dr)
         v.addelement(nav)
