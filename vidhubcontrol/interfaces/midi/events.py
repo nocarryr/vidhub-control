@@ -196,7 +196,7 @@ class JsonHandler(object):
     classes = tuple(c for c in MidiEvent.iter_subclasses())
     classes_by_name = {'.'.join([c.__module__, c.__qualname__]):c for c in classes}
     def encode(self, o):
-        if isinstance(o, self.classes):
+        if isinstance(o, MidiEvent):
             return o._serialize()
     def decode(self, d):
         if '__class__' in d:
