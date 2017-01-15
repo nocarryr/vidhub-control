@@ -105,11 +105,19 @@ class NoteEvent(MidiChannelEvent):
         msg[2] = self.velocity
         return msg
     def is_same_message_type(self, other):
-        return self == other
+        if not super().is_same_message_type(other):
+            return False
+        return self.value == other.value
     @classmethod
     def parse_message(cls, msg_bytes, **kwargs):
         kwargs['velocity'] = msg_bytes[1]
         return super().parse_message(msg_bytes, **kwargs)
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if self.velocity != other.velocity:
+            return False
+        return True
 
 class NoteDownEvent(NoteEvent):
     status_msb = 0x80
