@@ -58,6 +58,8 @@ class MidiEvent(Dispatcher):
         return {'__class__':'.'.join([
             self.__class__.__module__, self.__class__.__qualname__
         ])}
+    def __repr__(self):
+        return '<{self.__class__.__name__}> {self}'.format(self=self)
 
 class MidiChannelEvent(MidiEvent):
     channel = Property()
@@ -89,8 +91,6 @@ class MidiChannelEvent(MidiEvent):
         if self.value != other.value:
             return False
         return True
-    def __repr__(self):
-        return '<{self.__class__.__name__}> {self}'.format(self=self)
     def __str__(self):
         return 'ch {self.channel}: {self.value}'.format(self=self)
 
