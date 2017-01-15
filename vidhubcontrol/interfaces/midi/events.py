@@ -91,6 +91,10 @@ class MidiChannelEvent(MidiEvent):
         if self.value != other.value:
             return False
         return True
+    def _serialize(self):
+        d = super()._serialize()
+        d.update({'channel':self.channel, 'value':self.value})
+        return d
     def __str__(self):
         return 'ch {self.channel}: {self.value}'.format(self=self)
 
@@ -119,6 +123,10 @@ class NoteEvent(MidiChannelEvent):
         if self.velocity != other.velocity:
             return False
         return True
+    def _serialize(self):
+        d = super()._serialize()
+        d['velocity'] = self.velocity
+        return d
     def __str__(self):
         s = super().__str__()
         return '{} {}'.format(s, self.velocity)
@@ -157,6 +165,10 @@ class ControllerEvent(MidiChannelEvent):
         if self.controller != other.controller:
             return False
         return True
+    def _serialize(self):
+        d = super()._serialize()
+        d['controller'] = self.controller
+        return d
 
 class ProgramChangeEvent(MidiChannelEvent):
     status_msb = 0xC0
@@ -171,6 +183,10 @@ class SysExEvent(MidiEvent):
         if not isinstance(other, SysExEvent):
             return NotImplemented
         return self.data == other.data
+    def _serialize(self):
+        d = super()._serialize()
+        d['data'] = self.data
+        return d
     def __str__(self):
         return ' '.join(('{:X}'.format(v) for v in self.data))
 
