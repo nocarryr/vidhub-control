@@ -119,6 +119,9 @@ class NoteEvent(MidiChannelEvent):
         if self.velocity != other.velocity:
             return False
         return True
+    def __str__(self):
+        s = super().__str__()
+        return '{} {}'.format(s, self.velocity)
 
 class NoteDownEvent(NoteEvent):
     status_msb = 0x80
