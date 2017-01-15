@@ -110,7 +110,8 @@ class NoteEvent(MidiChannelEvent):
         return self.value == other.value
     @classmethod
     def parse_message(cls, msg_bytes, **kwargs):
-        kwargs['velocity'] = msg_bytes[1]
+        kwargs['value'] = msg_bytes[1]
+        kwargs['velocity'] = msg_bytes[2]
         return super().parse_message(msg_bytes, **kwargs)
     def __eq__(self, other):
         if not super().__eq__(other):
