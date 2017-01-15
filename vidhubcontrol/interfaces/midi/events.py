@@ -165,6 +165,15 @@ class SysExEvent(MidiEvent):
     data = ListProperty()
     def __init__(self, **kwargs):
         self.data = kwargs.get('data')
+    def build_message(self):
+        return self.data
+    def __eq__(self, other):
+        if not isinstance(other, SysExEvent):
+            return NotImplemented
+        return self.data == other.data
+    def __str__(self):
+        return ' '.join(('{:X}'.format(v) for v in self.data))
+
 
 @jsonfactory.register
 class JsonHandler(object):
