@@ -1,6 +1,9 @@
+import pytest
+
 from vidhubcontrol.interfaces.midi import events
 
-def test_event_parse():
+@pytest.fixture
+def midi_events():
     velocity = 90
     tx_events = {}
     sysex_events = []
@@ -25,14 +28,23 @@ def test_event_parse():
         data.extend(sysex.build_message())
         sysex_events.append(sysex)
         num_events += 1
+    return {
+        'velocity':velocity,
+        'tx_events':tx_events,
+        'sysex_events':sysex_events,
+        'data':data,
+        'num_events':num_events
+    }
+
+def test_event_parse(midi_events):
     num_parsed = 0
-    sysex_iter = iter(sysex_events)
-    for e in events.MidiEvent.parse_stream(data):
+    sysex_iter = iter(midi_events['sysex_events'])
+    for e in events.MidiEvent.parse_stream(midi_events['data']):
         if isinstance(e, events.SysExEvent):
             tx_event = next(sysex_iter)
             assert tx_event == e
         else:
-            tx_event = tx_events[e.channel][e.__class__][e.value]
+            tx_event = midi_events['tx_events'][e.channel][e.__class__][e.value]
             assert tx_event.is_same_message_type(e)
             assert tx_event == e
             if isinstance(e, events.NoteEvent):
@@ -62,6 +74,6 @@ def test_event_parse():
                 e.channel += 1
                 assert not tx_event.is_same_message_type(e)
                 assert tx_event != e
-
         num_parsed += 1
-    assert num_events == num_parsed
+
+    assert midi_events['num_events'] == num_parsed
