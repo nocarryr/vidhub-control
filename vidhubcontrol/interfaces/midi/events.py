@@ -169,6 +169,8 @@ class ControllerEvent(MidiChannelEvent):
         d = super()._serialize()
         d['controller'] = self.controller
         return d
+    def __str__(self):
+        return 'ch {self.channel}: {self.controller} {self.value}'.format(self=self)
 
 class ProgramChangeEvent(MidiChannelEvent):
     status_msb = 0xC0
