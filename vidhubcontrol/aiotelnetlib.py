@@ -41,7 +41,13 @@ class _Telnet(telnetlib.Telnet):
         self.timeout = timeout
         self.sock = FakeSocket(self)
         self.sock_fut = asyncio.ensure_future(self.sock.run())
-        self.reader, self.writer = await asyncio.open_connection(host, port, loop=loop)
+        try:
+            self.reader, self.writer = await asyncio.open_connection(host, port, loop=loop)
+        except:
+            self.sock.close()
+            await self.sock_fut
+            self.sock = None
+            raise
 
     def close(self):
         super().close()
