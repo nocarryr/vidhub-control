@@ -54,8 +54,6 @@ class BackendBase(Dispatcher):
         await obj.connect_fut
         if not obj.connected or not obj.prelude_parsed:
             return None
-        if obj.device_id is None:
-            return None
         return obj
     async def connect(self):
         if self.connected:
