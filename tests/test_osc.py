@@ -1,5 +1,7 @@
+import pytest
 
-def test_nodes():
+@pytest.mark.asyncio
+async def test_nodes():
     from vidhubcontrol.interfaces.osc.node import OscNode
 
     class Listener(object):
