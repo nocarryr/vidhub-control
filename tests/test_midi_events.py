@@ -83,7 +83,7 @@ def test_serialization(midi_events):
 
     @jsonfactory.decoder
     def decode_str_keys(d):
-        keys = [key for key in d if key.isdigit()]
+        keys = [key for key in d if isinstance(key, str) and key.isdigit()]
         if len(keys) == len(d.keys()):
             return {int(key):val for key, val in d.items()}
         return d
