@@ -78,3 +78,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 return bfr
     monkeypatch.setattr('vidhubcontrol.aiotelnetlib._Telnet', Telnet)
     monkeypatch.setattr('vidhubcontrol.backends.telnet.aiotelnetlib._Telnet', Telnet)
+
+@pytest.fixture
+def tempconfig(tmpdir):
+    return tmpdir.join('vidhubcontrol.json')

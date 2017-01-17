@@ -54,8 +54,6 @@ class BackendBase(Dispatcher):
         await obj.connect_fut
         if not obj.connected or not obj.prelude_parsed:
             return None
-        if obj.device_id is None:
-            return None
         return obj
     async def connect(self):
         if self.connected:
@@ -103,7 +101,9 @@ class BackendBase(Dispatcher):
         self.emit('on_preset_added', backend=self, preset=preset)
         return preset
     async def store_preset(self, outputs_to_store=None, name=None, index=None, clear_current=True):
-        if index is not None:
+        if index is None:
+            preset = await self.add_preset()
+        else:
             while True:
                 try:
                     preset = self.presets[index]
@@ -111,7 +111,7 @@ class BackendBase(Dispatcher):
                     preset = None
                 if preset is not None:
                     break
-                await self.add_preset()
+                preset = await self.add_preset()
         if name is not None:
             preset.name = name
         await preset.store(outputs_to_store, clear_current)
