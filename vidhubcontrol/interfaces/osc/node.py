@@ -1,3 +1,5 @@
+import asyncio
+
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty, ListProperty
 
@@ -80,6 +82,10 @@ class OscNode(Dispatcher):
         if obj is None:
             return
         obj.map(self.osc_address, self.on_osc_dispatcher_message)
+    def ensure_message(self, client_address, *args, **kwargs):
+        asyncio.ensure_future(self.send_message(client_address, *args, **kwargs))
+    async def send_message(self, client_address, *args, **kwargs):
+        await self.osc_dispatcher.send_message(self, client_address, *args, **kwargs)
     def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
         self.emit('on_message_received', self, client_address, *messages)
         self.emit('on_tree_message_received', self, client_address, *messages)
