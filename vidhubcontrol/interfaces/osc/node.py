@@ -43,6 +43,8 @@ class OscNode(Dispatcher):
             return self
         return p.root
     def find(self, osc_address):
+        if osc_address.startswith('/'):
+            return self.root.find(osc_address.lstrip('/'))
         if '/' not in osc_address:
             return self.children.get(osc_address)
         name = osc_address.split('/')[0]
@@ -57,11 +59,29 @@ class OscNode(Dispatcher):
         if p.osc_address is None:
             return None
         return '/'.join([p.osc_address, self.name])
-    def add_child(self, name, **kwargs):
-        if '/' in name:
-            child, tail = self.create_from_address(name, parent=self, **kwargs)
+    def add_child(self, name, node=None, cls=None, **kwargs):
+        if cls is None:
+            cls = OscNode
+        if isinstance(node, OscNode):
+            node.parent = self
+            node.osc_dispatcher = self.osc_dispatcher
+            child = tail = node
+        elif '/' in name:
+            if name.startswith('/'):
+                return self.root.add_child(name.lstrip('/'), node, cls, **kwargs)
+            tail = self.find(name)
+            if tail is not None:
+                return tail
+            if name.split('/')[0] in self.children:
+                child = self.children[name.split('/')[0]]
+                name = '/'.join(name.split('/')[1:])
+                tail = child.add_child(name, **kwargs)
+            else:
+                child, tail = self.create_from_address(name, self, **kwargs)
         else:
-            child = OscNode(name, parent=self, **kwargs)
+            if name in self.children:
+                return self.children[name]
+            child = cls(name, self, **kwargs)
             tail = child
         child.bind(on_tree_message_received=self.on_child_message_received)
         self.children[child.name] = child
