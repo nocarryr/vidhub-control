@@ -102,6 +102,8 @@ class OscNode(Dispatcher):
         if obj is None:
             return
         obj.map(self.osc_address, self.on_osc_dispatcher_message)
+        for child in self:
+            child.osc_dispatcher = obj
     def ensure_message(self, client_address, *args, **kwargs):
         asyncio.ensure_future(self.send_message(client_address, *args, **kwargs))
     async def send_message(self, client_address, *args, **kwargs):
