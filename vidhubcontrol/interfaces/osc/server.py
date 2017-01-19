@@ -81,7 +81,6 @@ class OSCUDPServer(osc_server.AsyncIOOSCUDPServer):
         fut = self._loop.create_datagram_endpoint(
             lambda: self._OSCProtocolFactory(self.dispatcher, self._loop),
             local_addr=self._server_address,
-            reuse_port=True,
         )
         self.transport, self.protocol = await fut
         self.send_loop_future = asyncio.ensure_future(self.send_loop())
