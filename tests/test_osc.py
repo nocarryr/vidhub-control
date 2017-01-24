@@ -127,8 +127,6 @@ async def test_interface():
 
     await asyncio.sleep(2)
 
-    await client.stop()
-    await interface.stop()
 
     for i, lbl in enumerate(vidhub.output_labels):
         assert lbl == 'FOO OUT {}'.format(i)
@@ -138,3 +136,51 @@ async def test_interface():
 
     for xpt in vidhub.crosspoints:
         assert xpt == 2
+
+
+    # Test presets
+    preset_node = client_node.add_child('vidhubs/by-id/dummy/presets')
+    preset_node.add_child('recall')
+    preset_node.add_child('store')
+    crosspoint_node = client_node.find('vidhubs/by-id/dummy/crosspoints')
+
+    class PresetAwait(object):
+        def __init__(self, event_name):
+            self.event = asyncio.Event()
+            self.args = None
+            self.kwargs = None
+            vidhub.bind(**{event_name:self.on_vidhub_event})
+        def on_vidhub_event(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.event.set()
+        async def wait(self):
+            await self.event.wait()
+            self.event.clear()
+            return self.args, self.kwargs
+
+    waiter = PresetAwait('on_preset_stored')
+
+    for i in range(vidhub.num_inputs):
+        xpts = [i]*vidhub.num_outputs
+        crosspoint_node.ensure_message(server_addr, *xpts)
+        await asyncio.sleep(.2)
+        assert vidhub.crosspoints == xpts
+        name = 'preset_{}'.format(i)
+        preset_node.find('store').ensure_message(server_addr, i, name)
+        await waiter.wait()
+        assert vidhub.presets[i].name == name
+        assert vidhub.presets[i].crosspoints == {i:v for i, v in enumerate(xpts)}
+
+    assert len(vidhub.presets) == vidhub.num_inputs
+
+    waiter = PresetAwait('on_preset_active')
+
+    for preset in vidhub.presets:
+        assert not preset.active
+        preset_node.find('recall').ensure_message(server_addr, preset.index)
+        await waiter.wait()
+        assert preset.active
+
+    await client.stop()
+    await interface.stop()
