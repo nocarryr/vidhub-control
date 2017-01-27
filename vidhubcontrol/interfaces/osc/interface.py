@@ -30,8 +30,11 @@ class OscInterface(Dispatcher):
     iface_name = Property()
     hostport = Property(9000)
     hostiface = Property()
+    config = Property()
     vidhubs = DictProperty(copy_on_change=True)
     def __init__(self, **kwargs):
+        self.bind(config=self.on_config)
+        self.config = kwargs.get('config')
         self.iface_name = kwargs.get('iface_name')
         self.hostport = kwargs.get('hostport', 9000)
         hostaddr = kwargs.get('hostaddr')
@@ -75,6 +78,18 @@ class OscInterface(Dispatcher):
         if self.server is not None:
             await self.server.stop()
         self.server = None
+    def on_config(self, instance, config, **kwargs):
+        if config is None:
+            return
+        self.update_config_vidhubs()
+        config.bind(vidhubs=self.update_config_vidhubs)
+    def update_config_vidhubs(self, *args, **kwargs):
+        for vidhub_conf in self.config.vidhubs.values():
+            if vidhub_conf.device_id is None:
+                continue
+            vidhub = vidhub_conf.backend
+            asyncio.ensure_future(self.add_vidhub(vidhub))
+
 
 class VidhubNode(OscNode):
     _info_properties = [

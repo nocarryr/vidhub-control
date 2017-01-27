@@ -184,3 +184,30 @@ async def test_interface():
 
     await client.stop()
     await interface.stop()
+
+@pytest.mark.asyncio
+async def test_interface_config(tempconfig):
+    from vidhubcontrol.config import Config
+    from vidhubcontrol.backends.dummy import DummyBackend
+    from vidhubcontrol.interfaces.osc.interface import OscInterface
+
+    config = Config.load(str(tempconfig))
+    interface = OscInterface(config=config)
+
+    await config.start()
+    await interface.start()
+
+    vidhub = await DummyBackend.create_async(device_id='foo')
+    config.add_vidhub(vidhub)
+
+    while 'foo' not in interface.vidhubs:
+        await asyncio.sleep(.1)
+
+    vidhub_node = interface.root_node.find('vidhubs/by-id/foo')
+
+    for i in range(vidhub.num_outputs):
+        assert vidhub_node.find('crosspoints/{}'.format(i)) is not None
+        assert vidhub_node.find('labels/output/{}'.format(i)) is not None
+
+    for i in range(vidhub.num_inputs):
+        assert vidhub_node.find('labels/input/{}'.format(i)) is not None
