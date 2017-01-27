@@ -64,6 +64,7 @@ class OscInterface(Dispatcher):
         node = VidhubNode(vidhub, use_device_id=False)
         self.root_node.find('vidhubs/by-name').add_child('', node)
         node.osc_dispatcher = self.osc_dispatcher
+        self.vidhubs[vidhub.device_id] = vidhub
     async def start(self):
         if self.server is not None:
             await self.server.stop()
