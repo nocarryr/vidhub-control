@@ -108,7 +108,7 @@ class Config(ConfigBase):
             if backend is None:
                 return
             if backend.device_id != device_id:
-                await backend.disconect()
+                await backend.disconnect()
                 return
             self.add_vidhub(backend)
     def on_discovery_service_added(self, info, **kwargs):
