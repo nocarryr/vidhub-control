@@ -1,8 +1,11 @@
+import asyncio
+
 import pytest
+
+from vidhubcontrol.config import Config
 
 @pytest.mark.asyncio
 async def test_config_basic(tempconfig):
-    from vidhubcontrol.config import Config
     from vidhubcontrol.backends.dummy import DummyBackend
 
     config = Config.load(str(tempconfig))
@@ -49,5 +52,20 @@ async def test_config_basic(tempconfig):
     for attr in ['name', 'index', 'crosspoints']:
         assert getattr(preset1, attr) == getattr(preset1_2, attr)
         assert getattr(preset8, attr) == getattr(preset8_2, attr)
+
+    await config.stop()
+
+@pytest.mark.asyncio
+async def test_config_discovery(tempconfig, vidhub_zeroconf_info, mocked_vidhub_telnet_device):
+
+    config = Config.load(str(tempconfig))
+    await config.start()
+
+    args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
+    await config.discovery_listener.publish_service(*args, **kwargs)
+
+    await asyncio.sleep(1)
+
+    assert vidhub_zeroconf_info['device_id'] in config.vidhubs
 
     await config.stop()

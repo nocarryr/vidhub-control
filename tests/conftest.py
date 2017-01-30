@@ -11,6 +11,7 @@ def get_vidhub_preamble():
     return s
 
 VIDHUB_PREAMBLE = get_vidhub_preamble()
+VIDHUB_DEVICE_ID = 'a0b2c3d4e5f6'
 
 @pytest.fixture
 def vidhub_telnet_responses():
@@ -42,6 +43,25 @@ def vidhub_telnet_responses():
         input_labels=get_input_labels,
     ))
 
+    return d
+
+@pytest.fixture
+def vidhub_zeroconf_info():
+    d = {
+        'device_name':'Smart Videohub 12x12',
+        'device_id':VIDHUB_DEVICE_ID.upper(),
+        'info_args':['_blackmagic._tcp.local.', 9990],
+        'info_kwargs':{
+            'name':'Smart Videohub 12x12-{}._blackmagic._tcp.local.'.format(VIDHUB_DEVICE_ID.upper()),
+            'addresses':['127.0.0.1'],
+            'properties':{
+                'name':'Smart Videohub 12x12',
+                'protocol version':'2.7',
+                'class':'Videohub',
+                'unique id':VIDHUB_DEVICE_ID,
+            },
+        },
+    }
     return d
 
 @pytest.fixture
