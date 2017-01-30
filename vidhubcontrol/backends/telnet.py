@@ -131,7 +131,7 @@ class TelnetBackend(BackendBase):
                 if line.startswith('Model name:'):
                     self.device_model = split_value(line)
                 elif line.startswith('Unique ID:'):
-                    self.device_id = split_value(line)
+                    self.device_id = split_value(line).upper()
                 elif line.startswith('Video outputs:'):
                     self.num_outputs = int(split_value(line))
                 elif line.startswith('Video inputs:'):
