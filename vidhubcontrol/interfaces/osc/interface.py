@@ -57,6 +57,11 @@ class OscInterface(Dispatcher):
     async def start(self):
         if self.server is not None:
             await self.server.stop()
+        if self.config is not None:
+            if not self.config.running.is_set():
+                await self.config.start()
+            if self.config.USE_DISCOVERY:
+                await self.publish_zeroconf_service()
         addr = (str(self.hostiface.ip), self.hostport)
         self.server = OSCUDPServer(addr, self.osc_dispatcher)
         await self.server.start()
@@ -64,6 +69,14 @@ class OscInterface(Dispatcher):
         if self.server is not None:
             await self.server.stop()
         self.server = None
+    async def publish_zeroconf_service(self):
+        await self.config.discovery_listener.publish_service(
+            '_osc._udp.local.', self.hostport, properties={
+                'txtvers':'1',
+                'version':'1.1',
+                'types':'ifsbrTF',
+            }
+        )
     def on_config(self, instance, config, **kwargs):
         if config is None:
             return
