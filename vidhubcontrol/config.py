@@ -31,6 +31,8 @@ class Config(ConfigBase):
     vidhubs = DictProperty()
     _conf_attrs = ['vidhubs']
     def __init__(self, **kwargs):
+        self.running = asyncio.Event()
+        self.stopped = asyncio.Event()
         self.filename = kwargs.get('filename', DEFAULT_FILENAME)
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
         vidhubs = kwargs.get('vidhubs', {})
@@ -50,13 +52,16 @@ class Config(ConfigBase):
             service_added=self.on_discovery_service_added,
         )
         await self.discovery_listener.start()
+        self.running.set()
     async def stop(self):
+        self.running.clear()
         if self.discovery_listener is None:
             return
         await self.discovery_listener.stop()
         self.discovery_listener = None
         for vidhub in self.vidhubs.values():
             await vidhub.disconnect()
+        self.stopped.set()
     def build_backend(self, backend_name, **kwargs):
         for vidhub in self.vidhubs.values():
             if vidhub.backend_name != backend_name:
