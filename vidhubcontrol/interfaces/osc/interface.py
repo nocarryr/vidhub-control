@@ -5,23 +5,9 @@ import netifaces
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
 
+from vidhubcontrol.utils import find_ip_addresses
 from vidhubcontrol.interfaces.osc.node import OscNode
 from vidhubcontrol.interfaces.osc.server import OSCUDPServer, OscDispatcher
-
-def find_ip_addresses(iface_name=None):
-    if iface_name is not None:
-        iface_names = [iface_name]
-    else:
-        iface_names = netifaces.interfaces()
-    for iface_name in iface_names:
-        addrs = netifaces.ifaddresses(iface_name)[netifaces.AF_INET]
-        for addr in addrs:
-            iface = ipaddress.IPv4Interface('/'.join([addr['addr'], addr['netmask']]))
-            if iface.is_loopback:
-                continue
-            if iface.is_reserved:
-                continue
-            yield iface_name, iface
 
 
 class OscInterface(Dispatcher):
