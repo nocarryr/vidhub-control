@@ -6,12 +6,19 @@ from pydispatch.properties import DictProperty
 
 import zeroconf
 
+from vidhubcontrol.utils import find_ip_addresses
+
+PUBLISH_TTL = 60
+
 def convert_bytes_dict(d):
     return {str(k, 'UTF-8'):str(d[k], 'UTF-8') for k in d.keys()}
 
+def convert_dict_bytes(d):
+    return {bytes(k, 'UTF-8'):bytes(d[k], 'UTF-8') for k in d.keys()}
+
 class ServiceInfo(Dispatcher):
     properties = DictProperty()
-    _attrs = ['type', 'name', 'address', 'port', 'properties']
+    _attrs = ['type', 'name', 'server', 'address', 'port', 'properties']
     def __init__(self, **kwargs):
         for attr in self._attrs:
             setattr(self, attr, kwargs.get(attr))
@@ -29,6 +36,23 @@ class ServiceInfo(Dispatcher):
     @property
     def id(self):
         return (self.type, self.name)#, self.address, self.port)
+    def to_zc_info(self):
+        kwargs = {}
+        for attr in self._attrs:
+            val = getattr(self, attr)
+            if attr == 'properties':
+                val = convert_dict_bytes(val)
+            elif attr == 'address':
+                if isinstance(val, ipaddress.IPv4Interface):
+                    val = val.ip.packed
+                elif isinstance(val, ipaddress.IPv4Address):
+                    val = val.packed
+                else:
+                    val = ipaddress.ip_address(val).packed
+            kwargs[attr] = val
+        type_ = kwargs.pop('type')
+        name = kwargs.pop('name')
+        return zeroconf.ServiceInfo(type_, name, **kwargs)
     def update(self, other):
         if self.properties == other.properties:
             return
@@ -56,6 +80,11 @@ class AddedMessage(Message):
 class RemovedMessage(Message):
     pass
 
+class PublishMessage(Message):
+    def __init__(self, info, ttl=PUBLISH_TTL):
+        super().__init__(info)
+        self.ttl = ttl
+
 class Listener(Dispatcher):
     _events_ = ['service_added', 'service_removed']
     services = DictProperty()
@@ -66,6 +95,7 @@ class Listener(Dispatcher):
         self.stopped = asyncio.Event()
         self.message_queue = asyncio.Queue()
         self.zeroconf = None
+        self.published_services = {}
     async def start(self):
         await self.mainloop.run_in_executor(None, self.run_zeroconf)
         self.running = True
@@ -85,6 +115,12 @@ class Listener(Dispatcher):
             elif isinstance(msg, RemovedMessage):
                 if msg.info.id in self.services:
                     await self.remove_service_info(msg.info)
+            elif isinstance(msg, PublishMessage):
+                zc_info = msg.info.to_zc_info()
+                await self.mainloop.run_in_executor(
+                    None, self.zeroconf.register_service,
+                    zc_info, msg.ttl,
+                )
         await self.mainloop.run_in_executor(None, self.stop_zeroconf)
         self.stopped.set()
     async def stop(self):
@@ -117,6 +153,51 @@ class Listener(Dispatcher):
         info = ServiceInfo.from_zc_info(info)
         msg = AddedMessage(info)
         asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
+    async def get_local_ifaces(self, refresh=False):
+        ifaces = getattr(self, '_local_ifaces', None)
+        if ifaces is not None and not refresh:
+            return ifaces
+        ifaces = self._local_ifaces = [iface for iface_name, iface in find_ip_addresses()]
+        return ifaces
+    async def get_local_hostname(self):
+        name = getattr(self, '_local_hostname', None)
+        if name is not None:
+            return name
+        name = None
+        for iface in await self.get_local_ifaces():
+            _name, srv = await self.mainloop.getnameinfo((str(iface.ip), 80))
+            if _name is not None and _name != 'localhost':
+                name = _name
+                break
+        self._local_hostname = name
+        return name
+    async def publish_service(self, type_, port, name=None, addresses=None,
+                              properties=None, ttl=PUBLISH_TTL):
+        hostname = await self.get_local_hostname()
+        if name is None:
+            name = '.'.join([hostname, type_])
+        if addresses is None:
+            addresses = await self.get_local_ifaces()
+        if properties is None:
+            properties = {}
+        info_kwargs = {
+            'type':type_,
+            'port':port,
+            'name':name,
+            'properties':properties,
+        }
+        for addr in addresses:
+            if not isinstance(addr, ipaddress.IPv4Address):
+                addr = ipaddress.IPv4Address(addr)
+            info_kwargs['address'] = addr
+            info = ServiceInfo(**info_kwargs)
+            if info.id not in self.published_services:
+                self.published_services[info.id] = {}
+            if info.address in self.published_services[info.id]:
+                continue
+            self.published_services[info.id][info.address] = info
+            msg = PublishMessage(info, ttl)
+            asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
 
 class BMDDiscovery(Listener):
     vidhubs = DictProperty()
