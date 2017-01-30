@@ -49,3 +49,5 @@ async def test_config_basic(tempconfig):
     for attr in ['name', 'index', 'crosspoints']:
         assert getattr(preset1, attr) == getattr(preset1_2, attr)
         assert getattr(preset8, attr) == getattr(preset8_2, attr)
+
+    await config.stop()
