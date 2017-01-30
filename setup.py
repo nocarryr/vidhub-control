@@ -12,6 +12,7 @@ setup(
         'python-dispatch',
         'json-object-factory',
         'zeroconf',
+        'python-osc',
     ],
     entry_points={
         'console_scripts':[
