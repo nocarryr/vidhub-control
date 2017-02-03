@@ -11,10 +11,11 @@ from .server import OSCUDPServer, OscDispatcher
 
 
 class OscInterface(Dispatcher):
+    DEFAULT_HOSTPORT = 9000
     osc_dispatcher = Property()
     root_node = Property()
     iface_name = Property()
-    hostport = Property(9000)
+    hostport = Property(DEFAULT_HOSTPORT)
     hostiface = Property()
     config = Property()
     vidhubs = DictProperty(copy_on_change=True)

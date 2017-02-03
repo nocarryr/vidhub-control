@@ -11,8 +11,6 @@ from vidhubcontrol.backends import DummyBackend, TelnetBackend
 
 BACKENDS = {cls.__name__:cls for cls in [DummyBackend, TelnetBackend]}
 
-DEFAULT_FILENAME = '~/vidhubcontrol.json'
-
 class ConfigBase(Dispatcher):
     _conf_attrs = []
     _events_ = ['trigger_save']
@@ -26,13 +24,14 @@ class ConfigBase(Dispatcher):
         return d
 
 class Config(ConfigBase):
+    DEFAULT_FILENAME = '~/vidhubcontrol.json'
     USE_DISCOVERY = True
     vidhubs = DictProperty()
     _conf_attrs = ['vidhubs']
     def __init__(self, **kwargs):
         self.running = asyncio.Event()
         self.stopped = asyncio.Event()
-        self.filename = kwargs.get('filename', DEFAULT_FILENAME)
+        self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
         vidhubs = kwargs.get('vidhubs', {})
         for vidhub_data in vidhubs.values():
@@ -136,7 +135,7 @@ class Config(ConfigBase):
     @classmethod
     def load(cls, filename=None, **kwargs):
         if filename is None:
-            filename = DEFAULT_FILENAME
+            filename = self.DEFAULT_FILENAME
         kwargs['filename'] = filename
         filename = os.path.expanduser(filename)
         if os.path.exists(filename):
