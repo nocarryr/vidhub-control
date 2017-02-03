@@ -14,13 +14,18 @@ from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, Os
 
 BASE_PATH = os.path.dirname(os.path.abspath(vidhubcontrol.__file__))
 SCRIPT_PATH = os.path.join(BASE_PATH, 'runserver.py')
+ENTRY_POINT = 'vidhubcontrol-server'
 
 for iface_name, iface in find_ip_addresses():
     HOST_IFACE = iface
     break
 
+@pytest.fixture(params=[SCRIPT_PATH, ENTRY_POINT])
+def runserver_scriptname(request):
+    return request.param
+
 @pytest.mark.asyncio
-async def test_runserver(tempconfig, mocked_vidhub_telnet_device):
+async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scriptname):
 
     # Build a config file to be read later in the subprocess
     Config.USE_DISCOVERY = False
@@ -42,7 +47,7 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device):
     osc_client_port = 9001
 
     cmd_str = '{} --config {} --osc-address {} --osc-port {}'.format(
-        SCRIPT_PATH, tempconfig, HOST_IFACE.ip, osc_server_port)
+        runserver_scriptname, tempconfig, HOST_IFACE.ip, osc_server_port)
     print('running subprocess: "{}"'.format(cmd_str))
     proc = await asyncio.create_subprocess_exec(*shlex.split(cmd_str),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
