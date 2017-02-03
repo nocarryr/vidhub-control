@@ -209,3 +209,6 @@ async def test_interface_config(tempconfig):
 
     for i in range(vidhub.num_inputs):
         assert vidhub_node.find('labels/input/{}'.format(i)) is not None
+
+    await interface.stop()
+    await config.stop()
