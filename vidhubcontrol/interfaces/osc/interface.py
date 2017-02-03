@@ -6,8 +6,8 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
 
 from vidhubcontrol.utils import find_ip_addresses
-from vidhubcontrol.interfaces.osc.node import OscNode
-from vidhubcontrol.interfaces.osc.server import OSCUDPServer, OscDispatcher
+from .node import OscNode
+from .server import OSCUDPServer, OscDispatcher
 
 
 class OscInterface(Dispatcher):

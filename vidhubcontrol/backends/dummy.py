@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from vidhubcontrol.backends.base import BackendBase
+from . import BackendBase
 
 class DummyBackend(BackendBase):
     def __init__(self, **kwargs):

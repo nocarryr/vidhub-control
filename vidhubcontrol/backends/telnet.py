@@ -4,7 +4,7 @@ import logging
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from vidhubcontrol.backends.base import BackendBase
+from . import BackendBase
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_nodes():
-    from vidhubcontrol.interfaces.osc.node import OscNode
+    from vidhubcontrol.interfaces.osc import OscNode
 
     class Listener(object):
         def __init__(self):
@@ -80,10 +80,8 @@ async def test_nodes():
 
 @pytest.mark.asyncio
 async def test_interface():
-    from vidhubcontrol.interfaces.osc.node import OscNode
-    from vidhubcontrol.interfaces.osc.interface import OscInterface
-    from vidhubcontrol.interfaces.osc.server import OSCUDPServer, OscDispatcher
-    from vidhubcontrol.backends.dummy import DummyBackend
+    from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, OscDispatcher
+    from vidhubcontrol.backends import DummyBackend
 
     interface = OscInterface()
     vidhub = DummyBackend(device_name='dummy-name')
@@ -188,8 +186,8 @@ async def test_interface():
 @pytest.mark.asyncio
 async def test_interface_config(tempconfig):
     from vidhubcontrol.config import Config
-    from vidhubcontrol.backends.dummy import DummyBackend
-    from vidhubcontrol.interfaces.osc.interface import OscInterface
+    from vidhubcontrol.backends import DummyBackend
+    from vidhubcontrol.interfaces.osc import OscInterface
 
     config = Config.load(str(tempconfig))
     interface = OscInterface(config=config)

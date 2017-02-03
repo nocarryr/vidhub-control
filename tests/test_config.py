@@ -6,7 +6,7 @@ from vidhubcontrol.config import Config
 
 @pytest.mark.asyncio
 async def test_config_basic(tempconfig):
-    from vidhubcontrol.backends.dummy import DummyBackend
+    from vidhubcontrol.backends import DummyBackend
 
     config = Config.load(str(tempconfig))
     await config.start()

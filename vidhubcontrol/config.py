@@ -7,8 +7,7 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
 from vidhubcontrol.discovery import BMDDiscovery
-from vidhubcontrol.backends.dummy import DummyBackend
-from vidhubcontrol.backends.telnet import TelnetBackend
+from vidhubcontrol.backends import DummyBackend, TelnetBackend
 
 BACKENDS = {cls.__name__:cls for cls in [DummyBackend, TelnetBackend]}
 
