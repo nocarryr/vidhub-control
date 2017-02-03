@@ -17,6 +17,7 @@ setup(
     entry_points={
         'console_scripts':[
             'vidhubcontrol-web = vidhubcontrol.sofi_ui.main:run_app',
+            'vidhubcontrol-server = vidhubcontrol.runserver:main',
         ],
     },
     platforms=['any'],
