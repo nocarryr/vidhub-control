@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+from conftest import get_random_values
 
 @pytest.mark.asyncio
 async def test_nodes():
@@ -77,6 +78,226 @@ async def test_nodes():
     for key in all_nodes.keys():
         assert listener.messages_received[key] == ['foo', 'bar']
         assert listener.tree_messages_received[key] == ['foo', 'bar']
+
+
+
+@pytest.mark.asyncio
+async def test_pubsub_nodes():
+    from pydispatch import Dispatcher, Property
+    from vidhubcontrol.interfaces.osc import OscNode, PubSubOscNode, OSCUDPServer, OscDispatcher
+
+    class Publisher(Dispatcher):
+        value = Property()
+        other_value = Property()
+        def __init__(self, root_node, osc_address):
+            self.osc_address = osc_address
+            self.random_values = get_random_values(8)
+            self.msg_queue = asyncio.Queue()
+            if root_node.osc_address == osc_address:
+                self.osc_node = root_node
+            else:
+                self.osc_node = root_node.add_child(osc_address)
+            self.subscribe_node = self.osc_node.add_child('_subscribe')
+            self.query_node = self.osc_node.add_child('_query')
+            self.list_node = self.osc_node.add_child('_list')
+            for node in [self.osc_node, self.subscribe_node, self.query_node, self.list_node]:
+                node.bind(on_message_received=self.on_client_node_message)
+        async def wait_for_response(self):
+            msg = await self.msg_queue.get()
+            self.msg_queue.task_done()
+            return msg
+        async def subscribe(self, server_addr):
+            await self.subscribe_node.send_message(server_addr)
+            msg = await self.wait_for_response()
+            return msg
+        async def query(self, server_addr, recursive=False):
+            if recursive:
+                await self.query_node.send_message(server_addr, 'recursive')
+            else:
+                await self.query_node.send_message(server_addr)
+            msg = await self.wait_for_response()
+            return msg
+        def on_client_node_message(self, node, client_address, *messages):
+            print('on_client_node_message: ', node, messages)
+            self.msg_queue.put_nowait({
+                'node':node,
+                'client_address':client_address,
+                'messages':messages,
+            })
+
+    node_addresses = [
+        '/root',
+        '/root/branchA',
+        '/root/branchA/leaf1',
+        '/root/branchA/leaf2',
+        '/root/branchB',
+        '/root/branchB/leaf1',
+        '/root/branchB/leaf2',
+        '/root/branchC',
+        '/root/branchC/leaf1',
+        '/root/branchC/leaf2',
+    ]
+
+    listeners = {}
+
+    publish_root = PubSubOscNode('root')
+    subscribe_root = OscNode('root')
+
+    listener = Publisher(subscribe_root, subscribe_root.osc_address)
+    listeners[listener.osc_node.osc_address] = listener
+
+    for addr in node_addresses:
+        if addr == '/root':
+            pub_node = publish_root
+        else:
+            _addr = addr.lstrip('/root/')
+            listener = Publisher(subscribe_root, _addr)
+            listeners[listener.osc_node.osc_address] = listener
+            pub_node = publish_root.add_child(_addr, cls=PubSubOscNode, published_property=(listener, 'value'))
+            assert listener.osc_node.osc_address == addr
+
+    assert set(node_addresses) == set(listeners.keys())
+
+    pub_addrs = set((n.osc_address for n in publish_root.walk()))
+    sub_addrs = set((n.osc_address for n in subscribe_root.walk()))
+    assert pub_addrs == sub_addrs
+
+    server_addr = ('127.0.0.1', 9000)
+    server_dispatcher = OscDispatcher()
+    publish_root.osc_dispatcher = server_dispatcher
+    server = OSCUDPServer(server_addr, server_dispatcher)
+
+    client_addr = ('127.0.0.1', 9001)
+    client_dispatcher = OscDispatcher()
+    subscribe_root.osc_dispatcher = client_dispatcher
+    client = OSCUDPServer(client_addr, client_dispatcher)
+
+    await server.start()
+    await client.start()
+
+    # Subscribe and test for property changes and query responses
+    for listener in listeners.values():
+        if listener.osc_node is subscribe_root:
+            continue
+        msg = await listener.subscribe(server_addr)
+        assert msg['node'] is listener.subscribe_node
+        for v in listener.random_values:
+            listener.value = v
+            msg = await listener.wait_for_response()
+            assert msg['node'] is listener.osc_node
+            assert len(msg['messages']) == 1
+            if isinstance(v, float):
+                assert v == pytest.approx(msg['messages'][0])
+            else:
+                assert v == msg['messages'][0]
+        msg = await listener.query(server_addr)
+        assert msg['node'] is listener.osc_node
+        assert len(msg['messages']) == 1
+        if isinstance(v, float):
+            assert listener.value == pytest.approx(msg['messages'][0])
+        else:
+            assert listener.value == msg['messages'][0]
+
+    listener = listeners['/root']
+
+    # published_property has not yet been set on the root node
+    # so there should be no responses
+    with pytest.raises(NotImplementedError):
+        publish_root.get_query_response()
+        publish_root.on_query_node_message(publish_root, client_address)
+
+    await listener.query_node.send_message(server_addr)
+    await asyncio.sleep(1)
+    assert listener.msg_queue.empty()
+
+    # Set the property value to something other than None to avoid
+    # errors in python-osc
+    listener.value = 'a'
+
+    # Now test binding post-init
+    publish_root.published_property = (listener, 'value')
+    msg = await listener.query(server_addr)
+    assert msg['node'] is listener.osc_node
+    assert len(msg['messages']) == 1
+    assert msg['messages'][0] == listener.value == 'a'
+
+    msg = await listener.subscribe(server_addr)
+    assert msg['node'] is listener.subscribe_node
+    listener.value = 'foo'
+    msg = await listener.wait_for_response()
+    assert msg['node'] is listener.osc_node
+    assert len(msg['messages']) == 1
+    assert msg['messages'][0] == listener.value == 'foo'
+
+    msg = await listener.query(server_addr, recursive=True)
+    assert msg['node'] is listener.osc_node
+    assert len(msg['messages']) == 1
+    assert msg['messages'][0] == listener.value
+
+    for _listener in listeners.values():
+        if _listener is listener:
+            continue
+        msg = await _listener.wait_for_response()
+        assert msg['node'] is _listener.osc_node
+        assert len(msg['messages']) == 1
+        if isinstance(_listener.value, float):
+            assert msg['messages'][0] == pytest.approx(_listener.value)
+        else:
+            assert msg['messages'][0] == _listener.value
+
+    # Test property re-binding
+    for _listener in listeners.values():
+        current_value = _listener.value
+        if _listener.osc_node is subscribe_root:
+            pub_node = publish_root
+        else:
+            pub_node = publish_root.find(_listener.osc_address.lstrip('/root/'))
+        pub_node.published_property = (_listener, 'other_value')
+        _listener.value = 'foobar'
+        _listener.other_value = 'baz'
+        msg = await _listener.wait_for_response()
+        assert len(msg['messages']) == 1
+        assert msg['messages'][0] == _listener.other_value == 'baz'
+        pub_node.published_property = (_listener, 'value')
+        _listener.value = current_value
+        msg = await _listener.wait_for_response()
+        assert len(msg['messages']) == 1
+        if isinstance(current_value, float):
+            assert pytest.approx(msg['messages'][0]) == _listener.value == current_value
+        else:
+            assert msg['messages'][0] == _listener.value == current_value
+        assert _listener.msg_queue.empty()
+
+    # Unbind published_property and test for recursive empty responses
+    for _listener in listeners.values():
+        if _listener.osc_node is subscribe_root:
+            pub_node = publish_root
+        else:
+            pub_node = publish_root.find(_listener.osc_address.lstrip('/root/'))
+        pub_node.published_property = None
+
+    await listener.query_node.send_message(server_addr, 'recursive')
+    await asyncio.sleep(1)
+    for _listener in listeners.values():
+        assert _listener.msg_queue.empty()
+
+
+    # Test list (recursive and non-recursive)
+    await listener.list_node.send_message(server_addr, False)
+    msg = await listener.wait_for_response()
+    assert msg['node'] is listener.list_node
+    expected = ['branchA', 'branchB', 'branchC']
+    assert set(msg['messages']) == set(expected)
+
+    await listener.list_node.send_message(server_addr, 'recursive')
+    msg = await listener.wait_for_response()
+    assert msg['node'] is listener.list_node
+    expected = [addr.lstrip('/root/') for addr in node_addresses if addr != '/root']
+    assert set(msg['messages']) == set(expected)
+
+
+    await client.stop()
+    await server.stop()
 
 @pytest.mark.asyncio
 async def test_interface():
