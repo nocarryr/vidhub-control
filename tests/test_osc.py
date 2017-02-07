@@ -304,6 +304,46 @@ async def test_interface():
     from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, OscDispatcher
     from vidhubcontrol.backends import DummyBackend
 
+    class NodeResponse(object):
+        def __init__(self, node=None):
+            self.msg_queue = asyncio.Queue()
+            self.node = node
+        @property
+        def node(self):
+            return getattr(self, '_node', None)
+        @node.setter
+        def node(self, node):
+            if self.node is not None:
+                self.node.unbind(self)
+            self._node = node
+            print(node)
+            if node is not None:
+                node.bind(on_message_received=self.on_message_received)
+        async def subscribe_to_node(self, node, server_addr):
+            self.node = None
+            subscribe_node = node.add_child('_subscribe')
+            self.node = subscribe_node
+            await subscribe_node.send_message(server_addr)
+            await self.wait_for_response()
+            self.node = node
+        async def unsubscribe(self, server_addr):
+            subscribe_node = self.node.find('_subscribe')
+            self.node = subscribe_node
+            await subscribe_node.send_message(server_addr, False)
+            await self.wait_for_response()
+            self.node = None
+        async def wait_for_response(self):
+            msg = await self.msg_queue.get()
+            self.msg_queue.task_done()
+            return msg
+        def on_message_received(self, node, client_address, *messages):
+            print('on_message_received: ', node, client_address, messages)
+            self.msg_queue.put_nowait({
+                'node':node,
+                'client_address':client_address,
+                'messages':messages,
+            })
+
     interface = OscInterface()
     vidhub = DummyBackend(device_name='dummy-name')
     await interface.add_vidhub(vidhub)
@@ -322,29 +362,47 @@ async def test_interface():
     assert interface.root_node.find('vidhubs/by-id/dummy') is not None
     assert interface.root_node.find('vidhubs/by-name/dummy-name') is not None
 
+    cnode = client_node.add_child('vidhubs/by-id/dummy/labels/output/_list')
+    node_response = NodeResponse(cnode)
+    await cnode.send_message(server_addr)
+    msg = await node_response.wait_for_response()
+    assert set(msg['messages']) == set((str(i) for i in range(vidhub.num_outputs)))
+
     for i, lbl in enumerate(vidhub.output_labels):
         addr = 'vidhubs/by-id/dummy/labels/output/{}'.format(i)
         assert interface.root_node.find(addr) is not None
         cnode = client_node.add_child(addr)
-        cnode.ensure_message(server_addr, 'FOO OUT {}'.format(i))
+        await node_response.subscribe_to_node(cnode, server_addr)
+        await cnode.send_message(server_addr, 'FOO OUT {}'.format(i))
+        msg = await node_response.wait_for_response()
+        assert msg['messages'][0] == 'FOO OUT {}'.format(i)
         assert interface.root_node.find('vidhubs/by-name/dummy-name/labels/output/{}'.format(i)) is not None
+        await node_response.unsubscribe(server_addr)
 
 
     for i, lbl in enumerate(vidhub.input_labels):
         addr = 'vidhubs/by-id/dummy/labels/input/{}'.format(i)
         assert interface.root_node.find(addr) is not None
         cnode = client_node.add_child(addr)
-        cnode.ensure_message(server_addr, 'FOO IN {}'.format(i))
+        await node_response.subscribe_to_node(cnode, server_addr)
+        await cnode.send_message(server_addr, 'FOO IN {}'.format(i))
+        msg = await node_response.wait_for_response()
+        assert msg['messages'][0] == 'FOO IN {}'.format(i)
         assert interface.root_node.find('vidhubs/by-name/dummy-name/labels/input/{}'.format(i)) is not None
+        await node_response.unsubscribe(server_addr)
 
     for out_idx, in_idx in enumerate(vidhub.crosspoints):
         addr = 'vidhubs/by-id/dummy/crosspoints/{}'.format(out_idx)
         assert interface.root_node.find(addr) is not None
         cnode = client_node.add_child(addr)
-        cnode.ensure_message(server_addr, 2)
+        await node_response.subscribe_to_node(cnode, server_addr)
+        await cnode.send_message(server_addr, 2)
+        msg = await node_response.wait_for_response()
+        assert msg['node'].osc_address == cnode.osc_address
+        assert msg['messages'][0] == 2
         assert interface.root_node.find('vidhubs/by-name/dummy-name/crosspoints/{}'.format(i)) is not None
+        await node_response.unsubscribe(server_addr)
 
-    await asyncio.sleep(2)
 
 
     for i, lbl in enumerate(vidhub.output_labels):
@@ -380,10 +438,20 @@ async def test_interface():
 
     waiter = PresetAwait('on_preset_stored')
 
+    await node_response.subscribe_to_node(crosspoint_node, server_addr)
+
+    preset_response = NodeResponse()
+
     for i in range(vidhub.num_inputs):
         xpts = [i]*vidhub.num_outputs
-        crosspoint_node.ensure_message(server_addr, *xpts)
-        await asyncio.sleep(.2)
+        await crosspoint_node.send_message(server_addr, *xpts)
+        while True:
+            msg = await node_response.wait_for_response()
+            assert msg['node'].osc_address == crosspoint_node.osc_address
+            if list(msg['messages']) == xpts:
+                break
+            await asyncio.sleep(0)
+
         assert vidhub.crosspoints == xpts
         name = 'preset_{}'.format(i)
         preset_node.find('store').ensure_message(server_addr, i, name)
@@ -393,12 +461,17 @@ async def test_interface():
 
     assert len(vidhub.presets) == vidhub.num_inputs
 
-    waiter = PresetAwait('on_preset_active')
-
     for preset in vidhub.presets:
+        await preset_response.subscribe_to_node(
+            preset_node.add_child('/'.join([str(preset.index), 'active'])),
+            server_addr,
+        )
         assert not preset.active
-        preset_node.find('recall').ensure_message(server_addr, preset.index)
-        await waiter.wait()
+        n = preset_node.find('recall')
+        await n.send_message(server_addr, preset.index)
+        msg = await preset_response.wait_for_response()
+        assert msg['node'].osc_address == preset_response.node.osc_address
+        assert msg['messages'][0] == True
         assert preset.active
 
     await client.stop()

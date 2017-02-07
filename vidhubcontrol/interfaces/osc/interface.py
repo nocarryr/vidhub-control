@@ -6,7 +6,7 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
 
 from vidhubcontrol.utils import find_ip_addresses
-from .node import OscNode
+from .node import OscNode, PubSubOscNode
 from .server import OSCUDPServer, OscDispatcher
 
 
@@ -91,7 +91,7 @@ class OscInterface(Dispatcher):
             asyncio.ensure_future(self.add_vidhub(vidhub))
 
 
-class VidhubNode(OscNode):
+class VidhubNode(PubSubOscNode):
     _info_properties = [
         ('device_id', 'id'),
         ('device_name', 'name'),
@@ -100,6 +100,7 @@ class VidhubNode(OscNode):
         ('num_outputs', 'num_outputs'),
         ('num_inputs', 'num_inputs'),
     ]
+    device_info = DictProperty()
     def __init__(self, vidhub, use_device_id=True):
         self.vidhub = vidhub
         self.use_device_id = use_device_id
@@ -108,34 +109,40 @@ class VidhubNode(OscNode):
         else:
             name = self.vidhub.device_name
         super().__init__(name)
-        info_children = {key:{} for __, key in self._info_properties}
-        self.info_node = self.add_child('info', children=info_children)
-        self.label_node = self.add_child('labels')
+        info_node = self.add_child('info', cls=PubSubOscNode)
+        for vidhub_attr, name in self._info_properties:
+            info_node.add_child(
+                name,
+                cls=VidhubInfoNode,
+                published_property=(self.vidhub, vidhub_attr),
+            )
+        self.label_node = self.add_child('labels', cls=PubSubOscNode)
         self.label_node.add_child('input', cls=VidhubLabelNode, vidhub=vidhub)
         self.label_node.add_child('output', cls=VidhubLabelNode, vidhub=vidhub)
         self.crosspoint_node = self.add_child('crosspoints', cls=VidhubCrosspointNode, vidhub=vidhub)
         self.preset_node = self.add_child('presets', cls=VidhubPresetGroupNode, vidhub=vidhub)
-    def get_device_info(self):
-        d = {}
-        for vidhub_attr, key in self._info_properties:
-            d[key] = getattr(self.vidhub, attr)
-        return d
-    def on_child_message_received(self, node, client_address, *messages):
-        if node is self.info_node:
-            d = self.get_device_info()
-            for key, val in d.items():
-                node.children[key].ensure_message(client_address, val)
-        super().on_child_message_received(self, node, client_address, *messages)
 
-class VidhubLabelNode(OscNode):
+
+class VidhubInfoNode(PubSubOscNode):
+    def __init__(self, name, parent, **kwargs):
+        super().__init__(name, parent, **kwargs)
+    def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
+        super().on_osc_dispatcher_message(osc_address, client_address, *messages)
+        if self.name != 'name':
+            return
+        if len(messages) == 1:
+            vidhub, prop = self.published_property
+            vidhub.device_name = messages[0]
+
+class VidhubLabelNode(PubSubOscNode):
     def __init__(self, name, parent, **kwargs):
         super().__init__(name, parent, **kwargs)
         self.vidhub = kwargs.get('vidhub')
-        property_attr = '_'.join([self.name, 'labels'])
-        self.vidhub_property = getattr(self.vidhub, property_attr)
+        self.property_attr = '_'.join([self.name, 'labels'])
+        self.vidhub_property = getattr(self.vidhub, self.property_attr)
         for i, lbl in enumerate(self.vidhub_property):
-            node = self.add_child(str(i))
-        #self.vidhub.bind(**{property_attr:self.on_vidhub_labels})
+            node = self.add_child(str(i), cls=VidhubSingleLabelNode)
+        self.published_property = (self.vidhub, self.property_attr)
     def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
         if not len(messages):
             lbls = self.vidhub_property[:]
@@ -147,21 +154,34 @@ class VidhubLabelNode(OscNode):
             self.ensure_message(client_address, *lbls)
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
     def on_child_message_received(self, node, client_address, *messages):
-        i = int(node.name)
-        if not len(messages):
-            node.ensure_message(client_address, self.vidhub_property[i])
-        else:
-            lbl = messages[0]
-            self.vidhub_property[i] = lbl
-            node.ensure_message(client_address, self.vidhub_property[i])
-        super().on_child_message_received(self, node, client_address, *messages)
+        if node.name.isdigit():
+            i = int(node.name)
+            if not len(messages):
+                node.ensure_message(client_address, self.vidhub_property[i])
+            else:
+                lbl = messages[0]
+                self.vidhub_property[i] = lbl
+                node.ensure_message(client_address, self.vidhub_property[i])
+        super().on_child_message_received(node, client_address, *messages)
 
-class VidhubCrosspointNode(OscNode):
+class VidhubSingleLabelNode(PubSubOscNode):
+    value = Property()
+    def __init__(self, name, parent, **kwargs):
+        super().__init__(name, parent, **kwargs)
+        self.index = int(name)
+        self.published_property = (self, 'value')
+        self.value = self.parent.vidhub_property[self.index]
+        self.parent.vidhub.bind(**{self.parent.property_attr:self.on_vidhub_labels})
+    def on_vidhub_labels(self, instance, value, **kwargs):
+        self.value = value[self.index]
+
+class VidhubCrosspointNode(PubSubOscNode):
     def __init__(self, name, parent, **kwargs):
         super().__init__(name, parent, **kwargs)
         self.vidhub = kwargs.get('vidhub')
         for i in range(self.vidhub.num_outputs):
-            self.add_child(name=str(i))
+            self.add_child(name=str(i), cls=VidhubSingleCrosspointNode, index=i)
+        self.published_property = (self.vidhub, 'crosspoints')
     def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
         if not len(messages):
             self.ensure_message(client_address, self.vidhub.crosspoints[:])
@@ -171,15 +191,28 @@ class VidhubCrosspointNode(OscNode):
             ## TODO: give feedback from async call
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
     def on_child_message_received(self, node, client_address, *messages):
-        i = int(node.name)
-        if not len(messages):
-            node.ensure_message(client_address, self.vidhub.crosspoints[i])
-        else:
-            asyncio.ensure_future(self.vidhub.set_crosspoint(i, messages[0]))
-            #node.ensure_message(client_address, self.vidhub.crosspoints[i])
-        super().on_child_message_received(self, node, client_address, *messages)
+        if node.name.isdigit():
+            i = int(node.name)
+            if not len(messages):
+                node.ensure_message(client_address, self.vidhub.crosspoints[i])
+            else:
+                asyncio.ensure_future(self.vidhub.set_crosspoint(i, messages[0]))
+                #node.ensure_message(client_address, self.vidhub.crosspoints[i])
+        super().on_child_message_received(node, client_address, *messages)
 
-class VidhubPresetGroupNode(OscNode):
+class VidhubSingleCrosspointNode(PubSubOscNode):
+    index = Property()
+    value = Property()
+    def __init__(self, name, parent, **kwargs):
+        super().__init__(name, parent, **kwargs)
+        self.published_property = (self, 'value')
+        self.index = kwargs.get('index')
+        self.value = self.parent.vidhub.crosspoints[self.index]
+        self.parent.vidhub.bind(crosspoints=self.on_crosspoints)
+    def on_crosspoints(self, instance, value, **kwargs):
+        self.value = value[self.index]
+
+class VidhubPresetGroupNode(PubSubOscNode):
     def __init__(self, name, parent, **kwargs):
         super().__init__(name, parent, **kwargs)
         self.vidhub = kwargs.get('vidhub')
@@ -226,11 +259,13 @@ class VidhubPresetGroupNode(OscNode):
                 ))
         super().on_child_message_received(node, client_address, *messages)
 
-class VidhubPresetNode(OscNode):
+class VidhubPresetNode(PubSubOscNode):
     def __init__(self, name, parent, **kwargs):
         super().__init__(name, parent, **kwargs)
         self.preset = kwargs.get('preset')
-        for name in ['name', 'active', 'recall', 'store']:
+        for name in ['name', 'active']:
+            self.add_child(name, cls=PubSubOscNode, published_property=(self.preset, name))
+        for name in ['recall', 'store']:
             self.add_child(name)
     def on_child_message_received(self, node, client_address, *messages):
         if node.name == 'name':
