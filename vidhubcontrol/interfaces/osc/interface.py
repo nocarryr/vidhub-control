@@ -190,15 +190,6 @@ class VidhubCrosspointNode(PubSubOscNode):
             asyncio.ensure_future(self.vidhub.set_crosspoints(*args))
             ## TODO: give feedback from async call
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
-    def on_child_message_received(self, node, client_address, *messages):
-        if node.name.isdigit():
-            i = int(node.name)
-            if not len(messages):
-                node.ensure_message(client_address, self.vidhub.crosspoints[i])
-            else:
-                asyncio.ensure_future(self.vidhub.set_crosspoint(i, messages[0]))
-                #node.ensure_message(client_address, self.vidhub.crosspoints[i])
-        super().on_child_message_received(node, client_address, *messages)
 
 class VidhubSingleCrosspointNode(PubSubOscNode):
     index = Property()
@@ -211,6 +202,13 @@ class VidhubSingleCrosspointNode(PubSubOscNode):
         self.parent.vidhub.bind(crosspoints=self.on_crosspoints)
     def on_crosspoints(self, instance, value, **kwargs):
         self.value = value[self.index]
+    def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
+        if not len(messages):
+            self.ensure_message(client_address, self.value)
+        else:
+            xpt = messages[0]
+            asyncio.ensure_future(self.parent.vidhub.set_crosspoint(self.index, xpt))
+        super().on_osc_dispatcher_message(osc_address, client_address, *messages)
 
 class VidhubPresetGroupNode(PubSubOscNode):
     def __init__(self, name, parent, **kwargs):
