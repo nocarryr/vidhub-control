@@ -391,6 +391,13 @@ async def test_interface():
         assert interface.root_node.find('vidhubs/by-name/dummy-name/labels/input/{}'.format(i)) is not None
         await node_response.unsubscribe(server_addr)
 
+    crosspoint_node = client_node.add_child('vidhubs/by-id/dummy/crosspoints')
+    crosspoint_response = NodeResponse()
+    await crosspoint_response.subscribe_to_node(crosspoint_node, server_addr)
+    await crosspoint_node.add_child('_query').send_message(server_addr)
+    msg = await crosspoint_response.wait_for_response()
+    assert list(msg['messages']) == vidhub.crosspoints[:]
+
     for out_idx, in_idx in enumerate(vidhub.crosspoints):
         addr = 'vidhubs/by-id/dummy/crosspoints/{}'.format(out_idx)
         assert interface.root_node.find(addr) is not None
@@ -403,6 +410,9 @@ async def test_interface():
         assert interface.root_node.find('vidhubs/by-name/dummy-name/crosspoints/{}'.format(i)) is not None
         await node_response.unsubscribe(server_addr)
 
+        msg = await crosspoint_response.wait_for_response()
+        assert crosspoint_response.msg_queue.empty()
+        assert list(msg['messages']) == vidhub.crosspoints[:]
 
 
     for i, lbl in enumerate(vidhub.output_labels):
@@ -415,10 +425,8 @@ async def test_interface():
         assert xpt == 2
 
     expected = vidhub.crosspoints[:]
-    crosspoint_node = client_node.find('vidhubs/by-id/dummy/crosspoints')
-    node_response.node = crosspoint_node
     await crosspoint_node.send_message(server_addr)
-    msg = await node_response.wait_for_response()
+    msg = await crosspoint_response.wait_for_response()
     assert msg['node'].osc_address == crosspoint_node.osc_address
     assert list(msg['messages']) == expected
 
@@ -466,7 +474,8 @@ async def test_interface():
             if list(msg['messages']) == xpts:
                 break
             await asyncio.sleep(0)
-
+        msg = await crosspoint_response.wait_for_response()
+        assert list(msg['messages']) == vidhub.crosspoints
         assert vidhub.crosspoints == xpts
         name = 'preset_{}'.format(i)
         preset_node.find('store').ensure_message(server_addr, i, name)
