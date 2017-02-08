@@ -362,6 +362,17 @@ async def test_interface():
     assert interface.root_node.find('vidhubs/by-id/dummy') is not None
     assert interface.root_node.find('vidhubs/by-name/dummy-name') is not None
 
+    by_id_response = NodeResponse()
+    n = client_node.add_child('vidhubs/by-id')
+    await by_id_response.subscribe_to_node(n, server_addr)
+    n = n.add_child('_query')
+    await n.send_message(server_addr)
+    msg = await by_id_response.wait_for_response()
+    assert vidhub.device_id in msg['messages']
+
+    by_name_response = NodeResponse()
+    await by_name_response.subscribe_to_node(client_node.add_child('vidhubs/by-name'), server_addr)
+
     cnode = client_node.add_child('vidhubs/by-id/dummy/labels/output/_list')
     node_response = NodeResponse(cnode)
     await cnode.send_message(server_addr)
@@ -512,6 +523,19 @@ async def test_interface():
         assert msg['node'].osc_address == preset_response.node.osc_address
         assert msg['messages'][0] == True
         assert preset.active
+
+    vidhub.device_name = 'dummy-foo'
+    msg = await by_name_response.wait_for_response()
+    assert 'dummy-foo' in msg['messages']
+
+    vidhub2 = DummyBackend(device_id='dummy2', device_name='dummy-name-2')
+    await interface.add_vidhub(vidhub2)
+
+    msg = await by_id_response.wait_for_response()
+    assert set(msg['messages']) == set([vidhub.device_id, vidhub2.device_id])
+
+    msg = await by_name_response.wait_for_response()
+    assert set(msg['messages']) == set([vidhub.device_name, vidhub2.device_name])
 
     await client.stop()
     await interface.stop()

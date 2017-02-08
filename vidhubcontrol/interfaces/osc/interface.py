@@ -19,6 +19,7 @@ class OscInterface(Dispatcher):
     hostiface = Property()
     config = Property()
     vidhubs = DictProperty(copy_on_change=True)
+    vidhubs_by_name = DictProperty()
     def __init__(self, **kwargs):
         self.bind(config=self.on_config)
         self.config = kwargs.get('config')
@@ -38,8 +39,17 @@ class OscInterface(Dispatcher):
         self.osc_dispatcher = OscDispatcher()
         self.server = None
         self.root_node = OscNode('vidhubcontrol', osc_dispatcher=self.osc_dispatcher)
-        self.root_node.add_child('/vidhubs/by-id')
-        self.root_node.add_child('/vidhubs/by-name')
+        vidhub_node = self.root_node.add_child('vidhubs')
+        vidhub_node.add_child(
+            'by-id',
+            cls=PubSubOscNode,
+            published_property=(self, 'vidhubs'),
+        )
+        vidhub_node.add_child(
+            'by-name',
+            cls=PubSubOscNode,
+            published_property=(self, 'vidhubs_by_name'),
+        )
         # self.root_node.add_child('vidhubs/_update')
         # subscribe_node = self.root_node.add_child('vidhubs/_subscribe')
         # query_node = self.root_node.add_child('vidhubs/_query')
@@ -55,6 +65,8 @@ class OscInterface(Dispatcher):
         self.root_node.find('vidhubs/by-name').add_child('', node)
         node.osc_dispatcher = self.osc_dispatcher
         self.vidhubs[vidhub.device_id] = vidhub
+        self.vidhubs_by_name[vidhub.device_name] = vidhub
+        vidhub.bind(device_name=self.on_vidhub_name)
     async def start(self):
         if self.server is not None:
             await self.server.stop()
@@ -78,6 +90,11 @@ class OscInterface(Dispatcher):
                 'types':'ifsbrTF',
             }
         )
+    def on_vidhub_name(self, instance, value, **kwargs):
+        old = kwargs.get('old')
+        with self.emission_lock('vidhubs_by_name'):
+            del self.vidhubs_by_name[old]
+            self.vidhubs_by_name[value] = instance
     def on_config(self, instance, config, **kwargs):
         if config is None:
             return
