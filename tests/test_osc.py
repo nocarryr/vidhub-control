@@ -476,6 +476,21 @@ async def test_interface():
 
     assert len(vidhub.presets) == vidhub.num_inputs
 
+    expected = set((str(p.index) for p in vidhub.presets))
+    preset_response.node = preset_node
+    await preset_node.send_message(server_addr)
+    msg = await preset_response.wait_for_response()
+    assert msg['node'].osc_address == preset_node.osc_address
+    assert set(msg['messages']) == expected
+
+    preset_list_node = preset_node.add_child('_list')
+    preset_response.node = preset_list_node
+    await preset_list_node.send_message(server_addr)
+    msg = await preset_response.wait_for_response()
+    assert msg['node'].osc_address == preset_list_node.osc_address
+    expected |= set(['recall', 'store'])
+    assert set(msg['messages']) == expected
+
     for preset in vidhub.presets:
         await preset_response.subscribe_to_node(
             preset_node.add_child('/'.join([str(preset.index), 'active'])),
