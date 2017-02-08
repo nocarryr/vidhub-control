@@ -227,6 +227,11 @@ class VidhubPresetGroupNode(PubSubOscNode):
             if name in self.preset_nodes:
                 continue
             self.add_child(name=name, cls=VidhubPresetNode, preset=preset)
+    def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
+        if not len(messages):
+            response = (str(preset.index) for preset in self.vidhub.presets)
+            self.ensure_message(client_address, *response)
+        super().on_osc_dispatcher_message(osc_address, client_address, *messages)
     def on_child_message_received(self, node, client_address, *messages):
         if node.name == 'recall':
             for i in messages:
