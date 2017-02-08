@@ -176,18 +176,23 @@ class PubSubOscNode(OscNode):
                     response = node.get_query_response()
                 except NotImplementedError:
                     continue
-                node.ensure_message(client_address, response)
+                node.ensure_message(client_address, *response)
         else:
             try:
                 response = self.get_query_response()
             except NotImplementedError:
                 response = None
-            self.ensure_message(client_address, response)
+            self.ensure_message(client_address, *response)
     def get_query_response(self):
         prop = self.published_property
         if prop is not None:
             inst, prop = prop
-            return getattr(inst, prop)
+            value = getattr(inst, prop)
+            if isinstance(value, dict):
+                value = value.keys()
+            elif not isinstance(value, (list, tuple, set)):
+                value = [value]
+            return value
         raise NotImplementedError()
     def on_list_node_message(self, node, client_address, *messages):
         recursive = False
@@ -213,6 +218,8 @@ class PubSubOscNode(OscNode):
     def on_published_property_change(self, instance, value, **kwargs):
         if isinstance(value, list):
             args = value
+        elif isinstance(value, dict):
+            args = value.keys()
         else:
             args = [value]
         self.update_subscribers(*args)
