@@ -184,7 +184,7 @@ class VidhubCrosspointNode(PubSubOscNode):
         self.published_property = (self.vidhub, 'crosspoints')
     def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
         if not len(messages):
-            self.ensure_message(client_address, self.vidhub.crosspoints[:])
+            self.ensure_message(client_address, *self.vidhub.crosspoints[:])
         elif len(messages) <= len(self.vidhub.crosspoints):
             args = ((out_idx, in_idx) for out_idx, in_idx in enumerate(messages))
             asyncio.ensure_future(self.vidhub.set_crosspoints(*args))
