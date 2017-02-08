@@ -172,8 +172,9 @@ class TelnetBackend(BackendBase):
             tx_lines.append('{} {}'.format(out_idx, in_idx))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        await self.send_to_client(tx_bfr)
-        r = await self.wait_for_response()
+        with self.emission_lock('crosspoints'):
+            await self.send_to_client(tx_bfr)
+            r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
             return False
         return True
@@ -186,8 +187,9 @@ class TelnetBackend(BackendBase):
             tx_lines.append('{} {}'.format(out_idx, label))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        await self.send_to_client(tx_bfr)
-        r = await self.wait_for_response()
+        with self.emission_lock('output_labels'):
+            await self.send_to_client(tx_bfr)
+            r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
             return False
         return True
@@ -200,8 +202,9 @@ class TelnetBackend(BackendBase):
             tx_lines.append('{} {}'.format(in_idx, label))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        await self.send_to_client(tx_bfr)
-        r = await self.wait_for_response()
+        with self.emission_lock('input_labels'):
+            await self.send_to_client(tx_bfr)
+            r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
             return False
         return True
