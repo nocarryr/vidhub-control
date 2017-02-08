@@ -414,12 +414,27 @@ async def test_interface():
     for xpt in vidhub.crosspoints:
         assert xpt == 2
 
+    expected = vidhub.crosspoints[:]
+    crosspoint_node = client_node.find('vidhubs/by-id/dummy/crosspoints')
+    node_response.node = crosspoint_node
+    await crosspoint_node.send_message(server_addr)
+    msg = await node_response.wait_for_response()
+    assert msg['node'].osc_address == crosspoint_node.osc_address
+    assert list(msg['messages']) == expected
+
+    expected = set(str(i) for i in range(vidhub.num_outputs))
+    crosspoint_list_node = crosspoint_node.add_child('_list')
+    node_response.node = crosspoint_list_node
+    await crosspoint_list_node.send_message(server_addr)
+    msg = await node_response.wait_for_response()
+    assert msg['node'].osc_address == crosspoint_list_node.osc_address
+    assert set(msg['messages']) == expected
+
 
     # Test presets
     preset_node = client_node.add_child('vidhubs/by-id/dummy/presets')
     preset_node.add_child('recall')
     preset_node.add_child('store')
-    crosspoint_node = client_node.find('vidhubs/by-id/dummy/crosspoints')
 
     class PresetAwait(object):
         def __init__(self, event_name):
