@@ -135,7 +135,7 @@ class Config(ConfigBase):
     @classmethod
     def load(cls, filename=None, **kwargs):
         if filename is None:
-            filename = self.DEFAULT_FILENAME
+            filename = cls.DEFAULT_FILENAME
         kwargs['filename'] = filename
         filename = os.path.expanduser(filename)
         if os.path.exists(filename):
