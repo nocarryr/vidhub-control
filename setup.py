@@ -14,11 +14,15 @@ setup(
         'zeroconf',
         'python-osc',
         'pid',
+        'kivy',
     ],
     entry_points={
         'console_scripts':[
             'vidhubcontrol-web = vidhubcontrol.sofi_ui.main:run_app',
             'vidhubcontrol-server = vidhubcontrol.runserver:main',
+        ],
+        'gui_scripts':[
+            'vidhubcontrol-ui = vidhubcontrol.kivyui.main:main',
         ],
     },
     platforms=['any'],
