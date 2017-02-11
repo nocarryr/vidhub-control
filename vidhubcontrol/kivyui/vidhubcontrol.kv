@@ -1,0 +1,39 @@
+#:include vidhubcontrol/kivyui/vidhubview.kv
+
+RootWidget:
+    header_widget: header_widget
+    main_widget: main_widget
+    footer_widget: footer_widget
+    BoxLayout:
+        orientation: 'vertical'
+        HeaderWidget:
+            id: header_widget
+            size_hint_y: .1
+        BoxLayout:
+            id: main_widget
+            size_hint_y: .8
+            VidhubWidget:
+                id: vidhub_widget
+                size_hint_y: 1
+        FooterWidget:
+            id: footer_widget
+            size_hint_y: .1
+
+<HeaderWidget>:
+    orientation: 'horizontal'
+    Button:
+        text: 'Select Device'
+        on_release: root.vidhub_dropdown.open(self)
+
+<FooterWidget@BoxLayout>:
+    orientation: 'horizontal'
+
+<VidhubDropdown>:
+    id: vidhub_dropdown
+    app: app
+
+<VidhubDropdownButton>:
+    app: app
+    size_hint_y: None
+    height: 44
+    on_release: app.selected_vidhub = self.vidhub

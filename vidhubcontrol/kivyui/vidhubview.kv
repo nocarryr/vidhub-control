@@ -1,0 +1,37 @@
+<VidhubWidget>:
+    app: app
+    id: vidhub_widget
+    input_button_grid: input_button_grid
+    output_button_grid: output_button_grid
+    orientation: 'vertical'
+    Label:
+        size_hint_y: .1
+        text: root.name
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: .4
+        Label:
+            text: 'Sources'
+        InputButtonGrid:
+            app: app
+            id: input_button_grid
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: .4
+        Label:
+            text: 'Destinations'
+        OutputButtonGrid:
+            app: app
+            id: output_button_grid
+
+
+<ButtonGrid>:
+    cols: 6
+    rows: 2
+
+<InputButtonGrid>:
+
+<OutputButtonGrid>:
+
+<ButtonGridBtn>:
+    text: self.button_grid.button_labels.get(self.index)
