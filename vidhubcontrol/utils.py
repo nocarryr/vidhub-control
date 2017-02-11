@@ -1,7 +1,7 @@
 import ipaddress
 import netifaces
 
-def find_ip_addresses(iface_name=None):
+def find_ip_addresses(iface_name=None, exclude_loopback=True):
     if iface_name is not None:
         iface_names = [iface_name]
     else:
@@ -10,7 +10,7 @@ def find_ip_addresses(iface_name=None):
         addrs = netifaces.ifaddresses(iface_name)[netifaces.AF_INET]
         for addr in addrs:
             iface = ipaddress.IPv4Interface('/'.join([addr['addr'], addr['netmask']]))
-            if iface.is_loopback:
+            if iface.is_loopback and exclude_loopback:
                 continue
             if iface.is_reserved:
                 continue

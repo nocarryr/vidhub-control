@@ -31,9 +31,14 @@ class OscInterface(Dispatcher):
                 self.hostiface = iface
                 break
         if self.hostiface is None:
-            for iface_name, iface in find_ip_addresses():
-                if hostaddr is not None and str(iface.ip) != hostaddr:
-                    continue
+            exclude_loopback=True
+            if hostaddr is not None:
+                hostaddr = ipaddress.ip_address(hostaddr)
+                exclude_loopback=False
+            for iface_name, iface in find_ip_addresses(exclude_loopback=exclude_loopback):
+                if hostaddr is not None:
+                    if hostaddr not in iface.network:
+                        continue
                 self.hostiface = iface
                 self.iface_name = iface_name
         self.osc_dispatcher = OscDispatcher()
