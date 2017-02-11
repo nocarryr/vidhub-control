@@ -32,7 +32,6 @@ class VidhubDropdown(DropDown):
     def on_app(self, *args):
         if self.app is None:
             return
-        print('on_app')
         self.update_buttons()
         self.app.bind(
             vidhubs=self.update_buttons,
@@ -44,7 +43,6 @@ class VidhubDropdown(DropDown):
                 continue
             btn = VidhubDropdownButton(vidhub=vidhub)
             self.btns[key] = btn
-            print(key)
             self.add_widget(btn)
     def on_selected_vidhub(self, instance, value):
         self.select(value.device_name)
