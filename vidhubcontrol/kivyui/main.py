@@ -165,6 +165,8 @@ class VidhubControlApp(App):
         self.aio_loop.run_until_complete(self._async_no_op())
     def bind_events(self, obj, **kwargs):
         self.async_server.bind_events(obj, **kwargs)
+    def run_async_coro(self, coro):
+        return self.async_server.run_async_coro(coro)
 
 
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__qualname__', '__doc__',
@@ -221,6 +223,8 @@ class AioBridge(threading.Thread):
         for name, callback in kwargs.items():
             kwargs_[name] = wrapped_callback(callback)
         asyncio.run_coroutine_threadsafe(do_bind(obj, **kwargs_), loop=self.event_loop)
+    def run_async_coro(self, coro):
+        return asyncio.run_coroutine_threadsafe(coro, loop=self.event_loop)
 
 
 class Opts(object):
