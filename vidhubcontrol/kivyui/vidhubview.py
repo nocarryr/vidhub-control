@@ -31,12 +31,17 @@ class VidhubWidget(BoxLayout):
             return
         self.output_button_grid.vidhub_widget = self
         self.output_button_grid.bind(on_button_release=self.on_output_button_release)
+    def on_preset_button_grid(self, *args):
+        if self.preset_button_grid is None:
+            return
+        self.preset_button_grid.vidhub_widget = self
     def on_vidhub(self, *args):
         if self.vidhub is None:
             return
         self.name = self.vidhub.device_name
         self.input_button_grid.vidhub = self.vidhub
         self.output_button_grid.vidhub = self.vidhub
+        self.preset_button_grid.vidhub = self.vidhub
         self.crosspoints[:] = self.vidhub.crosspoints[:]
         self.app.bind_events(self.vidhub,
             device_name=self.on_vidhub_device_name,
@@ -52,6 +57,7 @@ class VidhubWidget(BoxLayout):
             self.vidhub.unbind(self)
             self.vidhub.unbind(self.input_button_grid)
             self.vidhub.unbind(self.output_button_grid)
+            self.preset_button_grid.unbind_vidhub()
         self.vidhub = value
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.name = value
@@ -204,6 +210,75 @@ class OutputButtonGrid(ButtonGrid):
         src_idx = src_sel[0]
         self.selected_buttons[:] = [i for i, v in enumerate(xpts) if v == src_idx]
 
+class PresetButtonGrid(ButtonGrid):
+    record_enable = BooleanProperty(False)
+    def on_vidhub(self, instance, vidhub):
+        super().on_vidhub(instance, vidhub)
+        if not vidhub:
+            return
+        self.button_labels = {p.index:p.name for p in vidhub.presets}
+        if len(vidhub.presets) <= 12:
+            self.num_buttons = 12
+        else:
+            self.num_buttons = len(vidhub.presets)
+        self.app.bind_events(vidhub,
+            on_preset_added=self.on_preset_added,
+            on_preset_active=self.on_preset_active,
+        )
+        for preset in vidhub.presets:
+            self.on_preset_active(preset=preset, value=preset.active)
+            self.app.bind_events(preset,
+                name=self.on_preset_name,
+            )
+    def unbind_vidhub(self, *args, **kwargs):
+        self.vidhub.unbind(self)
+        for preset in self.vidhub.presets:
+            preset.unbind(self)
+    def on_preset_added(self, *args, **kwargs):
+        print('on_preset_added: ', args, kwargs)
+        preset = kwargs.get('preset')
+        while len(self.button_labels) < len(self.vidhub.presets):
+            self.button_labels.append('')
+        self.button_labels[preset.index] = preset.name
+        if len(self.button_labels) < self.num_buttons:
+            self.num_buttons = len(self.button_labels)
+        if preset.index not in self.selected_buttons:
+            self.selected_buttons.append(preset.index)
+        self.app.bind_events(preset,
+            name=self.on_preset_name,
+        )
+    def on_preset_name(self, instance, value):
+        self.button_labels[instance.index] = value
+    def on_preset_active(self, *args, **kwargs):
+        instance = kwargs['preset']
+        value = kwargs['value']
+        print('on_preset_active: ', instance.index, value)
+        if value:
+            if instance.index not in self.selected_buttons:
+                self.selected_buttons.append(instance.index)
+        else:
+            if instance.index in self.selected_buttons:
+                self.selected_buttons.remove(instance.index)
+    def on_button_release(self, *args, **kwargs):
+        button = kwargs['button']
+        try:
+            preset = self.vidhub.presets[button.index]
+        except IndexError:
+            preset = None
+        print('preset button: ', button.index, preset)
+        if self.record_enable:
+            if preset is None:
+                name = 'Preset {}'.format(button.index + 1)
+                self.app.run_async_coro(self.vidhub.store_preset(name=name, index=button.index))
+            else:
+                self.app.run_async_coro(preset.store())
+            self.record_enable = False
+        else:
+            if preset is None:
+                return
+            self.app.run_async_coro(preset.recall())
+
+
 class ButtonGridBtn(Button):
     index = NumericProperty()
     button_grid = ObjectProperty(None)
@@ -244,7 +319,7 @@ class ButtonGridBtn(Button):
         kwargs['button'] = self
         kwargs['button_grid'] = self.parent
         self.parent.dispatch('on_button_release', *args, **kwargs)
-    def _do_press(self):
+    def _do_press(self, *args, **kwargs):
         return
-    def _do_release(self):
+    def _do_release(self, *args, **kwargs):
         return
