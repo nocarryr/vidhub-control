@@ -24,6 +24,9 @@ RootWidget:
     Button:
         text: 'Select Device'
         on_release: root.vidhub_dropdown.open(self)
+    Button:
+        text: 'Settings'
+        on_release: app.open_settings()
 
 <FooterWidget@BoxLayout>:
     orientation: 'horizontal'

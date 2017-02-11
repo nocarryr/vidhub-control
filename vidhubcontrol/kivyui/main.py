@@ -20,6 +20,52 @@ from kivy.uix.button import Button
 from vidhubcontrol import runserver
 from vidhubcontrol.kivyui.vidhubview import VidhubWidget
 
+APP_SETTINGS = [
+    {
+        'type':'title',
+        'title':'VidhubControl',
+    },{
+        'type':'path',
+        'title':'Conifg Filename',
+        'section':'main',
+        'key':'config_filename',
+    },{
+        'type':'bool',
+        'title':'Restore Device Selection',
+        'section':'main',
+        'key':'restore_device',
+        'values':['no', 'yes'],
+    },{
+        'type':'string',
+        'title':'Last Selected Device',
+        'section':'main',
+        'key':'last_device',
+    },{
+        'type':'bool',
+        'title':'Enable OSC Server',
+        'section':'osc',
+        'key':'enable',
+        'values':['no', 'yes'],
+    },{
+        'type':'numeric',
+        'title':'OSC Server Port',
+        'section':'osc',
+        'key':'port',
+    },
+]
+
+APP_SETTINGS_DEFAULTS = {
+    'main':{
+        'config_filename':runserver.Config.DEFAULT_FILENAME,
+        'restore_device':'yes',
+        'last_device':'None',
+    },
+    'osc':{
+        'enable':'yes',
+        'port':runserver.OscInterface.DEFAULT_HOSTPORT,
+    }
+}
+
 class HeaderWidget(BoxLayout):
     vidhub_dropdown = ObjectProperty(None)
     def __init__(self, **kwargs):
@@ -78,11 +124,21 @@ class VidhubControlApp(App):
     vidhub_config = ObjectProperty(None)
     vidhubs = DictProperty()
     selected_vidhub = ObjectProperty(None)
-    # def build_config(self, config):
-    #     for section_name, section in APP_SETTINGS_DEFAULTS.items():
-    #         config.setdefaults(section_name, section)
-    # def build_settings(self, settings):
-    #     settings.add_json_panel('VidhubControl', self.config, data=json.dumps(APP_SETTINGS))
+    def build_config(self, config):
+        for section_name, section in APP_SETTINGS_DEFAULTS.items():
+            config.setdefaults(section_name, section)
+    def build_settings(self, settings):
+        settings.add_json_panel('VidhubControl', self.config, data=json.dumps(APP_SETTINGS))
+    def get_application_config(self):
+        return super().get_application_config('~/vidhubcontrol-ui.ini')
+    def on_selected_vidhub(self, instance, value):
+        if value is None:
+            return
+        stored = self.config.get('main', 'last_device')
+        if stored == value.device_id:
+            return
+        self.config.set('main', 'last_device', value.device_id)
+        self.config.write()
     def on_start(self, *args, **kwargs):
         self.aio_loop = asyncio.get_event_loop()
         Clock.schedule_interval(self._tick_aio_loop, .1)
@@ -95,10 +151,14 @@ class VidhubControlApp(App):
     def on_stop(self, *args, **kwargs):
         self.async_server.running = False
     def update_vidhubs(self, *args, **kwargs):
+        restore_device = self.config.get('main', 'restore_device') == 'yes'
+        last_device = self.config.get('main', 'last_device')
         for key, val in self.vidhub_config.vidhubs.items():
             if key in self.vidhubs:
                 continue
             self.vidhubs[key] = val.backend
+            if restore_device and key == last_device:
+                self.selected_vidhub = val.backend
     async def _async_no_op(self):
         await asyncio.sleep(0)
     def _tick_aio_loop(self, *args):
@@ -172,12 +232,13 @@ class AsyncServer(AioBridge):
     def __init__(self, app):
         super().__init__()
         self.app = app
+        osc_disabled = self.app.config.get('osc', 'enable') != 'yes'
         self.opts = Opts({
-            'config_filename':None,
+            'config_filename':self.app.config.get('main', 'config_filename'),
             'osc_address':None,
-            'osc_port':None,
+            'osc_port':self.app.config.get('osc', 'port'),
             'osc_iface_name':None,
-            'osc_disabled':False,
+            'osc_disabled':osc_disabled,
         })
     async def aiostartup(self):
         self.config, self.interfaces = await runserver.start(self.opts)
