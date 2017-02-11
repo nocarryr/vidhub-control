@@ -38,9 +38,10 @@ class VidhubDropdown(DropDown):
             selected_vidhub=self.on_selected_vidhub,
         )
     def update_buttons(self, *args, **kwargs):
-        for key, vidhub in self.app.vidhubs.items():
+        for key in sorted(self.app.vidhubs.keys()):
             if key in self.btns:
                 continue
+            vidhub = self.app.vidhubs[key]
             btn = VidhubDropdownButton(vidhub=vidhub)
             self.btns[key] = btn
             self.add_widget(btn)
