@@ -6,6 +6,8 @@ import asyncio
 import argparse
 import logging
 
+from pid import PidFile
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s',
@@ -71,10 +73,11 @@ def on_sigint(config, interfaces):
     asyncio.ensure_future(stop(config, interfaces))
 
 def main():
-    opts = parse_args()
-    loop = asyncio.get_event_loop()
-    logger.info('Running server. Press CTRL+c to exit')
-    loop.run_until_complete(run(loop, opts))
+    with PidFile(pidname='vidhubcontrolserver.pid', force_tmpdir=True) as pf:
+        opts = parse_args()
+        loop = asyncio.get_event_loop()
+        logger.info('Running server. Press CTRL+c to exit')
+        loop.run_until_complete(run(loop, opts))
 
 if __name__ == '__main__':
     main()

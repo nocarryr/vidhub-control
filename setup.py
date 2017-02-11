@@ -13,6 +13,7 @@ setup(
         'json-object-factory',
         'zeroconf',
         'python-osc',
+        'pid',
     ],
     entry_points={
         'console_scripts':[
