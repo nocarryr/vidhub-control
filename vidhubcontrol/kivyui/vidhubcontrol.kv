@@ -1,20 +1,31 @@
 #:include vidhubcontrol/kivyui/vidhubview.kv
+#:include vidhubcontrol/kivyui/vidhubedit.kv
 
 RootWidget:
     header_widget: header_widget
     main_widget: main_widget
+    vidhub_widget: vidhub_widget
+    vidhub_edit_widget: vidhub_edit_widget
     footer_widget: footer_widget
     BoxLayout:
         orientation: 'vertical'
         HeaderWidget:
             id: header_widget
             size_hint_y: .1
-        BoxLayout:
+        TabbedPanel:
             id: main_widget
             size_hint_y: .8
-            VidhubWidget:
-                id: vidhub_widget
-                size_hint_y: 1
+            do_default_tab: False
+            TabbedPanelItem:
+                text:'Control'
+                VidhubWidget:
+                    id: vidhub_widget
+                    size_hint: 1, 1
+            TabbedPanelItem:
+                text:'Edit'
+                VidhubEditView:
+                    id: vidhub_edit_widget
+                    size_hint: 1, 1
         FooterWidget:
             id: footer_widget
             size_hint_y: .1

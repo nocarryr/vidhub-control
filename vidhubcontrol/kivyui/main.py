@@ -19,6 +19,7 @@ from kivy.uix.button import Button
 
 from vidhubcontrol import runserver
 from vidhubcontrol.kivyui.vidhubview import VidhubWidget
+from vidhubcontrol.kivyui.vidhubedit import VidhubEditView
 
 APP_SETTINGS = [
     {
@@ -117,6 +118,8 @@ class VidhubDropdownButton(Button):
 class RootWidget(FloatLayout):
     header_widget = ObjectProperty(None)
     main_widget = ObjectProperty(None)
+    vidhub_widget = ObjectProperty(None)
+    vidhub_edit_widget = ObjectProperty(None)
     footer_widget = ObjectProperty(None)
 
 class VidhubControlApp(App):

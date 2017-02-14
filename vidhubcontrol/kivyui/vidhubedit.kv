@@ -1,0 +1,48 @@
+<VidhubEditView>:
+    app: app
+    orientation: 'horizontal'
+    VidhubEditLabelList:
+        app: app
+        size_hint_x: .5
+        text: 'Input Labels'
+        vidhub_prop_get: 'input_labels'
+        vidhub_prop_set: 'input_label_control'
+    VidhubEditLabelList:
+        app: app
+        size_hint_x: .5
+        text: 'Output Labels'
+        vidhub_prop_get: 'output_labels'
+        vidhub_prop_set: 'output_label_control'
+
+
+<VidhubEditLabelList>:
+    label_list_widget: label_list_widget
+    orientation: 'vertical'
+    Label:
+        text: root.text
+        size_hint_y: .1
+    FloatLayout:
+        id: scr_parent
+        size_hint_y: .9
+        ScrollView:
+            size_hint: 1, None
+            size: scr_parent.size
+            pos: scr_parent.pos
+            BoxLayout:
+                id: label_list_widget
+                orientation: 'vertical'
+                size_hint_y: None
+
+<VidhubEditLabelItem>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: 40
+    Label:
+        size_hint_x: .2
+        text: str(root.index+1)
+    TextInput:
+        size_hint_x: .8
+        text: root.text
+        multiline: False
+        on_text_validate: root.text = self.text
+        on_focus: if not self.focus: self.text = root.text
