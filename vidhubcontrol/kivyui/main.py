@@ -243,7 +243,7 @@ class AsyncServer(AioBridge):
         self.opts = Opts({
             'config_filename':self.app.config.get('main', 'config_filename'),
             'osc_address':None,
-            'osc_port':self.app.config.get('osc', 'port'),
+            'osc_port':self.app.config.getint('osc', 'port'),
             'osc_iface_name':None,
             'osc_disabled':osc_disabled,
         })
