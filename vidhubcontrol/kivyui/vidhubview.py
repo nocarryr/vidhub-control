@@ -218,6 +218,8 @@ class PresetButtonGrid(ButtonGrid):
             return
         self.button_labels = {p.index:p.name for p in vidhub.presets}
         if len(vidhub.presets) <= 12:
+            for i in range(12):
+                self.button_labels.setdefault(i, 'Preset {}'.format(i+1))
             self.num_buttons = 12
         else:
             self.num_buttons = len(vidhub.presets)
