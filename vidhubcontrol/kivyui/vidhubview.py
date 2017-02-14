@@ -249,7 +249,7 @@ class PresetButtonGrid(ButtonGrid):
         self.app.bind_events(preset,
             name=self.on_preset_name,
         )
-    def on_preset_name(self, instance, value):
+    def on_preset_name(self, instance, value, **kwargs):
         self.button_labels[instance.index] = value
     def on_preset_active(self, *args, **kwargs):
         instance = kwargs['preset']
