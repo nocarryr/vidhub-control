@@ -144,7 +144,6 @@ class VidhubControlApp(App):
         self.config.write()
     def on_start(self, *args, **kwargs):
         self.aio_loop = asyncio.get_event_loop()
-        Clock.schedule_interval(self._tick_aio_loop, .1)
         self.async_server = AsyncServer(self)
         self.async_server.start()
         self.async_server.thread_run_event.wait()
@@ -152,7 +151,7 @@ class VidhubControlApp(App):
         self.update_vidhubs()
         self.bind_events(self.vidhub_config, vidhubs=self.update_vidhubs)
     def on_stop(self, *args, **kwargs):
-        self.async_server.running = False
+        self.async_server.stop()
     def update_vidhubs(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -162,10 +161,6 @@ class VidhubControlApp(App):
             self.vidhubs[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_vidhub = val.backend
-    async def _async_no_op(self):
-        await asyncio.sleep(0)
-    def _tick_aio_loop(self, *args):
-        self.aio_loop.run_until_complete(self._async_no_op())
     def bind_events(self, obj, **kwargs):
         self.async_server.bind_events(obj, **kwargs)
     def run_async_coro(self, coro):
@@ -198,24 +193,22 @@ class AioBridge(threading.Thread):
     def run(self):
         loop = self.event_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        self.aio_stop_event = asyncio.Event()
         self.running = True
         loop.run_until_complete(self.aioloop())
         self.thread_stop_event.set()
     def stop(self):
         self.running = False
-        self.thread_stop_event.wait()
+        self.event_loop.call_soon_threadsafe(self.aio_stop_event.set)
     async def aioloop(self):
         await self.aiostartup()
         self.thread_run_event.set()
-        while self.running:
-            await self.sleep()
+        await self.aio_stop_event.wait()
         await self.aioshutdown()
     async def aiostartup(self):
         pass
     async def aioshutdown(self):
         pass
-    async def sleep(self):
-        await asyncio.sleep(.1)
     def bind_events(self, obj, **kwargs):
         # Override pydispatch.Dispatcher.bind() using wrapped_callback
         # Events should then be dispatched from the thread's event loop to
