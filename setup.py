@@ -14,8 +14,6 @@ setup(
         'zeroconf',
         'python-osc',
         'pid',
-        'Cython==0.23',
-        'kivy',
     ],
     entry_points={
         'console_scripts':[
