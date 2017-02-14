@@ -63,7 +63,49 @@ class VidhubEditLabelList(BoxLayout):
         l = getattr(self.vidhub, self.vidhub_prop_set)
         l[instance.index] = value
 
+class VidhubPresetEditList(VidhubEditLabelList):
+    def bind_vidhub(self):
+        self.app.bind_events(self.vidhub, on_preset_added=self.on_vidhub_preset_added)
+    def unbind_vidhub(self, vidhub):
+        vidhub.unbind(self.on_vidhub_preset_added)
+    def build_items(self):
+        self.label_list_widget.clear_widgets()
+        self.list_items.clear()
+        if self.vidhub is None:
+            return
+        for preset in self.vidhub.presets:
+            item = VidhubEditPresetItem(preset=preset)
+            self.list_items[item.index] = item
+            self.label_list_widget.add_widget(item)
+    def on_vidhub_preset_added(self, *args, **kwargs):
+        self.build_items()
 
 class VidhubEditLabelItem(BoxLayout):
     index = NumericProperty()
     text = StringProperty()
+
+class VidhubEditPresetItem(VidhubEditLabelItem):
+    app = ObjectProperty(None)
+    preset = ObjectProperty(None)
+    def on_text(self, *args):
+        if self.preset is None:
+            return
+        if self.text is None:
+            return
+        self.preset.name = self.text
+    def on_preset(self, *args):
+        if self.preset is None:
+            return
+        self.index = self.preset.index
+        self.text = self.preset.name
+        if self.app is not None:
+            self.bind_preset()
+    def on_app(self, *args):
+        if self.app is None:
+            return
+        if self.preset is not None:
+            self.bind_preset()
+    def bind_preset(self):
+        self.app.bind_events(self.preset, name=self.on_preset_name)
+    def on_preset_name(self, instance, value, **kwargs):
+        self.text = value

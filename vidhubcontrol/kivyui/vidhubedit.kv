@@ -2,20 +2,22 @@
     app: app
     orientation: 'horizontal'
     VidhubEditLabelList:
-        app: app
-        size_hint_x: .5
+        size_hint_x: .3
         text: 'Input Labels'
         vidhub_prop_get: 'input_labels'
         vidhub_prop_set: 'input_label_control'
     VidhubEditLabelList:
-        app: app
-        size_hint_x: .5
+        size_hint_x: .3
         text: 'Output Labels'
         vidhub_prop_get: 'output_labels'
         vidhub_prop_set: 'output_label_control'
+    VidhubPresetEditList:
+        size_hint_x: .3
+        text: 'Presets'
 
 
 <VidhubEditLabelList>:
+    app: app
     label_list_widget: label_list_widget
     orientation: 'vertical'
     Label:
@@ -46,3 +48,6 @@
         multiline: False
         on_text_validate: root.text = self.text
         on_focus: if not self.focus: self.text = root.text
+
+<VidhubEditPresetItem>:
+    app: app
