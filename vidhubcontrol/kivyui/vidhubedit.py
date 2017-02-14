@@ -41,7 +41,7 @@ class VidhubEditLabelList(BoxLayout):
         if value is not None:
             self.bind_vidhub()
     def bind_vidhub(self):
-        self.vidhub.bind(**{self.vidhub_prop_get:self.on_vidhub_labels})
+        self.app.bind_events(self.vidhub, **{self.vidhub_prop_get:self.on_vidhub_labels})
     def unbind_vidhub(self, vidhub):
         vidhub.unbind(self.on_vidhub_labels)
     def build_items(self):
