@@ -1,11 +1,5 @@
 language: python
 python: "3.5"
-addons:
-    apt:
-        sources:
-            - sourceline: 'ppa:kivy-team/kivy-daily'
-        packages:
-            - kivy
 install:
     - pip install -U pip setuptools wheel
     - pip install -r requirements-test.txt
