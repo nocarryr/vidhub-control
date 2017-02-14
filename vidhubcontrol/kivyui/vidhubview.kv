@@ -41,11 +41,12 @@
                 app: app
                 id: preset_button_grid
                 size_hint_x: .9
-            Button:
+            AnchorLayout:
                 size_hint_x: .1
-                text: 'Store'
-                state: 'down' if preset_button_grid.record_enable else 'normal'
-                on_release: preset_button_grid.record_enable = not preset_button_grid.record_enable
+                Button:
+                    text: 'Store'
+                    state: 'down' if preset_button_grid.record_enable else 'normal'
+                    on_release: preset_button_grid.record_enable = not preset_button_grid.record_enable
 
 
 <ButtonGrid>:
