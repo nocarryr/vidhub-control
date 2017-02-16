@@ -2,9 +2,6 @@ language: python
 python: "3.5"
 addons:
     apt:
-        sources:
-            - sourceline: "ppa:zoogie/sdl2-snapshots"
-            - sourceline: "ppa:gstreamer-developers/ppa"
         packages:
             - libsdl2-dev
             - libsdl2-ttf-dev
