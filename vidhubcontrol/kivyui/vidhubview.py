@@ -122,8 +122,10 @@ class ButtonGrid(GridLayout):
     button_widgets = DictProperty()
     __events__ = ['on_button_release']
     def on_vidhub(self, instance, vidhub):
+        self.clear_widgets()
+        self.button_widgets.clear()
         self.num_buttons = 0
-        self.button_labels = []
+        self.button_labels.clear()
         self.selected_first = False
         self.selected_buttons = []
     def on_vidhub_widget(self, *args):
@@ -135,11 +137,7 @@ class ButtonGrid(GridLayout):
     def on_num_buttons(self, instance, value):
         if not value:
             return
-        for w in self.children[:]:
-            if isinstance(w, ButtonGridBtn):
-                self.remove_widget(w)
         if not value:
-            self.button_widgets.clear()
             return
         if value % 8 == 0:
             self.cols = 8
