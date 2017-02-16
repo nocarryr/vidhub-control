@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from conftest import get_random_values
+from utils import get_random_values
 
 @pytest.mark.asyncio
 async def test_nodes():
