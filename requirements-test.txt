@@ -2,4 +2,3 @@ pytest>=3.0.2
 pytest-asyncio
 pytest-cov
 coveralls
--r vidhubcontrol/kivyui/requirements.txt
