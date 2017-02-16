@@ -8,6 +8,7 @@ def kivy_app(request, tmpdir, monkeypatch):
     vidhub_conf = tmpdir.join('vidhubcontrol.json')
     ui_conf = tmpdir.join('vidhubcontrol-ui.ini')
 
+    monkeypatch.setenv('KIVY_UNITTEST', '1')
     monkeypatch.setattr('vidhubcontrol.runserver.Config.DEFAULT_FILENAME', str(vidhub_conf))
 
     from kivy.clock import Clock
