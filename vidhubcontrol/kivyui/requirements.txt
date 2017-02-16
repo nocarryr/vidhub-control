@@ -1,2 +1,2 @@
 Cython==0.23
-kivy>=1.9.1
+git+https://github.com/kivy/kivy@master#egg=kivy
