@@ -4,7 +4,7 @@ import time
 import pytest
 
 @pytest.fixture
-def kivy_app(request, tmpdir, monkeypatch):
+def kivy_app(tmpdir, monkeypatch):
     vidhub_conf = tmpdir.join('vidhubcontrol.json')
     ui_conf = tmpdir.join('vidhubcontrol-ui.ini')
 
@@ -20,18 +20,17 @@ def kivy_app(request, tmpdir, monkeypatch):
     class AppOverride(kivy_main.VidhubControlApp):
         def get_application_config(self):
             return str(ui_conf)
+
         def on_start(self, *args, **kwargs):
             super().on_start(*args, **kwargs)
             self._startup_ready.set()
-        # def on_stop(self, *args, **kwargs):
-        #     return
+
         def run(self):
             kv_dir = os.path.dirname(os.path.abspath(kivy_main.__file__))
             self.kv_file = os.path.join(kv_dir, 'vidhubcontrol.kv')
             self._startup_ready = asyncio.Event()
             if not self.built:
                 self.load_config()
-                print('load_kv: ', self.kv_file)
                 self.load_kv(filename=self.kv_file)
                 root = self.build()
                 if root:
@@ -55,14 +54,11 @@ def kivy_app(request, tmpdir, monkeypatch):
                 Logger.critical("Application: No window is created."
                                 " Terminating application run.")
                 return
-            print('did stuff with the Window')
             self._kv_loop = EventLoop
             self._kv_loop_running = True
             self._aio_running = True
             self.dispatch('on_start')
-            print('Running yer loops')
             runTouchApp(self.root, slave=True)
-            print('runTouchApp done')
             self._aio_mainloop_future = asyncio.ensure_future(self._aio_mainloop())
 
         def stop(self):
@@ -96,34 +92,17 @@ def kivy_app(request, tmpdir, monkeypatch):
             await self.wait_for_widget_init()
 
         async def stop_async(self):
-            print('stop_async')
             if self._kv_loop_running:
-                print('stopping _kv_loop')
                 self.stop()
-            print('waiting for _aio_mainloop_future')
             await self._aio_mainloop_future
             while not self.async_server.thread_stop_event.is_set():
                 await asyncio.sleep(.1)
 
         async def _aio_mainloop(self):
-            print('_aio_mainloop started')
             while not self._kv_loop.quit:
                 self._kv_loop.idle()
                 await asyncio.sleep(0)
-            print('_kv_loop quit')
             self._kv_loop.exit()
-            print('_kv_loop exit')
 
-
-    def stop_app(app):
-        print('finalizer running')
-        fut = asyncio.ensure_future(app.stop_async())
-        while not fut.done():
-            time.sleep(.1)
-
-    print('init app')
     app = AppOverride()
-    print('app init complete')
-    #request.addfinalizer(stop_app(app))
-    #print('finalizer added')
     return app
