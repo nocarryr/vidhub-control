@@ -27,7 +27,7 @@ addons:
             - pulseaudio
 install:
     - pip install -U pip setuptools wheel
-    - pip install -U Cython==0.21.2
+    - pip install -U Cython==0.22
     - pip install -r requirements-test.txt
     - pip install -e .
 before_script:
