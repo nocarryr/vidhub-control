@@ -4,12 +4,30 @@ language: python
 python: "3.5"
 addons:
     apt:
-        sources:
-            - sourceline: "ppa:kivy-team/kivy-daily"
         packages:
-            - kivy
+            - libsdl2-dev
+            - libsdl2-ttf-dev
+            - libsdl2-image-dev
+            - libsdl2-mixer-dev
+            - libgstreamer1.0-dev
+            - gstreamer1.0-alsa
+            - gstreamer1.0-plugins-base
+            - python-dev
+            - libsmpeg-dev
+            - libswscale-dev
+            - libavformat-dev
+            - libavcodec-dev
+            - libjpeg-dev
+            - libtiff4-dev
+            - libX11-dev
+            - libmtdev-dev
+            - libgl1-mesa-dev
+            - libgles2-mesa-dev
+            - xvfb
+            - pulseaudio
 install:
     - pip install -U pip setuptools wheel
+    - pip install -U Cython==0.23
     - pip install -r requirements-test.txt
     - pip install -e .
 before_script:
