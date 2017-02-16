@@ -60,4 +60,4 @@
 <PresetButtonGrid>:
 
 <ButtonGridBtn>:
-    text: self.button_grid.button_labels[self.index]
+    text: self.parent.button_labels[self.index] if self.parent else ''
