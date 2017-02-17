@@ -106,3 +106,26 @@ def kivy_app(tmpdir, monkeypatch):
 
     app = AppOverride()
     return app
+
+@pytest.fixture
+def KvEventWaiter():
+    class KvEventWaiter_(object):
+        def __init__(self):
+            self.aio_event = asyncio.Event()
+        def bind(self, obj, *events):
+            kwargs = {e:self.kivy_callback for e in events}
+            obj.bind(**kwargs)
+        def unbind(self, obj, *events):
+            kwargs = {e:self.kivy_callback for e in events}
+            obj.unbind(**kwargs)
+        async def wait(self):
+            await self.aio_event.wait()
+            self.aio_event.clear()
+        async def bind_and_wait(self, obj, *events):
+            self.aio_event.clear()
+            self.bind(obj, *events)
+            await self.wait()
+        def kivy_callback(self, *args, **kwargs):
+            self.aio_event.set()
+
+    return KvEventWaiter_
