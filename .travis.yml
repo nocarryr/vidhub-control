@@ -2,7 +2,9 @@ dist: trusty
 sudo: false
 language: python
 python: "3.5"
-cache: pip
+cache:
+    directories:
+        - "build/"
 addons:
     apt:
         packages:
@@ -27,9 +29,7 @@ addons:
             - xvfb
             - pulseaudio
 install:
-    - pip install -U pip setuptools wheel
-    - pip install -U Cython==0.23
-    - pip install -r requirements-test.txt
+    - ./tools/install-deps.sh
     - pip install -e .
 script:
     - ./runtests.sh
