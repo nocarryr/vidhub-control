@@ -3,6 +3,8 @@ import asyncio
 import time
 import pytest
 
+KIVY_STALL_TIMEOUT = 90
+
 @pytest.fixture
 def kivy_app(tmpdir, monkeypatch):
     vidhub_conf = tmpdir.join('vidhubcontrol.json')
@@ -99,7 +101,12 @@ def kivy_app(tmpdir, monkeypatch):
                 await asyncio.sleep(.1)
 
         async def _aio_mainloop(self):
+            start_ts = aio_loop.time()
             while not self._kv_loop.quit:
+                now = aio_loop.time()
+                if now >= start_ts + KIVY_STALL_TIMEOUT:
+                    print('Exiting app. Runtime exceeded threshold')
+                    raise KeyboardInterrupt()
                 self._kv_loop.idle()
                 await asyncio.sleep(0)
             self._kv_loop.exit()
