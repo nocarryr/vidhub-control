@@ -84,6 +84,9 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
 
     preset_button_grid.button_widgets[0].dispatch('on_release')
     await kv_waiter.wait()
+    # Allow time for all events to dispatch
+    if len(preset_button_grid.selected_buttons) == 0:
+        await kv_waiter.wait()
 
     assert len(preset_button_grid.selected_buttons) == 1
     assert preset_button_grid.selected_buttons[0] == preset1.index
