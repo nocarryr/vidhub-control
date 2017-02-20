@@ -2,6 +2,6 @@ pytest>=3.0.2
 pytest-asyncio
 pytest-cov
 pytest-xdist
-git+https://github.com/The-Compiler/pytest-xvfb.git@f223fbbd2d5562bcae114c5a457ac855806e4c64#egg=pytest-xvfb
+git+https://github.com/nocarryr/pytest-xvfb.git@nocarryr-patch-1#egg=pytest-xvfb
 coveralls
 -r vidhubcontrol/kivyui/requirements.txt
