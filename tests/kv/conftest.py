@@ -18,6 +18,7 @@ def kivy_app(tmpdir, monkeypatch):
     from vidhubcontrol.kivyui import main as kivy_main
 
     aio_loop = asyncio.get_event_loop()
+    aio_loop.set_debug(True)
 
     class AppOverride(kivy_main.VidhubControlApp):
         def get_application_config(self):
