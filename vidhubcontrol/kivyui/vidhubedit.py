@@ -14,6 +14,9 @@ from kivy.uix.button import Button
 
 class VidhubEditView(BoxLayout):
     app = ObjectProperty(None)
+    input_label_list = ObjectProperty(None)
+    output_label_list = ObjectProperty(None)
+    preset_label_list = ObjectProperty(None)
 
 class VidhubEditLabelList(BoxLayout):
     app = ObjectProperty(None)

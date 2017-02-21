@@ -1,17 +1,23 @@
 <VidhubEditView>:
     app: app
+    input_label_list: input_label_list
+    output_label_list: output_label_list
+    preset_label_list: preset_label_list
     orientation: 'horizontal'
     VidhubEditLabelList:
+        id: input_label_list
         size_hint_x: .3
         text: 'Input Labels'
         vidhub_prop_get: 'input_labels'
         vidhub_prop_set: 'input_label_control'
     VidhubEditLabelList:
+        id: output_label_list
         size_hint_x: .3
         text: 'Output Labels'
         vidhub_prop_get: 'output_labels'
         vidhub_prop_set: 'output_label_control'
     VidhubPresetEditList:
+        id: preset_label_list
         size_hint_x: .3
         text: 'Presets'
 
