@@ -149,7 +149,7 @@ class BackendBase(Dispatcher):
         prop = kwargs.get('property')
         keys = kwargs.get('keys')
         if keys is None:
-            return
+            keys = range(len(value))
         feedback_prop = '{}s'.format(prop.name.split('_control')[0])
         if value == getattr(self, feedback_prop):
             return
