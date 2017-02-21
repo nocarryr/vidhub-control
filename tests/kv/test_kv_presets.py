@@ -101,4 +101,59 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     assert preset_button_grid.button_labels[0] == preset1.name
 
 
+    # Test preset add/store from vidhub
+    print('test add/store from vidhub')
+    kv_waiter.unbind(preset_button_grid.button_widgets[0], 'text')
+
+    xpts3 = [2] * vidhub.num_outputs
+    await vidhub.set_crosspoints(*((i, v) for i, v in enumerate(xpts3)))
+    print('set xpts3')
+    await kv_waiter.wait()
+
+    assert len(preset_button_grid.selected_buttons) == 0
+
+    print('storing preset3')
+    preset3 = await vidhub.store_preset(index=8)
+    await kv_waiter.wait()
+
+    assert len(preset_button_grid.selected_buttons) == 1
+    assert preset_button_grid.selected_buttons[0] == preset3.index
+    assert preset_button_grid.button_widgets[preset3.index].text == preset3.name
+
+    kv_waiter.bind(preset_button_grid, 'button_labels')
+    print('adding preset4')
+    preset4 = await vidhub.add_preset()
+    await kv_waiter.wait()
+
+    # Allow the rest of the binding events to propagate
+    await asyncio.sleep(0)
+
+    assert preset4.index not in preset_button_grid.selected_buttons
+
+    print('rename preset4')
+    preset4.name = 'foobarbaz'
+    await kv_waiter.wait()
+
+    btn = preset_button_grid.button_widgets[preset4.index]
+    assert btn.text == preset_button_grid.button_labels[preset4.index] == preset4.name
+    assert btn.state == 'normal'
+
+    print('store preset4')
+    await preset4.store()
+    await kv_waiter.wait()
+
+    assert len(preset_button_grid.selected_buttons) == 2
+    assert btn.state == 'down'
+    assert preset3.index in preset_button_grid.selected_buttons
+    assert preset4.index in preset_button_grid.selected_buttons
+
+    print('resetting crosspoints')
+    await vidhub.set_crosspoint(0, 0)
+    await kv_waiter.wait()
+    if len(preset_button_grid.selected_buttons):
+        await kv_waiter.wait()
+
+    assert len(preset_button_grid.selected_buttons) == 0
+
+
     await kivy_app.stop_async()
