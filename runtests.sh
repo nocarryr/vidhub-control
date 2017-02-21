@@ -7,7 +7,7 @@ mv .coverage .coverage-orig
 for f in tests/kv/test*.py
 do
     echo "Running $f"
-    py.test --cov-append --cov-config .coveragerc --cov=vidhubcontrol --boxed "$f" -s
+    py.test --cov-append --cov-config .coveragerc --cov=vidhubcontrol "$f"
     coverage combine -a .coverage-orig
     mv .coverage .coverage-orig
 done
