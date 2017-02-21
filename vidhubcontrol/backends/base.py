@@ -150,16 +150,13 @@ class BackendBase(Dispatcher):
         keys = kwargs.get('keys')
         if keys is None:
             return
-        coro = None
+        feedback_prop = '{}s'.format(prop.name.split('_control')[0])
+        if value == getattr(self, feedback_prop):
+            return
+        coro_name = '_'.join(['set', feedback_prop])
+        coro = getattr(self, coro_name)
         args = [(key, value[key]) for key in keys]
-        if prop.name == 'crosspoint_control':
-            coro = self.set_crosspoints
-        elif prop.name == 'output_label_control':
-            coro = self.set_output_labels
-        elif prop.name == 'input_label_control':
-            coro = self.set_input_labels
-        if coro is not None:
-            tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
+        tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
     def on_device_id(self, instance, value, **kwargs):
         if value is None:
             return
