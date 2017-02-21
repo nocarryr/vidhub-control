@@ -2,6 +2,9 @@ dist: trusty
 sudo: false
 language: python
 python: "3.5"
+cache:
+    directories:
+        - "build/"
 addons:
     apt:
         packages:
