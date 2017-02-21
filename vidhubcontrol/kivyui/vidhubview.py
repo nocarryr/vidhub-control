@@ -242,7 +242,7 @@ class PresetButtonGrid(ButtonGrid):
         self.button_labels[preset.index] = preset.name
         if len(self.button_labels) < self.num_buttons:
             self.num_buttons = len(self.button_labels)
-        if preset.index not in self.selected_buttons:
+        if preset.active and preset.index not in self.selected_buttons:
             self.selected_buttons.append(preset.index)
         self.app.bind_events(preset,
             name=self.on_preset_name,
