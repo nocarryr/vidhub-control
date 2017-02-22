@@ -17,6 +17,7 @@ class VidhubWidget(BoxLayout):
     app = ObjectProperty(None)
     vidhub = ObjectProperty(None)
     name = StringProperty('')
+    connected = BooleanProperty(False)
     input_button_grid = ObjectProperty(None)
     output_button_grid = ObjectProperty(None)
     crosspoints = ListProperty()
@@ -39,11 +40,13 @@ class VidhubWidget(BoxLayout):
         if self.vidhub is None:
             return
         self.name = self.vidhub.device_name
+        self.connected = self.vidhub.connected
         self.input_button_grid.vidhub = self.vidhub
         self.output_button_grid.vidhub = self.vidhub
         self.preset_button_grid.vidhub = self.vidhub
         self.crosspoints[:] = self.vidhub.crosspoints[:]
         self.app.bind_events(self.vidhub,
+            connected=self.on_vidhub_connected,
             device_name=self.on_vidhub_device_name,
             crosspoints=self.on_vidhub_crosspoints,
         )
@@ -59,6 +62,8 @@ class VidhubWidget(BoxLayout):
             self.vidhub.unbind(self.output_button_grid)
             self.preset_button_grid.unbind_vidhub()
         self.vidhub = value
+    def on_vidhub_connected(self, instance, value, **kwargs):
+        self.connected = value
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.name = value
     def on_vidhub_crosspoints(self, instance, value, **kwargs):

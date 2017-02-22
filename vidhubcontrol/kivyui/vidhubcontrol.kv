@@ -1,5 +1,6 @@
 #:include vidhubcontrol/kivyui/vidhubview.kv
 #:include vidhubcontrol/kivyui/vidhubedit.kv
+#:include vidhubcontrol/kivyui/utils.kv
 
 RootWidget:
     header_widget: header_widget
@@ -29,6 +30,33 @@ RootWidget:
         FooterWidget:
             id: footer_widget
             size_hint_y: .1
+            BoxLayout:
+                orientation: 'horizontal'
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: .4
+                    OutlinedLabel:
+                        text: 'Active Device'
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        OutlinedLabel:
+                            text: vidhub_widget.name
+                            size_hint_x: .6
+                        OutlinedBoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_x: .4
+                            canvas:
+                                Color:
+                                    rgba: [.5,.5,.5,1]
+                                Line:
+                                    rectangle: (self.x, self.y, self.width, self.height)
+                            Label:
+                                text: 'Status:'
+                            StatusIndicator:
+                                state: vidhub_widget.connected
+                BoxLayout:
+                    size_hint_x: .75
+
 
 <HeaderWidget>:
     orientation: 'horizontal'
