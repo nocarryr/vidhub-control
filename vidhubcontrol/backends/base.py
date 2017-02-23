@@ -3,6 +3,11 @@ import asyncio
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
+class PropertyLock(asyncio.Lock):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
 class BackendBase(Dispatcher):
     device_name = Property()
     device_model = Property()
@@ -167,6 +172,147 @@ class VidhubBackendBase(BackendBase):
         coro = getattr(self, coro_name)
         args = [(key, value[key]) for key in keys]
         tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
+
+class SmartViewBackendBase(BackendBase):
+    num_monitors = Property()
+    inverted = Property(False)
+    monitors = ListProperty()
+    monitor_cls = None
+    device_type = 'smartview'
+    _events_ = ['on_monitor_property_change']
+    def __init__(self, **kwargs):
+        self.bind(monitors=self._on_monitors)
+        super().__init__(**kwargs)
+        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
+    async def set_monitor_property(self, monitor, name, value):
+        raise NotImplementedError()
+    def get_monitor_cls(self):
+        cls = self.monitor_cls
+        if cls is None:
+            cls = SmartViewMonitor
+        return cls
+    async def add_monitor(self, **kwargs):
+        cls = self.monitor_cls
+        kwargs.setdefault('parent', self)
+        kwargs.setdefault('index', len(self.monitors))
+        monitor = cls(**kwargs)
+        monitor.bind(on_property_change=self.on_monitor_prop)
+        self.monitors.append(monitor)
+        return monitor
+    def on_monitor_prop(self, instance, value, **kwargs):
+        kwargs['monitor'] = instance
+        self.emit('on_monitor_property_change', self, value, **kwargs)
+    def _on_monitors(self, *args, **kwargs):
+        self.num_monitors = len(self.monitors)
+
+class SmartScopeBackendBase(SmartViewBackendBase):
+    device_type = 'smartscope'
+    def get_monitor_cls(self):
+        cls = self.monitor_cls
+        if cls is None:
+            cls = SmartScopeMonitor
+        return cls
+
+class SmartViewMonitor(Dispatcher):
+    index = Property()
+    name = Property()
+    brightness = Property()
+    contrast = Property()
+    saturation = Property()
+    widescreen_sd = Property()
+    identify = Property(False)
+    border = Property()
+    audio_channel = Property()
+    class PropertyChoices():
+        widescreen_sd = {
+            True:'ON',
+            False:'OFF',
+            None:'auto',
+        }
+        border = {
+            'red':'red',
+            'green':'green',
+            'blue':'blue',
+            'white':'white',
+            None:'NONE',
+        }
+        _bind_properties = [
+            'brightness', 'contrast', 'saturation',
+            'widescreen_sd', 'identify', 'border', 'audio_channel',
+        ]
+    _events_ = ['on_property_change']
+    def __init__(self, **kwargs):
+        self._property_locks = {}
+        self.parent = kwargs.get('parent')
+        self.event_loop = self.parent.event_loop
+        self.index = kwargs.get('index')
+        props = self.PropertyChoices._bind_properties
+        for prop in props:
+            value = kwargs.get(prop)
+            value = self.get_property_for_choice(prop, value)
+            setattr(self, prop, value)
+        self.bind(**{prop:self.on_prop_control for prop in props})
+    async def _get_property_lock(self, name):
+        lock = self._property_locks.get(name)
+        if lock is None:
+            lock = PropertyLock(name)
+            self._property_locks[name] = lock
+        return lock
+    async def set_property_from_backend(self, name, value):
+        value = self.get_property_for_choice(name, value)
+        lock = self._get_property_lock(name)
+        async with lock:
+            setattr(self, name, value)
+    async def set_property(self, name, value):
+        await self.parent.set_monitor_property(self, name, value)
+    async def flash(self):
+        await self.set_property('identify', True)
+    def get_property_choices(self, name):
+        return getattr(self.PropertyChoices, name, None)
+    def get_choice_for_property(self, name, value):
+        choices = self.get_property_choices(name)
+        if choices is not None:
+            if value in choices:
+                value = choices[value]
+        return value
+    def get_property_for_choice(self, name, value):
+        choices = self.get_property_choices(name)
+        if choices is not None:
+            if value in choices.values():
+                for k, v in choices.items():
+                    if v == value:
+                        value = k
+                        break
+        return value
+    def on_prop_control(self, instance, value, **kwargs):
+        prop = kwargs.get('property')
+        lock = self._get_property_lock(prop.name)
+        if lock.locked():
+            self.emit('on_property_change', instance, value, **kwargs)
+            return
+        value = self.get_choice_for_property(prop.name, value)
+        fut = self.set_property(prop.name, value)
+        asyncio.run_coroutine_threadsafe(fut, loop=self.event_loop)
+
+
+class SmartScopeMonitor(SmartViewMonitor):
+    scope_mode = Property()
+    class PropertyChoices(SmartViewMonitor.PropertyChoices):
+        scope_mode = {
+            'audio_dbfs':'AudioDbfs',
+            'audio_dbvu':'AudioDbvu',
+            'histogram':'Histogram',
+            'parade_rgb':'ParadeRGB',
+            'parade_yuv':'ParadeYUV',
+            'video':'Picture',
+            'vector_100':'Vector100',
+            'vector_75':'Vector75',
+            'waveform':'WaveformLuma',
+        }
+        _bind_properties = SmartViewMonitor.PropertyChoices._bind_properties + [
+            'scope_mode',
+        ]
+
 
 class Preset(Dispatcher):
     name = Property()
