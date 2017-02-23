@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from . import VidhubBackendBase
+from . import VidhubBackendBase, SmartViewBackendBase, SmartScopeBackendBase
 
 class DummyBackend(VidhubBackendBase):
     def __init__(self, **kwargs):
@@ -36,3 +36,52 @@ class DummyBackend(VidhubBackendBase):
         with self.emission_lock('input_labels'):
             for in_idx, lbl in args:
                 self.input_labels[in_idx] = lbl
+
+class SmartViewDummyBackend(SmartViewBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.device_id = kwargs.get('device_id', 'dummy')
+    async def do_connect(self):
+        for name in ['MONITOR A', 'MONITOR B']:
+            self.add_monitor(
+                name=name,
+                brightness=255,
+                contrast=128,
+                saturation=128,
+                widescreen_sd='auto',
+                audio_channel=0,
+                border='NONE',
+            )
+        self.prelude_parsed = True
+        return True
+    async def do_disconnect(self):
+        pass
+    async def get_status(self):
+        pass
+    async def set_monitor_property(self, monitor, name, value):
+        return
+
+class SmartScopeDummyBackend(SmartScopeBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.device_id = kwargs.get('device_id', 'dummy')
+    async def do_connect(self):
+        for name, mode in [['MONITOR A', 'waveform'], ['MONITOR B', 'vector_100']]:
+            self.add_monitor(
+                name=name,
+                brightness=255,
+                contrast=128,
+                saturation=128,
+                widescreen_sd='auto',
+                audio_channel=0,
+                border='NONE',
+                mode=mode,
+            )
+        self.prelude_parsed = True
+        return True
+    async def do_disconnect(self):
+        pass
+    async def get_status(self):
+        pass
+    async def set_monitor_property(self, monitor, name, value):
+        return
