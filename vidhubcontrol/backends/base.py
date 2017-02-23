@@ -4,50 +4,20 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
 class BackendBase(Dispatcher):
-    crosspoints = ListProperty()
-    output_labels = ListProperty()
-    input_labels = ListProperty()
-    crosspoint_control = ListProperty()
-    output_label_control = ListProperty()
-    input_label_control = ListProperty()
-    presets = ListProperty()
     device_name = Property()
     device_model = Property()
     device_id = Property()
     device_version = Property()
-    num_outputs = Property(0)
-    num_inputs = Property(0)
     connected = Property(False)
     running = Property(False)
     prelude_parsed = Property(False)
-    _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
         self.device_name = kwargs.get('device_name')
         self.client = None
         self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
-        self.bind(
-            num_outputs=self.on_num_outputs,
-            num_inputs=self.on_num_inputs,
-            output_labels=self.on_prop_feedback,
-            input_labels=self.on_prop_feedback,
-            crosspoints=self.on_prop_feedback,
-            output_label_control=self.on_prop_control,
-            input_label_control=self.on_prop_control,
-            crosspoint_control=self.on_prop_control,
-            device_id=self.on_device_id,
-        )
+        self.bind(device_id=self.on_device_id)
         if self.device_id is None:
             self.device_id = kwargs.get('device_id')
-        presets = kwargs.get('presets', [])
-        for pst_data in presets:
-            pst_data['backend'] = self
-            preset = Preset(**pst_data)
-            self.presets.append(preset)
-            preset.bind(
-                on_preset_stored=self.on_preset_stored,
-                active=self.on_preset_active,
-            )
-        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     @classmethod
     async def create_async(cls, **kwargs):
         obj = cls(**kwargs)
@@ -78,6 +48,46 @@ class BackendBase(Dispatcher):
         raise NotImplementedError()
     async def get_status(self):
         raise NotImplementedError()
+    def on_device_id(self, instance, value, **kwargs):
+        if value is None:
+            return
+        if self.device_name is None:
+            self.device_name = value
+        self.unbind(self.on_device_id)
+
+class VidhubBackendBase(BackendBase):
+    crosspoints = ListProperty()
+    output_labels = ListProperty()
+    input_labels = ListProperty()
+    crosspoint_control = ListProperty()
+    output_label_control = ListProperty()
+    input_label_control = ListProperty()
+    presets = ListProperty()
+    num_outputs = Property(0)
+    num_inputs = Property(0)
+    _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            num_outputs=self.on_num_outputs,
+            num_inputs=self.on_num_inputs,
+            output_labels=self.on_prop_feedback,
+            input_labels=self.on_prop_feedback,
+            crosspoints=self.on_prop_feedback,
+            output_label_control=self.on_prop_control,
+            input_label_control=self.on_prop_control,
+            crosspoint_control=self.on_prop_control,
+        )
+        presets = kwargs.get('presets', [])
+        for pst_data in presets:
+            pst_data['backend'] = self
+            preset = Preset(**pst_data)
+            self.presets.append(preset)
+            preset.bind(
+                on_preset_stored=self.on_preset_stored,
+                active=self.on_preset_active,
+            )
+        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def set_crosspoint(self, out_idx, in_idx):
         raise NotImplementedError()
     async def set_crosspoints(self, *args):
@@ -157,12 +167,6 @@ class BackendBase(Dispatcher):
         coro = getattr(self, coro_name)
         args = [(key, value[key]) for key in keys]
         tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
-    def on_device_id(self, instance, value, **kwargs):
-        if value is None:
-            return
-        if self.device_name is None:
-            self.device_name = value
-        self.unbind(self.on_device_id)
 
 class Preset(Dispatcher):
     name = Property()

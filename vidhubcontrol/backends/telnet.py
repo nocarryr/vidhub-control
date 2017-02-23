@@ -4,11 +4,11 @@ import logging
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from . import BackendBase
+from . import VidhubBackendBase
 
 logger = logging.getLogger(__name__)
 
-class TelnetBackend(BackendBase):
+class TelnetBackend(VidhubBackendBase):
     DEFAULT_PORT = 9990
     SECTION_NAMES = [
         'PROTOCOL PREAMBLE:',

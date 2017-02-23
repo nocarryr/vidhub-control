@@ -1,9 +1,9 @@
 import asyncio
 import logging
 
-from . import BackendBase
+from . import VidhubBackendBase
 
-class DummyBackend(BackendBase):
+class DummyBackend(VidhubBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.device_id = kwargs.get('device_id', 'dummy')
