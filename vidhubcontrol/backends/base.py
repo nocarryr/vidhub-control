@@ -70,6 +70,7 @@ class VidhubBackendBase(BackendBase):
     presets = ListProperty()
     num_outputs = Property(0)
     num_inputs = Property(0)
+    device_type = 'vidhub'
     _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

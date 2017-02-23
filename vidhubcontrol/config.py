@@ -7,9 +7,18 @@ from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
 from vidhubcontrol.discovery import BMDDiscovery
-from vidhubcontrol.backends import DummyBackend, TelnetBackend
+from vidhubcontrol.backends import (
+    DummyBackend,
+    SmartViewDummyBackend,
+    SmartScopeDummyBackend,
+    TelnetBackend,
+)
 
-BACKENDS = {cls.__name__:cls for cls in [DummyBackend, TelnetBackend]}
+BACKENDS = {
+    'vidhub':{cls.__name__:cls for cls in [DummyBackend, TelnetBackend]},
+    'smartview':{cls.__name__:cls for cls in [SmartViewDummyBackend]},
+    'smartscope':{cls.__name__:cls for cls in [SmartScopeDummyBackend]},
+}
 
 class ConfigBase(Dispatcher):
     _conf_attrs = []
@@ -27,17 +36,26 @@ class Config(ConfigBase):
     DEFAULT_FILENAME = '~/vidhubcontrol.json'
     USE_DISCOVERY = True
     vidhubs = DictProperty()
-    _conf_attrs = ['vidhubs']
+    smartviews = DictProperty()
+    smartscopes = DictProperty()
+    _conf_attrs = ['vidhubs', 'smartscopes', 'smartviews']
+    _device_type_map = {
+        'vidhub':{'prop':'vidhubs'},
+        'smartview':{'prop':'smartviews'},
+        'smartscope':{'prop':'smartscopes'},
+    }
     def __init__(self, **kwargs):
         self.running = asyncio.Event()
         self.stopped = asyncio.Event()
         self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
-        vidhubs = kwargs.get('vidhubs', {})
-        for vidhub_data in vidhubs.values():
-            vidhub = VidhubConfig(**vidhub_data)
-            self.vidhubs[vidhub.device_id] = vidhub
-            vidhub.bind(trigger_save=self.on_vidhub_trigger_save)
+        for key, d in self._device_type_map.items():
+            items = kwargs.get(d['prop'], {})
+            prop = getattr(self, d['prop'])
+            for item_data in items.values():
+                obj = d['cls'](**item_data)
+                prop[obj.device_id] = obj
+                obj.bind(trigger_save=self.on_device_trigger_save)
         self.discovery_listener = None
         self.discovery_lock = asyncio.Lock()
         if self.USE_DISCOVERY:
@@ -59,39 +77,54 @@ class Config(ConfigBase):
         self.discovery_listener = None
         for vidhub in self.vidhubs.values():
             await vidhub.backend.disconnect()
+        for smartview in self.smartviews.values():
+            await smartview.backend.disconnect()
+        for smartscope in self.smartscopes.values():
+            await smartscope.backend.disconnect()
         self.stopped.set()
-    def build_backend(self, backend_name, **kwargs):
-        for vidhub in self.vidhubs.values():
-            if vidhub.backend_name != backend_name:
+    def build_backend(self, device_type, backend_name, **kwargs):
+        prop = getattr(self, self._device_type_map[device_type]['prop'])
+        for obj in prop.values():
+            if obj.backend_name != backend_name:
                 continue
-            if kwargs.get('device_id') is not None and kwargs['device_id'] == vidhub.device_id:
-                return vidhub.backend
-            if kwargs.get('hostaddr') is not None and kwargs['hostaddr'] == vidhub.hostaddr:
-                return vidhub.backend
-        cls = BACKENDS[backend_name]
+            if kwargs.get('device_id') is not None and kwargs['device_id'] == obj.device_id:
+                return obj.backend
+            if kwargs.get('hostaddr') is not None and kwargs['hostaddr'] == obj.hostaddr:
+                return obj.backend
+        cls = BACKENDS[device_type][backend_name]
         backend = cls(**kwargs)
-        self.add_vidhub(backend)
+        self.add_device(backend)
         return backend
     def add_vidhub(self, backend):
+        return self.add_device(backend)
+    def add_smartview(self, backend):
+        return self.add_device(backend)
+    def add_smartscope(self, backend):
+        return self.add_device(backend)
+    def add_device(self, backend):
+        device_type = backend.device_type
         device_id = backend.device_id
         if device_id is None:
             backend.bind(device_id=self.on_backend_device_id)
             device_id = id(backend)
-        vidhub = VidhubConfig.from_existing(backend)
-        self.vidhubs[device_id] = vidhub
-        vidhub.bind(trigger_save=self.on_vidhub_trigger_save)
+        cls = self._device_type_map[device_type]['cls']
+        prop = getattr(self, self._device_type_map[device_type]['prop'])
+        obj = cls.from_existing(backend)
+        prop[device_id] = obj
+        obj.bind(trigger_save=self.on_device_trigger_save)
         self.save()
     def on_backend_device_id(self, backend, value, **kwargs):
         if value is None:
             return
         backend.unbind(self.on_backend_device_id)
-        vidhub = self.vidhubs[id(backend)]
-        vidhub.device_id = value
-        del self.vidhubs[id(backend)]
-        if value in self.vidhubs:
+        prop = getattr(self, self._device_type_map[backend.device_type]['prop'])
+        obj = prop[id(backend)]
+        obj.device_id = value
+        del prop[id(backend)]
+        if value in prop:
             self.save()
             return
-        self.vidhubs[value] = vidhub
+        prop[value] = obj
         self.save()
     async def add_discovered_vidhub(self, info, device_id):
         async with self.discovery_lock:
@@ -118,7 +151,7 @@ class Config(ConfigBase):
         if device_id in self.vidhubs:
             return
         asyncio.ensure_future(self.add_discovered_vidhub(info, device_id))
-    def on_vidhub_trigger_save(self, *args, **kwargs):
+    def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
         if filename is not None:
@@ -187,7 +220,7 @@ class DeviceConfigBase(ConfigBase):
         return cls(**kwargs)
     def build_backend(self, cls=None, **kwargs):
         if cls is None:
-            cls = BACKENDS[self.backend_name]
+            cls = BACKENDS[self.device_type][self.backend_name]
         return cls(**kwargs)
     def on_backend_prop_change(self, instance, value, **kwargs):
         prop = kwargs.get('property')
@@ -199,6 +232,7 @@ class VidhubConfig(DeviceConfigBase):
     _conf_attrs = DeviceConfigBase._conf_attrs + [
         'presets',
     ]
+    device_type = 'vidhub'
     def __init__(self, **kwargs):
         kwargs.setdefault('presets', [])
         super().__init__(**kwargs)
@@ -246,6 +280,16 @@ class VidhubConfig(DeviceConfigBase):
             if 'backend' in pdata:
                 del pdata['backend']
         return d
+
+class SmartViewConfig(DeviceConfigBase):
+    device_type = 'smartview'
+
+class SmartScopeConfig(DeviceConfigBase):
+    device_type = 'smartscope'
+
+Config._device_type_map['vidhub']['cls'] = VidhubConfig
+Config._device_type_map['smartview']['cls'] = SmartViewConfig
+Config._device_type_map['smartscope']['cls'] = SmartScopeConfig
 
 @jsonfactory.register
 class JsonHandler(object):
