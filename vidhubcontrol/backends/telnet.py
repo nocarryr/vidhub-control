@@ -1,32 +1,22 @@
 import asyncio
 import logging
+import string
 
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from . import VidhubBackendBase
+from . import VidhubBackendBase, SmartScopeBackendBase
 
 logger = logging.getLogger(__name__)
 
-class TelnetBackend(VidhubBackendBase):
-    DEFAULT_PORT = 9990
-    SECTION_NAMES = [
-        'PROTOCOL PREAMBLE:',
-        'VIDEOHUB DEVICE:',
-        'INPUT LABELS:',
-        'OUTPUT LABELS:',
-        'VIDEO OUTPUT LOCKS:',
-        'VIDEO OUTPUT ROUTING:',
-        'CONFIGURATION:',
-    ]
+class TelnetBackendBase(object):
     hostaddr = Property()
-    hostport = Property(DEFAULT_PORT)
+    hostport = Property()
     def __init__(self, **kwargs):
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
         self.read_coro = None
-        super(TelnetBackend, self).__init__(**kwargs)
         self.hostaddr = kwargs.get('hostaddr')
         self.hostport = kwargs.get('hostport', self.DEFAULT_PORT)
         self.rx_bfr = b''
@@ -102,6 +92,21 @@ class TelnetBackend(VidhubBackendBase):
                 logger.debug('ack_or_nak: {}'.format(resp))
                 self.ack_or_nak = None
                 return resp
+
+class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
+    DEFAULT_PORT = 9990
+    SECTION_NAMES = [
+        'PROTOCOL PREAMBLE:',
+        'VIDEOHUB DEVICE:',
+        'INPUT LABELS:',
+        'OUTPUT LABELS:',
+        'VIDEO OUTPUT LOCKS:',
+        'VIDEO OUTPUT ROUTING:',
+        'CONFIGURATION:',
+    ]
+    def __init__(self, **kwargs):
+        VidhubBackendBase.__init__(self, **kwargs)
+        TelnetBackendBase.__init__(self, **kwargs)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -208,3 +213,101 @@ class TelnetBackend(VidhubBackendBase):
         if r is None or r.startswith('NAK'):
             return False
         return True
+
+class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
+    DEFAULT_PORT = 9992
+    SECTION_NAMES = [
+        'PROTOCOL PREAMBLE:',
+        'SMARTVIEW DEVICE:',
+        'NETWORK:',
+    ]
+    def __init__(self, **kwargs):
+        SmartScopeBackendBase.__init__(self, **kwargs)
+        TelnetBackendBase.__init__(self, **kwargs)
+    async def parse_rx_bfr(self):
+        def split_value(line):
+            return line.split(':')[1].strip(' ')
+        bfr = self.rx_bfr.decode('UTF-8')
+        section_parsed = False
+        for line_idx, line in enumerate(bfr.splitlines()):
+            line = line.rstrip('\n')
+            if not len(line):
+                if self.current_section.startswith('MONITOR') and len(self.monitors) == self.num_monitors:
+                    self.current_section = None
+                    self.rx_bfr = b''
+                    self.prelude_parsed = True
+                    break
+                continue
+            else:
+                newline_count = 0
+            if line.startswith('ACK') or line.startswith('NAK'):
+                self.ack_or_nak = line
+                continue
+            if line in self.SECTION_NAMES:
+                self.current_section = line.rstrip(':')
+                continue
+            if self.current_section is None:
+                continue
+            elif self.current_section == 'PROTOCOL PREAMBLE':
+                if line.startswith('Version:'):
+                    self.device_version = split_value(line)
+            elif self.current_section == 'SMARTVIEW DEVICE':
+                if line.startswith('Model:'):
+                    self.device_model = split_value(line)
+                elif line.startswith('Hostname:'):
+                    self.device_id = split_value(line).split('-')[1].upper()
+                elif line.startswith('Name:'):
+                    if self.device_name is None or self.device_name == self.device_id:
+                        self.device_name = split_value(line)
+                elif line.startswith('Monitors:'):
+                    self.num_monitors = int(split_value(line))
+                    for c in string.ascii_uppercase[:self.num_monitors]:
+                        s = 'MONITOR {}:'.format(c)
+                        if s not in self.SECTION_NAMES:
+                            self.SECTION_NAMES.append(s)
+                elif line.startswith('Inverted:'):
+                    self.inverted = split_value(line) == 'true'
+            elif self.current_section == 'NETWORK':
+                pass
+            elif self.current_section.startswith('MONITOR '):
+                monitor_name = self.current_section
+                await self.parse_monitor_line(monitor_name, line, split_value(line))
+            else:
+                section_parsed = True
+        self.response_ready.set()
+        if not self.prelude_parsed:
+            return
+        if self.current_section is not None and section_parsed:
+            self.current_section = None
+    async def parse_monitor_line(self, monitor_name, line, value):
+        monitor = None
+        for _m in self.monitors:
+            if _m.name == monitor_name:
+                monitor = _m
+                break
+        if monitor is None:
+            monitor = await self.add_monitor(name=monitor_name)
+        prop = None
+        if line.startswith('Brightness:'):
+            prop = 'brightness'
+        elif line.startswith('Contrast:'):
+            prop = 'contrast'
+        elif line.startswith('Saturation:'):
+            prop = 'saturation'
+        elif line.startswith('Identify:'):
+            prop = 'identify'
+        elif line.startswith('Border:'):
+            prop = 'border'
+        elif line.startswith('WidescreenSD:'):
+            prop = 'widescreen_sd'
+        elif line.startswith('ScopeMode:'):
+            prop = 'scope_mode'
+        elif line.startswith('AudioChannel:'):
+            prop = 'audio_channel'
+        if prop is None:
+            return
+        if value.isdigit():
+            value = int(value)
+        await monitor.set_property_from_backend(prop, value)
+    def _on_monitors(self, *args, **kwargs):
+        return
