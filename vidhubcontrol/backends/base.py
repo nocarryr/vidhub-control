@@ -247,6 +247,7 @@ class SmartViewMonitor(Dispatcher):
         self.parent = kwargs.get('parent')
         self.event_loop = self.parent.event_loop
         self.index = kwargs.get('index')
+        self.name = kwargs.get('name')
         props = self.PropertyChoices._bind_properties
         for prop in props:
             value = kwargs.get(prop)
