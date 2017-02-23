@@ -193,7 +193,7 @@ class SmartViewBackendBase(BackendBase):
             cls = SmartViewMonitor
         return cls
     async def add_monitor(self, **kwargs):
-        cls = self.monitor_cls
+        cls = self.get_monitor_cls()
         kwargs.setdefault('parent', self)
         kwargs.setdefault('index', len(self.monitors))
         monitor = cls(**kwargs)
