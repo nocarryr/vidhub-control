@@ -10,8 +10,20 @@ def get_vidhub_preamble():
     assert type(s) is bytes
     return s
 
+def get_smartscope_preamble():
+    p = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(p, 'smartscope-preamble.txt'), 'rb') as f:
+        s = f.read()
+    assert type(s) is bytes
+    return s
+
 VIDHUB_PREAMBLE = get_vidhub_preamble()
 VIDHUB_DEVICE_ID = 'a0b2c3d4e5f6'
+
+SMARTSCOPE_PREAMBLE = get_smartscope_preamble()
+SMARTSCOPE_DEVICE_ID = '0a1b2c3d4e5f'
+
+PREAMBLES = {'vidhub':VIDHUB_PREAMBLE, 'smartscope':SMARTSCOPE_PREAMBLE}
 
 @pytest.fixture
 def vidhub_telnet_responses():
@@ -67,6 +79,7 @@ def vidhub_zeroconf_info():
 @pytest.fixture
 def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
+        preamble = 'vidhub'
         def __init__(self, host=None, port=None, timeout=None, loop=None):
             self.loop = loop
             self.rx_bfr = b''
@@ -76,7 +89,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
             if not loop and not self.loop:
                 loop = self.loop = asyncio.get_event_loop()
             async with self.tx_lock:
-                self.tx_bfr = vidhub_telnet_responses['preamble']
+                self.tx_bfr = PREAMBLES[self.preamble]
         def close(self):
             pass
         async def close_async(self):
@@ -89,7 +102,10 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 await self.process_command(bfr)
         async def process_command(self, bfr):
             async with self.tx_lock:
-                tx_bfr = b''.join([vidhub_telnet_responses['ack'], bfr])
+                if self.preamble == 'vidhub':
+                    tx_bfr = b''.join([vidhub_telnet_responses['ack'], bfr])
+                else:
+                    tx_bfr = vidhub_telnet_responses['ack']
                 self.tx_bfr = b''.join([self.tx_bfr, tx_bfr])
         async def read_very_eager(self):
             async with self.tx_lock:
@@ -98,6 +114,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 return bfr
     monkeypatch.setattr('vidhubcontrol.aiotelnetlib._Telnet', Telnet)
     monkeypatch.setattr('vidhubcontrol.backends.telnet.aiotelnetlib._Telnet', Telnet)
+    return Telnet
 
 @pytest.fixture
 def tempconfig(tmpdir):
