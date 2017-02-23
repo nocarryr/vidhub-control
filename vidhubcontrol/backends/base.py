@@ -3,10 +3,6 @@ import asyncio
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
-class PropertyLock(asyncio.Lock):
-    def __init__(self, name):
-        super().__init__()
-        self.name = name
 
 class BackendBase(Dispatcher):
     device_name = Property()
@@ -254,10 +250,10 @@ class SmartViewMonitor(Dispatcher):
             value = self.get_property_for_choice(prop, value)
             setattr(self, prop, value)
         self.bind(**{prop:self.on_prop_control for prop in props})
-    async def _get_property_lock(self, name):
+    def _get_property_lock(self, name):
         lock = self._property_locks.get(name)
         if lock is None:
-            lock = PropertyLock(name)
+            lock = asyncio.Lock()
             self._property_locks[name] = lock
         return lock
     async def set_property_from_backend(self, name, value):
