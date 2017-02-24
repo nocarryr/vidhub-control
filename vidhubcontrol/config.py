@@ -12,12 +12,13 @@ from vidhubcontrol.backends import (
     SmartViewDummyBackend,
     SmartScopeDummyBackend,
     TelnetBackend,
+    SmartScopeTelnetBackend,
 )
 
 BACKENDS = {
     'vidhub':{cls.__name__:cls for cls in [DummyBackend, TelnetBackend]},
     'smartview':{cls.__name__:cls for cls in [SmartViewDummyBackend]},
-    'smartscope':{cls.__name__:cls for cls in [SmartScopeDummyBackend]},
+    'smartscope':{cls.__name__:cls for cls in [SmartScopeDummyBackend, SmartScopeTelnetBackend]},
 }
 
 class ConfigBase(Dispatcher):
@@ -126,12 +127,18 @@ class Config(ConfigBase):
             return
         prop[value] = obj
         self.save()
-    async def add_discovered_vidhub(self, info, device_id):
+    async def add_discovered_device(self, device_type, info, device_id):
         async with self.discovery_lock:
-            if device_id in self.vidhubs:
+            prop = getattr(self, self._device_type_map[device_type]['prop'])
+            cls = None
+            for key, _cls in BACKENDS[device_type].items():
+                if 'Telnet' in key:
+                    cls = _cls
+                    break
+            if device_id in prop:
                 return
             addr = str(info.address)
-            backend = await TelnetBackend.create_async(
+            backend = await cls.create_async(
                 hostaddr=addr,
                 hostport=int(info.port),
                 event_loop=self.loop,
@@ -141,16 +148,18 @@ class Config(ConfigBase):
             if backend.device_id != device_id:
                 await backend.disconnect()
                 return
-            self.add_vidhub(backend)
+            self.add_device(backend)
     def on_discovery_service_added(self, info, **kwargs):
-        if kwargs.get('class') != 'Videohub':
+        if kwargs.get('class') not in ['Videohub', 'SmartView']:
             return
+        device_type = kwargs.get('device_type')
         device_id = kwargs.get('id')
         if device_id is None:
             return
-        if device_id in self.vidhubs:
+        prop = getattr(self, self._device_type_map[device_type]['prop'])
+        if device_id in prop:
             return
-        asyncio.ensure_future(self.add_discovered_vidhub(info, device_id))
+        asyncio.ensure_future(self.add_discovered_device(device_type, info, device_id))
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):

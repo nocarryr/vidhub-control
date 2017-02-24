@@ -7,4 +7,4 @@ from .base import (
     Preset,
 )
 from .dummy import DummyBackend, SmartViewDummyBackend, SmartScopeDummyBackend
-from .telnet import TelnetBackend
+from .telnet import TelnetBackend, SmartScopeTelnetBackend
