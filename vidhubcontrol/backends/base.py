@@ -233,6 +233,10 @@ class SmartViewMonitor(Dispatcher):
             'white':'white',
             None:'NONE',
         }
+        identify = {
+            True:'true',
+            False:'false',
+        }
         _bind_properties = [
             'brightness', 'contrast', 'saturation',
             'widescreen_sd', 'identify', 'border', 'audio_channel',

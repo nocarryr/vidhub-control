@@ -50,6 +50,7 @@ class SmartViewDummyBackend(SmartViewBackendBase):
                 saturation=128,
                 widescreen_sd='auto',
                 audio_channel=0,
+                identify='false',
                 border='NONE',
             )
         self.prelude_parsed = True
@@ -74,6 +75,7 @@ class SmartScopeDummyBackend(SmartScopeBackendBase):
                 saturation=128,
                 widescreen_sd='auto',
                 audio_channel=0,
+                identify='false',
                 border='NONE',
                 mode=mode,
             )
