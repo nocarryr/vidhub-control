@@ -59,7 +59,7 @@ class SmartViewDummyBackend(SmartViewBackendBase):
     async def get_status(self):
         pass
     async def set_monitor_property(self, monitor, name, value):
-        return
+        await monitor.set_property_from_backend(name, value)
 
 class SmartScopeDummyBackend(SmartScopeBackendBase):
     def __init__(self, **kwargs):
@@ -84,4 +84,4 @@ class SmartScopeDummyBackend(SmartScopeBackendBase):
     async def get_status(self):
         pass
     async def set_monitor_property(self, monitor, name, value):
-        return
+        await monitor.set_property_from_backend(name, value)
