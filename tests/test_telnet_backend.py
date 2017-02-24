@@ -33,7 +33,6 @@ async def test_telnet_vidhub(mocked_vidhub_telnet_device, vidhub_telnet_response
 async def test_telnet_smartscope(mocked_vidhub_telnet_device):
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
-    mocked_vidhub_telnet_device.preamble = 'smartscope'
 
     backend = await SmartScopeTelnetBackend.create_async(hostaddr=True)
 

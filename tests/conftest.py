@@ -19,9 +19,11 @@ def get_smartscope_preamble():
 
 VIDHUB_PREAMBLE = get_vidhub_preamble()
 VIDHUB_DEVICE_ID = 'a0b2c3d4e5f6'
+VIDHUB_PORT = 9990
 
 SMARTSCOPE_PREAMBLE = get_smartscope_preamble()
 SMARTSCOPE_DEVICE_ID = '0a1b2c3d4e5f'
+SMARTSCOPE_PORT = 9992
 
 PREAMBLES = {'vidhub':VIDHUB_PREAMBLE, 'smartscope':SMARTSCOPE_PREAMBLE}
 
@@ -100,11 +102,25 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
         def __init__(self, host=None, port=None, timeout=None, loop=None):
+            self.port = port
             self.loop = loop
             self.rx_bfr = b''
             self.tx_bfr = b''
             self.tx_lock = asyncio.Lock()
+        @property
+        def port(self):
+            return getattr(self, '_port', None)
+        @port.setter
+        def port(self, value):
+            self._port = value
+            if value == VIDHUB_PORT:
+                self.preamble = 'vidhub'
+            elif value == SMARTSCOPE_PORT:
+                self.preamble = 'smartscope'
         async def open(self, host, port=0, timeout=0, loop=None):
+            if self.port is None:
+                self.port = port
+            self.port
             if not loop and not self.loop:
                 loop = self.loop = asyncio.get_event_loop()
             async with self.tx_lock:
