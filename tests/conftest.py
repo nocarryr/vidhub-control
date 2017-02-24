@@ -77,6 +77,25 @@ def vidhub_zeroconf_info():
     return d
 
 @pytest.fixture
+def smartscope_zeroconf_info():
+    d = {
+        'device_name':'SmartScope Duo',
+        'device_id':SMARTSCOPE_DEVICE_ID.upper(),
+        'info_args':['_blackmagic._tcp.local.', 9992],
+        'info_kwargs':{
+            'name':'SmartScope Duo-{}._blackmagic._tcp.local.'.format(SMARTSCOPE_DEVICE_ID.upper()),
+            'addresses':['127.0.0.1'],
+            'properties':{
+                'name':'SmartScope Duo 4K',
+                'protocol version':'1.3',
+                'class':'SmartView',
+                'unique id':SMARTSCOPE_DEVICE_ID,
+            },
+        },
+    }
+    return d
+
+@pytest.fixture
 def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
