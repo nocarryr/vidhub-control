@@ -106,6 +106,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
             self.loop = loop
             self.rx_bfr = b''
             self.tx_bfr = b''
+            self.read_ready_event = asyncio.Event()
             self.tx_lock = asyncio.Lock()
         @property
         def port(self):
@@ -125,10 +126,13 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 loop = self.loop = asyncio.get_event_loop()
             async with self.tx_lock:
                 self.tx_bfr = PREAMBLES[self.preamble]
+                self.read_ready_event.set()
         def close(self):
-            pass
+            self.read_ready_event.set()
         async def close_async(self):
-            pass
+            self.close()
+        async def wait_for_data(self):
+            await self.read_ready_event.wait()
         async def write(self, bfr):
             self.rx_bfr = b''.join([self.rx_bfr, bfr])
             if bfr.endswith(b'\n\n'):
@@ -142,11 +146,15 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 else:
                     tx_bfr = vidhub_telnet_responses['ack']
                 self.tx_bfr = b''.join([self.tx_bfr, tx_bfr])
+                if len(self.tx_bfr):
+                    self.read_ready_event.set()
         async def read_very_eager(self):
             async with self.tx_lock:
                 bfr = self.tx_bfr
                 self.tx_bfr = b''
+                self.read_ready_event.clear()
                 return bfr
+
     monkeypatch.setattr('vidhubcontrol.aiotelnetlib._Telnet', Telnet)
     monkeypatch.setattr('vidhubcontrol.backends.telnet.aiotelnetlib._Telnet', Telnet)
     return Telnet
