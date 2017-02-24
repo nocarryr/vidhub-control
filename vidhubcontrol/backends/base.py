@@ -210,6 +210,14 @@ class SmartScopeBackendBase(SmartViewBackendBase):
             cls = SmartScopeMonitor
         return cls
 
+MONITOR_PROPERTY_MAP = {k:k.title() for k in [
+    'brightness', 'contrast', 'saturation', 'identify', 'border']}
+MONITOR_PROPERTY_MAP.update({
+    'widescreen_sd':'WidescreenSD',
+    'audio_channel':'AudioChannel',
+    'scope_mode':'ScopeMode',
+})
+
 class SmartViewMonitor(Dispatcher):
     index = Property()
     name = Property()

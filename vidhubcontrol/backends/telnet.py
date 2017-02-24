@@ -5,7 +5,7 @@ import string
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from . import VidhubBackendBase, SmartScopeBackendBase
+from .base import VidhubBackendBase, SmartScopeBackendBase, MONITOR_PROPERTY_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -288,22 +288,10 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
         if monitor is None:
             monitor = await self.add_monitor(name=monitor_name)
         prop = None
-        if line.startswith('Brightness:'):
-            prop = 'brightness'
-        elif line.startswith('Contrast:'):
-            prop = 'contrast'
-        elif line.startswith('Saturation:'):
-            prop = 'saturation'
-        elif line.startswith('Identify:'):
-            prop = 'identify'
-        elif line.startswith('Border:'):
-            prop = 'border'
-        elif line.startswith('WidescreenSD:'):
-            prop = 'widescreen_sd'
-        elif line.startswith('ScopeMode:'):
-            prop = 'scope_mode'
-        elif line.startswith('AudioChannel:'):
-            prop = 'audio_channel'
+        for key, val in MONITOR_PROPERTY_MAP.items():
+            if line.startswith('{}:'.format(val)):
+                prop = key
+                break
         if prop is None:
             return
         if value.isdigit():
