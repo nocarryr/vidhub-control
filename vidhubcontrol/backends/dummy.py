@@ -43,7 +43,7 @@ class SmartViewDummyBackend(SmartViewBackendBase):
         self.device_id = kwargs.get('device_id', 'dummy')
     async def do_connect(self):
         for name in ['MONITOR A', 'MONITOR B']:
-            self.add_monitor(
+            await self.add_monitor(
                 name=name,
                 brightness=255,
                 contrast=128,
@@ -67,7 +67,7 @@ class SmartScopeDummyBackend(SmartScopeBackendBase):
         self.device_id = kwargs.get('device_id', 'dummy')
     async def do_connect(self):
         for name, mode in [['MONITOR A', 'waveform'], ['MONITOR B', 'vector_100']]:
-            self.add_monitor(
+            await self.add_monitor(
                 name=name,
                 brightness=255,
                 contrast=128,
