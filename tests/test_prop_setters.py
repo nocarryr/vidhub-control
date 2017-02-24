@@ -1,32 +1,7 @@
 import asyncio
 import pytest
 
-class Waiter(object):
-    def __init__(self, device):
-        self.device = device
-        self._event = asyncio.Event()
-        self._lock = asyncio.Lock()
-        self.args = None
-        self.kwargs = None
-    def bind(self, event_name):
-        self.device.bind(**{event_name:self.on_event})
-    def unbind(self):
-        self.device.unbind(self)
-    def on_event(self, *args, **kwargs):
-        async def trigger(_args, _kwargs):
-            async with self._lock:
-                self.args = _args
-                self.kwargs = _kwargs
-            self._event.set()
-        asyncio.ensure_future(trigger(args, kwargs))
-    async def wait(self):
-        await self._event.wait()
-        async with self._lock:
-            args, kwargs = self.args, self.kwargs
-            self.args = None
-            self.kwargs = None
-        self._event.clear()
-        return args, kwargs
+from utils import AsyncEventWaiter
 
 @pytest.mark.asyncio
 async def test_prop_setters():
@@ -34,7 +9,7 @@ async def test_prop_setters():
 
     vidhub = await DummyBackend.create_async()
 
-    waiter = Waiter(vidhub)
+    waiter = AsyncEventWaiter(vidhub)
 
     waiter.bind('input_labels')
     for i in range(vidhub.num_inputs):
@@ -104,7 +79,7 @@ async def test_smartscope_prop_setters():
 
 
     scope = await SmartScopeDummyBackend.create_async()
-    waiter = Waiter(scope)
+    waiter = AsyncEventWaiter(scope)
     waiter.bind('on_monitor_property_change')
 
     async def set_and_check_monitor_prop(obj, prop_name, prop_val):
