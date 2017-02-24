@@ -16,6 +16,7 @@ class TelnetBackendBase(object):
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
+        self.ack_or_nak_event = asyncio.Event()
         self.read_coro = None
         self.hostaddr = kwargs.get('hostaddr')
         self.hostport = kwargs.get('hostport', self.DEFAULT_PORT)
@@ -89,9 +90,17 @@ class TelnetBackendBase(object):
                     await asyncio.sleep(.1)
             if self.ack_or_nak is not None:
                 resp = self.ack_or_nak
+                self.ack_or_nak_event.clear()
                 logger.debug('ack_or_nak: {}'.format(resp))
                 self.ack_or_nak = None
                 return resp
+    async def wait_for_ack_or_nak(self):
+        logger.debug('wait_for_ack_or_nak...')
+        await self.ack_or_nak_event.wait()
+        resp = self.ack_or_nak
+        self.ack_or_nak = None
+        self.ack_or_nak_event.clear()
+        return resp.startswith('ACK')
 
 class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
     DEFAULT_PORT = 9990
@@ -123,6 +132,7 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
                 continue
             if line.startswith('ACK') or line.startswith('NAK'):
                 self.ack_or_nak = line
+                self.ack_or_nak_event.set()
                 continue
             if line in self.SECTION_NAMES:
                 self.current_section = line.rstrip(':')
@@ -238,10 +248,13 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
                     self.prelude_parsed = True
                     break
                 continue
-            else:
-                newline_count = 0
             if line.startswith('ACK') or line.startswith('NAK'):
                 self.ack_or_nak = line
+                self.ack_or_nak_event.set()
+                if bfr.rstrip('\n') == line:
+                    self.current_section = None
+                    self.rx_bfr = b''
+                    break
                 continue
             if line in self.SECTION_NAMES:
                 self.current_section = line.rstrip(':')
@@ -306,8 +319,8 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
         await self.send_to_client(tx_bfr)
-        r = await self.wait_for_response()
-        if isinstance(r, str) and r.startswith('ACK'):
+        r = await self.wait_for_ack_or_nak()
+        if r:
             await monitor.set_property_from_backend(name, value)
     def _on_monitors(self, *args, **kwargs):
         return
