@@ -294,6 +294,11 @@ class SmartViewMonitor(Dispatcher):
                     if v == value:
                         value = k
                         break
+        if isinstance(value, str) and value.lower() in ('none', 'true', 'false'):
+            if value.lower() == 'none':
+                value = None
+            else:
+                value = value.lower() == 'true'
         return value
     def on_prop_control(self, instance, value, **kwargs):
         prop = kwargs.get('property')
