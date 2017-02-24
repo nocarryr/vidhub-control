@@ -24,6 +24,9 @@ class TelnetBackendBase(object):
         self.response_ready = asyncio.Event()
     async def read_loop(self):
         while self.read_enabled:
+            await self.client.wait_for_data()
+            if not self.read_enabled:
+                break
             try:
                 rx_bfr = await self.client.read_very_eager()
             except Exception as e:
@@ -34,11 +37,9 @@ class TelnetBackendBase(object):
                 return
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
-                if True:#self.rx_bfr.endswith(b'\n\n'):
-                    logger.debug(self.rx_bfr.decode('UTF-8'))
-                    await self.parse_rx_bfr()
-                    self.rx_bfr = b''
-            await asyncio.sleep(.1)
+                logger.debug(self.rx_bfr.decode('UTF-8'))
+                await self.parse_rx_bfr()
+                self.rx_bfr = b''
     async def send_to_client(self, data):
         if not self.connected:
             c = await self.connect()
@@ -71,11 +72,11 @@ class TelnetBackendBase(object):
     async def do_disconnect(self):
         logger.debug('disconnecting')
         self.read_enabled = False
+        if self.client is not None:
+            await self.client.close_async()
         if self.read_coro is not None:
             await asyncio.wait([self.read_coro], loop=self.event_loop)
             self.read_coro = None
-        if self.client is not None:
-            await self.client.close_async()
         self.client = None
         logger.debug('disconnected')
     async def wait_for_response(self, prelude=False):
