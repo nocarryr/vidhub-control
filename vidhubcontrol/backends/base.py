@@ -196,9 +196,9 @@ class SmartViewBackendBase(BackendBase):
         monitor.bind(on_property_change=self.on_monitor_prop)
         self.monitors.append(monitor)
         return monitor
-    def on_monitor_prop(self, instance, value, **kwargs):
+    def on_monitor_prop(self, instance, name, value, **kwargs):
         kwargs['monitor'] = instance
-        self.emit('on_monitor_property_change', self, value, **kwargs)
+        self.emit('on_monitor_property_change', self, name, value, **kwargs)
     def _on_monitors(self, *args, **kwargs):
         self.num_monitors = len(self.monitors)
 
@@ -261,6 +261,7 @@ class SmartViewMonitor(Dispatcher):
         lock = self._get_property_lock(name)
         async with lock:
             setattr(self, name, value)
+        self.emit('on_property_change', self, name, value)
     async def set_property(self, name, value):
         await self.parent.set_monitor_property(self, name, value)
     async def flash(self):
@@ -286,7 +287,6 @@ class SmartViewMonitor(Dispatcher):
         prop = kwargs.get('property')
         lock = self._get_property_lock(prop.name)
         if lock.locked():
-            self.emit('on_property_change', instance, value, **kwargs)
             return
         value = self.get_choice_for_property(prop.name, value)
         fut = self.set_property(prop.name, value)
