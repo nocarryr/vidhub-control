@@ -297,5 +297,17 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
         if value.isdigit():
             value = int(value)
         await monitor.set_property_from_backend(prop, value)
+    async def set_monitor_property(self, monitor, name, value):
+        key = MONITOR_PROPERTY_MAP[name]
+        tx_lines = [
+            '{}:'.format(monitor.name),
+            '{}: {}'.format(key, value),
+        ]
+        tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
+        tx_bfr += b'\n\n'
+        await self.send_to_client(tx_bfr)
+        r = await self.wait_for_response()
+        if isinstance(r, str) and r.startswith('ACK'):
+            await monitor.set_property_from_backend(name, value)
     def _on_monitors(self, *args, **kwargs):
         return
