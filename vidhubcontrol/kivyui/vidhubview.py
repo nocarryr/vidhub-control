@@ -15,7 +15,7 @@ from kivy.uix.button import Button
 
 class VidhubWidget(BoxLayout):
     app = ObjectProperty(None)
-    vidhub = ObjectProperty(None)
+    vidhub = ObjectProperty(None, allownone=True)
     name = StringProperty('')
     connected = BooleanProperty(False)
     input_button_grid = ObjectProperty(None)
@@ -38,12 +38,12 @@ class VidhubWidget(BoxLayout):
         self.preset_button_grid.vidhub_widget = self
     def on_vidhub(self, *args):
         if self.vidhub is None:
+            self.name = ''
+            self.connected = False
+            self.crosspoints = []
             return
         self.name = self.vidhub.device_name
         self.connected = self.vidhub.connected
-        self.input_button_grid.vidhub = self.vidhub
-        self.output_button_grid.vidhub = self.vidhub
-        self.preset_button_grid.vidhub = self.vidhub
         self.crosspoints[:] = self.vidhub.crosspoints[:]
         self.app.bind_events(self.vidhub,
             connected=self.on_vidhub_connected,
@@ -53,15 +53,20 @@ class VidhubWidget(BoxLayout):
     def on_app(self, *args):
         if self.app is None:
             return
-        self.vidhub = self.app.selected_vidhub
-        self.app.bind(selected_vidhub=self.on_app_selected_vidhub)
-    def on_app_selected_vidhub(self, instance, value):
+        device = self.app.selected_device
+        if device is not None and device.device_type == 'vidhub':
+            self.vidhub = device
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_app_selected_device(self, instance, value):
         if self.vidhub is not None:
             self.vidhub.unbind(self)
             self.vidhub.unbind(self.input_button_grid)
             self.vidhub.unbind(self.output_button_grid)
             self.preset_button_grid.unbind_vidhub()
-        self.vidhub = value
+        if value.device_type == 'vidhub':
+            self.vidhub = value
+        else:
+            self.vidhub = None
     def on_vidhub_connected(self, instance, value, **kwargs):
         self.connected = value
     def on_vidhub_device_name(self, instance, value, **kwargs):
@@ -118,7 +123,7 @@ class VidhubWidget(BoxLayout):
 
 class ButtonGrid(GridLayout):
     app = ObjectProperty(None)
-    vidhub = ObjectProperty(None)
+    vidhub = ObjectProperty(None, allownone=True)
     vidhub_widget = ObjectProperty(None)
     num_buttons = NumericProperty()
     selected_first = BooleanProperty(False)

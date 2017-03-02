@@ -70,12 +70,10 @@ RootWidget:
 <FooterWidget@BoxLayout>:
     orientation: 'horizontal'
 
-<VidhubDropdown>:
-    id: vidhub_dropdown
+<DeviceDropdown>:
     app: app
 
-<VidhubDropdownButton>:
+<DeviceDropdownButton>:
     app: app
     size_hint_y: None
     height: 44
-    on_release: app.selected_vidhub = self.vidhub

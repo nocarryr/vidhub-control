@@ -73,45 +73,54 @@ class HeaderWidget(BoxLayout):
         super().__init__(**kwargs)
         self.vidhub_dropdown = VidhubDropdown()
 
-class VidhubDropdown(DropDown):
+class DeviceDropdown(DropDown):
     app = ObjectProperty(None)
     btns = DictProperty()
+    devices = DictProperty()
     def on_app(self, *args):
-        if self.app is None:
-            return
-        self.update_buttons()
-        self.app.bind(
-            vidhubs=self.update_buttons,
-            selected_vidhub=self.on_selected_vidhub,
-        )
-    def update_buttons(self, *args, **kwargs):
-        for key in sorted(self.app.vidhubs.keys()):
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_devices(self, instance, devices):
+        for key in sorted(devices.keys()):
             if key in self.btns:
                 continue
-            vidhub = self.app.vidhubs[key]
-            btn = VidhubDropdownButton(vidhub=vidhub)
+            device = devices[key]
+            btn = DeviceDropdownButton(device=device)
+            btn.bind(on_release=self.on_device_btn_release)
             self.btns[key] = btn
             self.add_widget(btn)
-    def on_selected_vidhub(self, instance, value):
-        self.select(value.device_name)
+    def update_devices(self, app, devices):
+        self.devices.update(devices)
+    def on_app_selected_device(self, instance, value):
+        if value.device_id not in self.devices:
+            self.select(None)
+        else:
+            self.select(value.device_id)
+    def on_device_btn_release(self, instance):
+        self.app.selected_device = instance.device
 
-class VidhubDropdownButton(Button):
+class VidhubDropdown(DeviceDropdown):
+    def on_app(self, *args):
+        super().on_app(*args)
+        self.update_devices(self.app, self.app.vidhubs)
+        self.app.bind(vidhubs=self.update_devices)
+
+class DeviceDropdownButton(Button):
     app = ObjectProperty(None)
-    vidhub = ObjectProperty(None)
-    def on_vidhub(self, instance, value):
-        if self.vidhub is None:
+    device = ObjectProperty(None)
+    def on_device(self, instance, value):
+        if self.device is None:
             return
-        self.text = self.vidhub.device_name
+        self.text = self.device.device_name
         if self.app is None:
             return
-        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
+        self.app.bind_events(self.device, device_name=self.on_device_name)
     def on_app(self, *args):
         if self.app is None:
             return
-        if self.vidhub is not None:
+        if self.device is not None:
             return
-        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
-    def on_vidhub_device_name(self, instance, value, **kwargs):
+        self.app.bind_events(self.device, device_name=self.on_device_name)
+    def on_device_name(self, instance, value, **kwargs):
         self.text = value
 
 
@@ -126,7 +135,7 @@ class VidhubControlApp(App):
     async_server = ObjectProperty(None)
     vidhub_config = ObjectProperty(None)
     vidhubs = DictProperty()
-    selected_vidhub = ObjectProperty(None)
+    selected_device = ObjectProperty(None)
     def build_config(self, config):
         for section_name, section in APP_SETTINGS_DEFAULTS.items():
             config.setdefaults(section_name, section)
@@ -134,7 +143,7 @@ class VidhubControlApp(App):
         settings.add_json_panel('VidhubControl', self.config, data=json.dumps(APP_SETTINGS))
     def get_application_config(self):
         return super().get_application_config('~/vidhubcontrol-ui.ini')
-    def on_selected_vidhub(self, instance, value):
+    def on_selected_device(self, instance, value):
         if value is None:
             return
         stored = self.config.get('main', 'last_device')
@@ -160,7 +169,7 @@ class VidhubControlApp(App):
                 continue
             self.vidhubs[key] = val.backend
             if restore_device and key == last_device:
-                self.selected_vidhub = val.backend
+                self.selected_device = val.backend
     def bind_events(self, obj, **kwargs):
         self.async_server.bind_events(obj, **kwargs)
     def run_async_coro(self, coro):

@@ -33,12 +33,16 @@ class VidhubEditLabelList(BoxLayout):
     def on_app(self, *args):
         if self.app is None:
             return
-        if self.app.selected_vidhub is not None:
+        device = self.app.selected_device
+        if device is not None and device.device_type == 'vidhub':
+            self.vidhub = device
             self.bind_vidhub()
-        self.app.bind(selected_vidhub=self.on_app_selected_vidhub)
-    def on_app_selected_vidhub(self, instance, value):
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_app_selected_device(self, instance, value):
         if self.vidhub is not None:
             self.unbind_vidhub(self.vidhub)
+        if value.device_type != 'vidhub':
+            value = None
         self.vidhub = value
         self.build_items()
         if value is not None:
