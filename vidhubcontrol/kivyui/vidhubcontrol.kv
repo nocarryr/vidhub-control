@@ -1,32 +1,21 @@
 #:include vidhubcontrol/kivyui/vidhubview.kv
 #:include vidhubcontrol/kivyui/vidhubedit.kv
+#:include vidhubcontrol/kivyui/smartview.kv
 #:include vidhubcontrol/kivyui/utils.kv
 
 RootWidget:
+    app: app
     header_widget: header_widget
     main_widget: main_widget
-    vidhub_widget: vidhub_widget
-    vidhub_edit_widget: vidhub_edit_widget
     footer_widget: footer_widget
     BoxLayout:
         orientation: 'vertical'
         HeaderWidget:
             id: header_widget
             size_hint_y: .1
-        TabbedPanel:
+        BoxLayout:
             id: main_widget
             size_hint_y: .8
-            do_default_tab: False
-            TabbedPanelItem:
-                text:'Control'
-                VidhubWidget:
-                    id: vidhub_widget
-                    size_hint: 1, 1
-            TabbedPanelItem:
-                text:'Edit'
-                VidhubEditView:
-                    id: vidhub_edit_widget
-                    size_hint: 1, 1
         FooterWidget:
             id: footer_widget
             size_hint_y: .1
@@ -40,7 +29,7 @@ RootWidget:
                     BoxLayout:
                         orientation: 'horizontal'
                         OutlinedLabel:
-                            text: vidhub_widget.name
+                            text: root.name
                             size_hint_x: .6
                         OutlinedBoxLayout:
                             orientation: 'horizontal'
@@ -53,16 +42,37 @@ RootWidget:
                             Label:
                                 text: 'Status:'
                             StatusIndicator:
-                                state: vidhub_widget.connected
+                                state: root.connected
                 BoxLayout:
                     size_hint_x: .75
 
+<VidhubPanel>:
+    size_hint: 1, 1
+    do_default_tab: False
+    vidhub_widget: vidhub_widget
+    vidhub_edit_widget: vidhub_edit_widget
+    TabbedPanelItem:
+        text:'Control'
+        VidhubWidget:
+            id: vidhub_widget
+            size_hint: 1, 1
+    TabbedPanelItem:
+        text:'Edit'
+        VidhubEditView:
+            id: vidhub_edit_widget
+            size_hint: 1, 1
 
 <HeaderWidget>:
     orientation: 'horizontal'
     Button:
-        text: 'Select Device'
+        text: 'Select Vidhub'
         on_release: root.vidhub_dropdown.open(self)
+    Button:
+        text: 'Select SmartView'
+        on_release: root.smartview_dropdown.open(self)
+    Button:
+        text: 'Select SmartScope'
+        on_release: root.smartscope_dropdown.open(self)
     Button:
         text: 'Settings'
         on_release: app.open_settings()
