@@ -40,7 +40,7 @@ class DummyBackend(VidhubBackendBase):
 class SmartViewDummyBackend(SmartViewBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.device_id = kwargs.get('device_id', 'dummy')
+        self.device_id = kwargs.get('device_id', 'dummy_smartview')
     async def do_connect(self):
         for name in ['MONITOR A', 'MONITOR B']:
             await self.add_monitor(
@@ -65,7 +65,7 @@ class SmartViewDummyBackend(SmartViewBackendBase):
 class SmartScopeDummyBackend(SmartScopeBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.device_id = kwargs.get('device_id', 'dummy')
+        self.device_id = kwargs.get('device_id', 'dummy_smartscope')
     async def do_connect(self):
         for name, mode in [['MONITOR A', 'waveform'], ['MONITOR B', 'vector_100']]:
             await self.add_monitor(
