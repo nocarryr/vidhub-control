@@ -144,6 +144,8 @@ class DeviceDropdownButton(Button):
 class VidhubPanel(TabbedPanel):
     vidhub_widget = ObjectProperty(None)
     vidhub_edit_widget = ObjectProperty(None)
+    name = StringProperty()
+    connected = BooleanProperty()
 
 class RootWidget(FloatLayout):
     app = ObjectProperty(None)
