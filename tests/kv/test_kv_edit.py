@@ -17,14 +17,18 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
     config.add_vidhub(vidhub)
     await kv_waiter.wait()
 
-    edit_widget = kivy_app.root.vidhub_edit_widget
+    kv_waiter.bind(kivy_app.root, 'active_widget')
+    kivy_app.selected_device = vidhub
+    await kv_waiter.wait()
+    kv_waiter.unbind(kivy_app.root, 'active_widget')
+
+    edit_widget = kivy_app.root.active_widget.vidhub_edit_widget
+
     list_widgets = {
         'input':edit_widget.input_label_list,
         'output':edit_widget.output_label_list,
         'preset':edit_widget.preset_label_list,
     }
-
-    kivy_app.selected_vidhub = vidhub
 
 
     # Wait for widget creation
