@@ -32,6 +32,9 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         await asyncio.sleep(0)
 
     def check_values():
+        assert smartscope.device_name == smartscope_widget.name
+        assert smartscope.connected == smartscope_widget.connected
+
         for monitor in smartscope.monitors:
             monitor_widget = smartscope_widget.monitor_widgets[monitor.index]
 
@@ -54,6 +57,12 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     check_values()
 
     # Set values from device
+    kv_waiter.bind(smartscope_widget, 'name')
+    smartscope.device_name = 'FOO'
+    await kv_waiter.wait()
+    assert smartscope_widget.name == 'FOO'
+
+
     for monitor in smartscope.monitors:
         props = monitor.PropertyChoices._bind_properties
         for prop in props:
@@ -70,6 +79,66 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
             else:
                 for i in range(20):
                     await monitor.set_property_from_backend(prop, i)
+                    check_values()
+
+    # Set values from ui
+    def find_widget(monitor_widget, property_name):
+        def find_root():
+            for w in monitor_widget.walk():
+                if not hasattr(w, 'label_text'):
+                    continue
+                if property_name == 'widescreen_sd' and w.label_text == 'WidescreenSD':
+                    return w
+                if w.label_text.lower() == property_name:
+                    return w
+                if '_'.join(w.label_text.split(' ')).lower() == property_name:
+                    return w
+        w = find_root()
+        if w.__class__.__name__ == 'SliderSetting':
+            clsname = 'Slider'
+        elif w.__class__.__name__ == 'TextSetting':
+            clsname = 'TextInput'
+        elif w.__class__.__name__ == 'OptionSetting':
+            clsname = 'Spinner'
+        elif w.__class__.__name__ == 'BooleanSetting':
+            clsname = 'Switch'
+        for _w in w.walk():
+            if _w.__class__.__name__ == clsname:
+                return _w
+
+
+    async def set_monitor_prop_from_ui(monitor, monitor_widget, prop, value):
+        widget = find_widget(monitor_widget, prop)
+
+        if prop in ['brightness', 'contrast', 'saturation']:
+            widget.value = value
+        elif prop == 'border':
+            widget.text = str(value).title()
+        elif prop == 'identify':
+            widget.active = value
+        elif widget.__class__.__name__ == 'TextInput':
+            widget.text = str(value)
+            widget.dispatch('on_text_validate')
+        else:
+            widget.text = monitor.get_choice_for_property(prop, value).title()
+        await asyncio.sleep(0)
+
+    for monitor, monitor_widget in zip(smartscope.monitors, smartscope_widget.monitor_widgets):
+        props = monitor.PropertyChoices._bind_properties
+        for prop in props:
+            choices = monitor.get_property_choices(prop)
+            if choices is not None:
+                for prop_val, device_val in choices.items():
+                    if getattr(monitor, prop) == prop_val:
+                        continue
+                    await set_monitor_prop_from_ui(monitor, monitor_widget, prop, prop_val)
+                    check_values()
+            elif prop == 'identify':
+                await set_monitor_prop_from_ui(monitor, monitor_widget, prop, not monitor.identify)
+                check_values()
+            else:
+                for i in range(20):
+                    await set_monitor_prop_from_ui(monitor, monitor_widget, prop, i)
                     check_values()
 
     await kivy_app.stop_async()
