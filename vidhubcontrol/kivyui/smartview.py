@@ -96,6 +96,16 @@ class MonitorWidget(BoxLayout):
         if None in [self.app, self.monitor]:
             return
         self.bind_monitor()
+    def _monitor_value_to_self(self, key, value):
+        if key == 'widescreen_sd':
+            value = self.monitor.get_choice_for_property(key, value).title()
+        elif key == 'border':
+            value = str(value).title()
+        elif key == 'scope_mode':
+            value = self.monitor.get_choice_for_property(key, value)
+            if value is None:
+                value = ''
+        return value
     def bind_monitor(self):
         if self.monitor.parent.device_type != 'smartscope':
             self._prop_keys = []
@@ -109,14 +119,7 @@ class MonitorWidget(BoxLayout):
             if key == 'scope_mode' and not hasattr(self.monitor, key):
                 continue
             val = getattr(self.monitor, key)
-            if key == 'widescreen_sd':
-                val = self.monitor.get_choice_for_property(key, val).title()
-            elif key == 'border':
-                val = str(val).title()
-            elif key == 'scope_mode':
-                val = self.monitor.get_choice_for_property(key, val)
-                if val is None:
-                    val = ''
+            val = self._monitor_value_to_self(key, val)
             setattr(self, key, val)
         self.app.bind_events(
             self.monitor,
@@ -125,10 +128,5 @@ class MonitorWidget(BoxLayout):
     def on_monitor_prop(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         if prop.name in self._prop_keys:
-            if prop.name == 'widescreen_sd':
-                value = self.monitor.get_choice_for_property(prop.name, value).title()
-            elif prop.name == 'border':
-                value = str(value).title()
-            elif prop.name == 'scope_mode':
-                value = self.monitor.get_choice_for_property(prop.name, value)
+            value = self._monitor_value_to_self(prop.name, value)
             setattr(self, prop.name, value)
