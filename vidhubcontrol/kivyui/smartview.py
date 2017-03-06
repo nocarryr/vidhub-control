@@ -33,6 +33,7 @@ class SmartViewWidget(BoxLayout):
         if self.device is None:
             return
         self.name = self.device.device_name
+        self.connected = self.device.connected
         self.app.bind_events(self.device,
             device_name=self.on_device_name,
             connected=self.on_device_connected,
