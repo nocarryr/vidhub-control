@@ -58,7 +58,7 @@ class SmartViewWidget(BoxLayout):
     def on_device_name(self, instance, value, **kwargs):
         self.name = value
     def on_device_connected(self, instance, value, **kwargs):
-        print('on_device_connected: ', instance, value, **kwargs)
+        print('on_device_connected: ', instance, value, kwargs)
         self.connected = value
         if value and not len(self.monitor_widgets):
             instance.unbind(self)
