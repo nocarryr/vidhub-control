@@ -132,10 +132,8 @@ class DeviceDropdownButton(Button):
         if self.app is None:
             return
         self.app.bind_events(self.device, device_name=self.on_device_name)
-    def on_app(self, *args):
+    def on_app(self, instance, value):
         if self.app is None:
-            return
-        if self.device is not None:
             return
         self.app.bind_events(self.device, device_name=self.on_device_name)
     def on_device_name(self, instance, value, **kwargs):
