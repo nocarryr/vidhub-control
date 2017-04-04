@@ -14,9 +14,50 @@ from kivy.uix.button import Button
 
 class VidhubEditView(BoxLayout):
     app = ObjectProperty(None)
+    device_name_text_widget = ObjectProperty(None)
     input_label_list = ObjectProperty(None)
     output_label_list = ObjectProperty(None)
     preset_label_list = ObjectProperty(None)
+    vidhub = ObjectProperty(None, allownone=True)
+    vidhub_bound = BooleanProperty(False)
+    text = StringProperty('')
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.vidhub is not None and not self.vidhub_bound:
+            self.bind_vidhub()
+    def on_app(self, *args):
+        device = self.app.selected_device
+        if device is not None and device.device_type == 'vidhub':
+            self.vidhub = device
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_app_selected_device(self, instance, value):
+        if self.vidhub is not None:
+            self.unbind_vidhub(self.vidhub)
+        if value.device_type != 'vidhub':
+            value = None
+        self.vidhub = value
+        if value is not None:
+            self.bind_vidhub()
+    def on_vidhub(self, *args):
+        if self.vidhub is None:
+            self.text = ''
+            return
+        self.text = self.vidhub.device_name
+        if not self.vidhub_bound:
+            self.bind_vidhub()
+    def on_vidhub_device_name(self, instance, value, **kwargs):
+        self.text = value
+    def on_text(self, instance, value):
+        if self.vidhub is None:
+            return
+        self.vidhub.device_name = value
+    def bind_vidhub(self):
+        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
+        self.vidhub_bound = True
+    def unbind_vidhub(self, vidhub):
+        vidhub.unbind(self.on_vidhub_device_name)
+        self.vidhub_bound = False
+
 
 class VidhubEditLabelList(BoxLayout):
     app = ObjectProperty(None)

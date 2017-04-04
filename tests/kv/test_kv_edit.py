@@ -147,4 +147,14 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
 
         kv_waiter.unbind(item, 'text')
 
+    # Set device_name
+    txt_widget = edit_widget.device_name_text_widget
+    kv_waiter.bind(edit_widget, 'text')
+    txt_widget.text = 'foobar1'
+    txt_widget.dispatch('on_text_validate')
+    await asyncio.sleep(0)
+    await kv_waiter.wait()
+
+    assert txt_widget.text == edit_widget.text == vidhub.device_name == 'foobar1'
+
     await kivy_app.stop_async()
