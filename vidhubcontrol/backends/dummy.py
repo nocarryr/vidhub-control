@@ -1,9 +1,9 @@
 import asyncio
 import logging
 
-from . import BackendBase
+from . import VidhubBackendBase, SmartViewBackendBase, SmartScopeBackendBase
 
-class DummyBackend(BackendBase):
+class DummyBackend(VidhubBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.device_id = kwargs.get('device_id', 'dummy')
@@ -36,3 +36,54 @@ class DummyBackend(BackendBase):
         with self.emission_lock('input_labels'):
             for in_idx, lbl in args:
                 self.input_labels[in_idx] = lbl
+
+class SmartViewDummyBackend(SmartViewBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.device_id = kwargs.get('device_id', 'dummy_smartview')
+    async def do_connect(self):
+        for name in ['MONITOR A', 'MONITOR B']:
+            await self.add_monitor(
+                name=name,
+                brightness=255,
+                contrast=128,
+                saturation=128,
+                widescreen_sd='auto',
+                audio_channel=0,
+                identify='false',
+                border='NONE',
+            )
+        self.prelude_parsed = True
+        return True
+    async def do_disconnect(self):
+        pass
+    async def get_status(self):
+        pass
+    async def set_monitor_property(self, monitor, name, value):
+        await monitor.set_property_from_backend(name, value)
+
+class SmartScopeDummyBackend(SmartScopeBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.device_id = kwargs.get('device_id', 'dummy_smartscope')
+    async def do_connect(self):
+        for name, mode in [['MONITOR A', 'waveform'], ['MONITOR B', 'vector_100']]:
+            await self.add_monitor(
+                name=name,
+                brightness=255,
+                contrast=128,
+                saturation=128,
+                widescreen_sd='auto',
+                audio_channel=0,
+                identify='false',
+                border='NONE',
+                mode=mode,
+            )
+        self.prelude_parsed = True
+        return True
+    async def do_disconnect(self):
+        pass
+    async def get_status(self):
+        pass
+    async def set_monitor_property(self, monitor, name, value):
+        await monitor.set_property_from_backend(name, value)

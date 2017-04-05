@@ -17,14 +17,15 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     config.add_vidhub(vidhub)
     await kv_waiter.wait()
 
-    vidhub_widget = kivy_app.root.vidhub_widget
+    kv_waiter.bind(kivy_app.root, 'active_widget')
+    kivy_app.selected_device = vidhub
+    await kv_waiter.wait()
+    kv_waiter.unbind(kivy_app.root, 'active_widget')
+
+    vidhub_widget = kivy_app.root.active_widget.vidhub_widget
     input_button_grid = vidhub_widget.input_button_grid
     output_button_grid = vidhub_widget.output_button_grid
     preset_button_grid = vidhub_widget.preset_button_grid
-
-    kv_waiter.bind(vidhub_widget, 'vidhub')
-    kivy_app.selected_vidhub = vidhub
-    await kv_waiter.wait()
 
     await kivy_app.wait_for_widget_init(vidhub_widget)
 

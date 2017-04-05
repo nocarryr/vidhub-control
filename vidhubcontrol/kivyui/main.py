@@ -16,10 +16,12 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.button import Button
+from kivy.uix.tabbedpanel import TabbedPanel
 
 from vidhubcontrol import runserver
 from vidhubcontrol.kivyui.vidhubview import VidhubWidget
 from vidhubcontrol.kivyui.vidhubedit import VidhubEditView
+from vidhubcontrol.kivyui.smartview import SmartViewWidget
 
 APP_SETTINGS = [
     {
@@ -69,64 +71,125 @@ APP_SETTINGS_DEFAULTS = {
 
 class HeaderWidget(BoxLayout):
     vidhub_dropdown = ObjectProperty(None)
+    smartview_dropdown = ObjectProperty(None)
+    smartscope_dropdown = ObjectProperty(None)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vidhub_dropdown = VidhubDropdown()
+        self.smartview_dropdown = SmartViewDropdown()
+        self.smartscope_dropdown = SmartScopeDropdown()
 
-class VidhubDropdown(DropDown):
+class DeviceDropdown(DropDown):
     app = ObjectProperty(None)
     btns = DictProperty()
+    devices = DictProperty()
     def on_app(self, *args):
-        if self.app is None:
-            return
-        self.update_buttons()
-        self.app.bind(
-            vidhubs=self.update_buttons,
-            selected_vidhub=self.on_selected_vidhub,
-        )
-    def update_buttons(self, *args, **kwargs):
-        for key in sorted(self.app.vidhubs.keys()):
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_devices(self, instance, devices):
+        for key in sorted(devices.keys()):
             if key in self.btns:
                 continue
-            vidhub = self.app.vidhubs[key]
-            btn = VidhubDropdownButton(vidhub=vidhub)
+            device = devices[key]
+            btn = DeviceDropdownButton(device=device)
+            btn.bind(on_release=self.on_device_btn_release)
             self.btns[key] = btn
             self.add_widget(btn)
-    def on_selected_vidhub(self, instance, value):
-        self.select(value.device_name)
+    def update_devices(self, app, devices):
+        self.devices.update(devices)
+    def on_app_selected_device(self, instance, value):
+        if value.device_id not in self.devices:
+            self.select(None)
+        else:
+            self.select(value.device_id)
+    def on_device_btn_release(self, instance):
+        self.app.selected_device = instance.device
 
-class VidhubDropdownButton(Button):
-    app = ObjectProperty(None)
-    vidhub = ObjectProperty(None)
-    def on_vidhub(self, instance, value):
-        if self.vidhub is None:
-            return
-        self.text = self.vidhub.device_name
-        if self.app is None:
-            return
-        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
+class VidhubDropdown(DeviceDropdown):
     def on_app(self, *args):
+        super().on_app(*args)
+        self.update_devices(self.app, self.app.vidhubs)
+        self.app.bind(vidhubs=self.update_devices)
+
+class SmartViewDropdown(DeviceDropdown):
+    def on_app(self, *args):
+        super().on_app(*args)
+        self.update_devices(self.app, self.app.smartviews)
+        self.app.bind(smartviews=self.update_devices)
+
+class SmartScopeDropdown(DeviceDropdown):
+    def on_app(self, *args):
+        super().on_app(*args)
+        self.update_devices(self.app, self.app.smartscopes)
+        self.app.bind(smartscopes=self.update_devices)
+
+class DeviceDropdownButton(Button):
+    app = ObjectProperty(None)
+    device = ObjectProperty(None)
+    def on_device(self, instance, value):
+        if self.device is None:
+            return
+        self.text = self.device.device_name
         if self.app is None:
             return
-        if self.vidhub is not None:
+        self.app.bind_events(self.device, device_name=self.on_device_name)
+    def on_app(self, instance, value):
+        if self.app is None:
             return
-        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
-    def on_vidhub_device_name(self, instance, value, **kwargs):
+        self.app.bind_events(self.device, device_name=self.on_device_name)
+    def on_device_name(self, instance, value, **kwargs):
         self.text = value
 
-
-class RootWidget(FloatLayout):
-    header_widget = ObjectProperty(None)
-    main_widget = ObjectProperty(None)
+class VidhubPanel(TabbedPanel):
     vidhub_widget = ObjectProperty(None)
     vidhub_edit_widget = ObjectProperty(None)
+    name = StringProperty()
+    connected = BooleanProperty()
+
+class RootWidget(FloatLayout):
+    app = ObjectProperty(None)
+    header_widget = ObjectProperty(None)
+    main_widget = ObjectProperty(None)
     footer_widget = ObjectProperty(None)
+    active_widget = ObjectProperty(None, allownone=True)
+    connected = BooleanProperty(False)
+    name = StringProperty('')
+    def on_app(self, *args):
+        self.app.bind(selected_device=self.on_app_selected_device)
+    def on_app_selected_device(self, instance, device):
+        if device is None:
+            return
+        if device.device_type in ['smartview', 'smartscope']:
+            cls = SmartViewWidget
+        else:
+            cls = VidhubPanel
+        if isinstance(self.active_widget, cls):
+            return
+        if self.active_widget is not None:
+            self.main_widget.remove_widget(self.active_widget)
+            self.active_widget.unbind(
+                name=self.update_active_widget_props,
+                connected=self.update_active_widget_props,
+            )
+        w = cls()
+        self.main_widget.add_widget(w)
+        self.active_widget = w
+    def on_active_widget(self, *args):
+        self.update_active_widget_props()
+        self.active_widget.bind(
+            name=self.update_active_widget_props,
+            connected=self.update_active_widget_props,
+        )
+    def update_active_widget_props(self, *args, **kwargs):
+        self.name = self.active_widget.name
+        self.connected = self.active_widget.connected
 
 class VidhubControlApp(App):
     async_server = ObjectProperty(None)
     vidhub_config = ObjectProperty(None)
     vidhubs = DictProperty()
-    selected_vidhub = ObjectProperty(None)
+    smartviews = DictProperty()
+    smartscopes = DictProperty()
+    selected_device = ObjectProperty(None)
     def build_config(self, config):
         for section_name, section in APP_SETTINGS_DEFAULTS.items():
             config.setdefaults(section_name, section)
@@ -134,8 +197,10 @@ class VidhubControlApp(App):
         settings.add_json_panel('VidhubControl', self.config, data=json.dumps(APP_SETTINGS))
     def get_application_config(self):
         return super().get_application_config('~/vidhubcontrol-ui.ini')
-    def on_selected_vidhub(self, instance, value):
+    def on_selected_device(self, instance, value):
         if value is None:
+            self.selected_device_name = ''
+            self.selected_device_connected = False
             return
         stored = self.config.get('main', 'last_device')
         if stored == value.device_id:
@@ -149,7 +214,13 @@ class VidhubControlApp(App):
         self.async_server.thread_run_event.wait()
         self.vidhub_config = self.async_server.config
         self.update_vidhubs()
-        self.bind_events(self.vidhub_config, vidhubs=self.update_vidhubs)
+        self.update_smartviews()
+        self.update_smartscopes()
+        self.bind_events(self.vidhub_config,
+            vidhubs=self.update_vidhubs,
+            smartviews=self.update_smartviews,
+            smartscopes=self.update_smartscopes,
+        )
     def on_stop(self, *args, **kwargs):
         self.async_server.stop()
     def update_vidhubs(self, *args, **kwargs):
@@ -160,7 +231,25 @@ class VidhubControlApp(App):
                 continue
             self.vidhubs[key] = val.backend
             if restore_device and key == last_device:
-                self.selected_vidhub = val.backend
+                self.selected_device = val.backend
+    def update_smartviews(self, *args, **kwargs):
+        restore_device = self.config.get('main', 'restore_device') == 'yes'
+        last_device = self.config.get('main', 'last_device')
+        for key, val in self.vidhub_config.smartviews.items():
+            if key in self.smartviews:
+                continue
+            self.smartviews[key] = val.backend
+            if restore_device and key == last_device:
+                self.selected_device = val.backend
+    def update_smartscopes(self, *args, **kwargs):
+        restore_device = self.config.get('main', 'restore_device') == 'yes'
+        last_device = self.config.get('main', 'last_device')
+        for key, val in self.vidhub_config.smartscopes.items():
+            if key in self.smartscopes:
+                continue
+            self.smartscopes[key] = val.backend
+            if restore_device and key == last_device:
+                self.selected_device = val.backend
     def bind_events(self, obj, **kwargs):
         self.async_server.bind_events(obj, **kwargs)
     def run_async_coro(self, coro):

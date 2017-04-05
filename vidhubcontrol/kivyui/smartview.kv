@@ -1,0 +1,142 @@
+<SmartViewWidget>:
+    app: app
+    monitor_widget_container: monitor_widget_container
+    orientation: 'vertical'
+    Label:
+        text: root.name
+        size_hint_y: .1
+    BoxLayout:
+        orientation: 'horizontal'
+        id: monitor_widget_container
+        size_hint_y: .9
+
+<MonitorWidget>:
+    app: app
+    orientation: 'vertical'
+    list_widget: list_widget
+    Label:
+        text: root.name
+        size_hint_y: .1
+    FloatLayout:
+        size_hint_y: .9
+        id: scr_parent
+        ScrollView:
+            size_hint: 1, None
+            size: scr_parent.size
+            pos: scr_parent.pos
+            BoxLayout:
+                id: list_widget
+                orientation: 'vertical'
+                size_hint_y: None
+                BooleanSetting:
+                    label_text: 'Identify'
+                    value: root.identify
+                    on_value: root.monitor.identify = self.value
+                OptionSetting:
+                    label_text: 'Scope Mode'
+                    values: root.scope_mode_labels
+                    value: root.scope_mode
+                    on_value: root.monitor.scope_mode = root.monitor.get_property_for_choice('scope_mode', self.value)
+                SliderSetting:
+                    label_text: 'Brightness'
+                    value: root.brightness
+                    on_value: root.monitor.brightness = self.value
+                SliderSetting:
+                    label_text: 'Contrast'
+                    value: root.contrast
+                    on_value: root.monitor.contrast = self.value
+                SliderSetting:
+                    label_text: 'Saturation'
+                    value: root.saturation
+                    on_value: root.monitor.saturation = self.value
+                OptionSetting:
+                    label_text: 'WidescreenSD'
+                    values: ['On', 'Off', 'Auto']
+                    value: root.widescreen_sd
+                    on_value:
+                        if self.value == 'Auto': root.monitor.widescreen_sd = None
+                        else: root.monitor.widescreen_sd = self.value == 'On'
+                OptionSetting:
+                    label_text: 'Border'
+                    values: ['None', 'Red', 'Green', 'Blue', 'White']
+                    value: root.border
+                    on_value:
+                        if self.value == 'None': root.monitor.border = None
+                        else: root.monitor.border = self.value.lower()
+                TextSetting:
+                    label_text: 'Audio Channel'
+                    value: str(root.audio_channel)
+                    on_value: root.monitor.audio_channel = int(self.value)
+
+
+
+<SettingBase@BoxLayout>:
+    orientation: 'horizontal'
+    label_text: ''
+    size_hint_y: None
+    height: '44dp'
+    spacing: 8
+    padding: [0, 0, 4, 0]
+    canvas:
+        Color:
+            rgb: .8, .8, .8
+        Line:
+            rectangle: self.x, self.y,self.width, self.height
+        Line:
+            points: [self.center_x, self.y, self.center_x, self.height]
+
+<SliderSetting@SettingBase>:
+    value_range: [0, 255]
+    value: 0
+    Label:
+        text: root.label_text
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        Slider:
+            id: slider
+            range: root.value_range
+            step: 1
+            value: root.value
+            on_value: root.value = int(self.value)
+        Label:
+            text: str(slider.value)
+
+<OptionSetting@SettingBase>:
+    value: ''
+    values: []
+    Label:
+        text: root.label_text
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.size
+    Spinner:
+        values: root.values
+        text: root.value
+        on_text: root.value = self.text
+
+<TextSetting@SettingBase>:
+    value: ''
+    Label:
+        text: root.label_text
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.size
+    TextInput:
+        multiline: False
+        text: root.value
+        on_text_validate: root.value = self.text
+        on_focus: if not self.focus: root.value = self.text
+
+<BooleanSetting@SettingBase>:
+    value: False
+    Label:
+        text: root.label_text
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.size
+    Switch:
+        active: root.value
+        on_active: root.value = self.active

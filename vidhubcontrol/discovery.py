@@ -202,6 +202,7 @@ class Listener(Dispatcher):
 class BMDDiscovery(Listener):
     vidhubs = DictProperty()
     smart_views = DictProperty()
+    smart_scopes = DictProperty()
     def __init__(self, mainloop, service_type='_blackmagic._tcp.local.'):
         super().__init__(mainloop, service_type)
     async def add_service_info(self, info, **kwargs):
@@ -209,9 +210,14 @@ class BMDDiscovery(Listener):
         bmd_id = info.properties.get('unique id', '').upper()
         if device_cls == 'Videohub':
             self.vidhubs[bmd_id] = info
-            kwargs.update({'class':device_cls, 'id':bmd_id})
+            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'vidhub'})
         elif info.properties.get('class') == 'SmartView':
-            self.smart_views[bmd_id] = info
+            if 'SmartScope' in info.properties.get('name', ''):
+                self.smart_scopes[bmd_id] = info
+                kwargs['device_type'] = 'smartscope'
+            else:
+                self.smart_views[bmd_id] = info
+                kwargs['device_type'] = smartview
             kwargs.update({'class':device_cls, 'id':bmd_id})
         await super().add_service_info(info, **kwargs)
     async def remove_service_info(self, info, **kwargs):
@@ -219,10 +225,13 @@ class BMDDiscovery(Listener):
         bmd_id = info.properties.get('unique id', '').upper()
         if bmd_id in self.vidhubs and device_cls == 'Videohub':
             del self.vidhubs[bmd_id]
-            kwargs.update({'class':device_cls, 'id':bmd_id})
+            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'vidhub'})
         elif bmd_id in self.smart_views and device_cls == 'SmartView':
             del self.smart_views[bmd_id]
-            kwargs.update({'class':device_cls, 'id':bmd_id})
+            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartview'})
+        elif bmd_id in self.smart_scopes and device_cls == 'SmartView':
+            del self.smart_scopes[bmd_id]
+            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartscope'})
         await super().remove_service_info(info, **kwargs)
 
 

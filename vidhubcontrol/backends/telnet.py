@@ -1,38 +1,32 @@
 import asyncio
 import logging
+import string
 
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from . import BackendBase
+from .base import VidhubBackendBase, SmartScopeBackendBase, MONITOR_PROPERTY_MAP
 
 logger = logging.getLogger(__name__)
 
-class TelnetBackend(BackendBase):
-    DEFAULT_PORT = 9990
-    SECTION_NAMES = [
-        'PROTOCOL PREAMBLE:',
-        'VIDEOHUB DEVICE:',
-        'INPUT LABELS:',
-        'OUTPUT LABELS:',
-        'VIDEO OUTPUT LOCKS:',
-        'VIDEO OUTPUT ROUTING:',
-        'CONFIGURATION:',
-    ]
+class TelnetBackendBase(object):
     hostaddr = Property()
-    hostport = Property(DEFAULT_PORT)
+    hostport = Property()
     def __init__(self, **kwargs):
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
+        self.ack_or_nak_event = asyncio.Event()
         self.read_coro = None
-        super(TelnetBackend, self).__init__(**kwargs)
         self.hostaddr = kwargs.get('hostaddr')
         self.hostport = kwargs.get('hostport', self.DEFAULT_PORT)
         self.rx_bfr = b''
         self.response_ready = asyncio.Event()
     async def read_loop(self):
         while self.read_enabled:
+            await self.client.wait_for_data()
+            if not self.read_enabled:
+                break
             try:
                 rx_bfr = await self.client.read_very_eager()
             except Exception as e:
@@ -43,11 +37,9 @@ class TelnetBackend(BackendBase):
                 return
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
-                if True:#self.rx_bfr.endswith(b'\n\n'):
-                    logger.debug(self.rx_bfr.decode('UTF-8'))
-                    await self.parse_rx_bfr()
-                    self.rx_bfr = b''
-            await asyncio.sleep(.1)
+                logger.debug(self.rx_bfr.decode('UTF-8'))
+                await self.parse_rx_bfr()
+                self.rx_bfr = b''
     async def send_to_client(self, data):
         if not self.connected:
             c = await self.connect()
@@ -80,11 +72,11 @@ class TelnetBackend(BackendBase):
     async def do_disconnect(self):
         logger.debug('disconnecting')
         self.read_enabled = False
+        if self.client is not None:
+            await self.client.close_async()
         if self.read_coro is not None:
             await asyncio.wait([self.read_coro], loop=self.event_loop)
             self.read_coro = None
-        if self.client is not None:
-            await self.client.close_async()
         self.client = None
         logger.debug('disconnected')
     async def wait_for_response(self, prelude=False):
@@ -99,9 +91,32 @@ class TelnetBackend(BackendBase):
                     await asyncio.sleep(.1)
             if self.ack_or_nak is not None:
                 resp = self.ack_or_nak
+                self.ack_or_nak_event.clear()
                 logger.debug('ack_or_nak: {}'.format(resp))
                 self.ack_or_nak = None
                 return resp
+    async def wait_for_ack_or_nak(self):
+        logger.debug('wait_for_ack_or_nak...')
+        await self.ack_or_nak_event.wait()
+        resp = self.ack_or_nak
+        self.ack_or_nak = None
+        self.ack_or_nak_event.clear()
+        return resp.startswith('ACK')
+
+class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
+    DEFAULT_PORT = 9990
+    SECTION_NAMES = [
+        'PROTOCOL PREAMBLE:',
+        'VIDEOHUB DEVICE:',
+        'INPUT LABELS:',
+        'OUTPUT LABELS:',
+        'VIDEO OUTPUT LOCKS:',
+        'VIDEO OUTPUT ROUTING:',
+        'CONFIGURATION:',
+    ]
+    def __init__(self, **kwargs):
+        VidhubBackendBase.__init__(self, **kwargs)
+        TelnetBackendBase.__init__(self, **kwargs)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -118,6 +133,7 @@ class TelnetBackend(BackendBase):
                 continue
             if line.startswith('ACK') or line.startswith('NAK'):
                 self.ack_or_nak = line
+                self.ack_or_nak_event.set()
                 continue
             if line in self.SECTION_NAMES:
                 self.current_section = line.rstrip(':')
@@ -208,3 +224,104 @@ class TelnetBackend(BackendBase):
         if r is None or r.startswith('NAK'):
             return False
         return True
+
+class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
+    DEFAULT_PORT = 9992
+    SECTION_NAMES = [
+        'PROTOCOL PREAMBLE:',
+        'SMARTVIEW DEVICE:',
+        'NETWORK:',
+    ]
+    def __init__(self, **kwargs):
+        SmartScopeBackendBase.__init__(self, **kwargs)
+        TelnetBackendBase.__init__(self, **kwargs)
+    async def parse_rx_bfr(self):
+        def split_value(line):
+            return line.split(':')[1].strip(' ')
+        bfr = self.rx_bfr.decode('UTF-8')
+        section_parsed = False
+        for line_idx, line in enumerate(bfr.splitlines()):
+            line = line.rstrip('\n')
+            if not len(line):
+                if self.current_section.startswith('MONITOR') and len(self.monitors) == self.num_monitors:
+                    self.current_section = None
+                    self.rx_bfr = b''
+                    self.prelude_parsed = True
+                    break
+                continue
+            if line.startswith('ACK') or line.startswith('NAK'):
+                self.ack_or_nak = line
+                self.ack_or_nak_event.set()
+                if bfr.rstrip('\n') == line:
+                    self.current_section = None
+                    self.rx_bfr = b''
+                    break
+                continue
+            if line in self.SECTION_NAMES:
+                self.current_section = line.rstrip(':')
+                continue
+            if self.current_section is None:
+                continue
+            elif self.current_section == 'PROTOCOL PREAMBLE':
+                if line.startswith('Version:'):
+                    self.device_version = split_value(line)
+            elif self.current_section == 'SMARTVIEW DEVICE':
+                if line.startswith('Model:'):
+                    self.device_model = split_value(line)
+                elif line.startswith('Hostname:'):
+                    self.device_id = split_value(line).split('-')[1].upper()
+                elif line.startswith('Name:'):
+                    if self.device_name is None or self.device_name == self.device_id:
+                        self.device_name = split_value(line)
+                elif line.startswith('Monitors:'):
+                    self.num_monitors = int(split_value(line))
+                    for c in string.ascii_uppercase[:self.num_monitors]:
+                        s = 'MONITOR {}:'.format(c)
+                        if s not in self.SECTION_NAMES:
+                            self.SECTION_NAMES.append(s)
+                elif line.startswith('Inverted:'):
+                    self.inverted = split_value(line) == 'true'
+            elif self.current_section == 'NETWORK':
+                pass
+            elif self.current_section.startswith('MONITOR '):
+                monitor_name = self.current_section
+                await self.parse_monitor_line(monitor_name, line, split_value(line))
+            else:
+                section_parsed = True
+        self.response_ready.set()
+        if not self.prelude_parsed:
+            return
+        if self.current_section is not None and section_parsed:
+            self.current_section = None
+    async def parse_monitor_line(self, monitor_name, line, value):
+        monitor = None
+        for _m in self.monitors:
+            if _m.name == monitor_name:
+                monitor = _m
+                break
+        if monitor is None:
+            monitor = await self.add_monitor(name=monitor_name)
+        prop = None
+        for key, val in MONITOR_PROPERTY_MAP.items():
+            if line.startswith('{}:'.format(val)):
+                prop = key
+                break
+        if prop is None:
+            return
+        if value.isdigit():
+            value = int(value)
+        await monitor.set_property_from_backend(prop, value)
+    async def set_monitor_property(self, monitor, name, value):
+        key = MONITOR_PROPERTY_MAP[name]
+        tx_lines = [
+            '{}:'.format(monitor.name),
+            '{}: {}'.format(key, value),
+        ]
+        tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
+        tx_bfr += b'\n\n'
+        await self.send_to_client(tx_bfr)
+        r = await self.wait_for_ack_or_nak()
+        if r:
+            await monitor.set_property_from_backend(name, value)
+    def _on_monitors(self, *args, **kwargs):
+        return

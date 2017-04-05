@@ -17,14 +17,18 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
     config.add_vidhub(vidhub)
     await kv_waiter.wait()
 
-    edit_widget = kivy_app.root.vidhub_edit_widget
+    kv_waiter.bind(kivy_app.root, 'active_widget')
+    kivy_app.selected_device = vidhub
+    await kv_waiter.wait()
+    kv_waiter.unbind(kivy_app.root, 'active_widget')
+
+    edit_widget = kivy_app.root.active_widget.vidhub_edit_widget
+
     list_widgets = {
         'input':edit_widget.input_label_list,
         'output':edit_widget.output_label_list,
         'preset':edit_widget.preset_label_list,
     }
-
-    kivy_app.selected_vidhub = vidhub
 
 
     # Wait for widget creation
@@ -142,5 +146,15 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
         check_values()
 
         kv_waiter.unbind(item, 'text')
+
+    # Set device_name
+    txt_widget = edit_widget.device_name_text_widget
+    kv_waiter.bind(edit_widget, 'text')
+    txt_widget.text = 'foobar1'
+    txt_widget.dispatch('on_text_validate')
+    await asyncio.sleep(0)
+    await kv_waiter.wait()
+
+    assert txt_widget.text == edit_widget.text == vidhub.device_name == 'foobar1'
 
     await kivy_app.stop_async()

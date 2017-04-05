@@ -27,24 +27,24 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
     assert 'dummy1' in dropdown.btns
     assert 'dummy2' in dropdown.btns
     btn = dropdown.btns['dummy1']
-    assert btn.vidhub is vidhub1
+    assert btn.device is vidhub1
     assert btn.text == vidhub1.device_name == 'Dummy 1'
 
-    kv_waiter.bind(kivy_app, 'selected_vidhub')
+    kv_waiter.bind(kivy_app, 'selected_device')
     btn.dispatch('on_release')
     await kv_waiter.wait()
 
-    assert kivy_app.selected_vidhub is vidhub1
+    assert kivy_app.selected_device is vidhub1
 
     await kivy_app.wait_for_widget_init()
 
     btn = dropdown.btns['dummy2']
-    assert btn.vidhub is vidhub2
+    assert btn.device is vidhub2
     assert btn.text == vidhub2.device_name == 'Dummy 2'
 
     assert not kv_waiter.aio_event.is_set()
     btn.dispatch('on_release')
     await kv_waiter.wait()
-    assert kivy_app.selected_vidhub is vidhub2
+    assert kivy_app.selected_device is vidhub2
 
     await kivy_app.stop_async()
