@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/nocarryr/vidhub-control.svg?branch=master)](https://travis-ci.org/nocarryr/vidhub-control)[![Coverage Status](https://coveralls.io/repos/github/nocarryr/vidhub-control/badge.svg?branch=master)](https://coveralls.io/github/nocarryr/vidhub-control?branch=master)
 # vidhub-control
 
 ## Overview
