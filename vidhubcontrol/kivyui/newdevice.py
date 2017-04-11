@@ -38,6 +38,7 @@ class NewDevicePopup(Popup):
             except ValueError:
                 self.ip_widget.validation_message = 'Invalid Address'
                 self.ip_widget.validation_error = True
+                valid = False
         if not len(self.port):
             self.port_widget.validation_message = 'Required Field'
             self.port_widget.validation_error = True
