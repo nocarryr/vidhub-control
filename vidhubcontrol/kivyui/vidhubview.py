@@ -72,6 +72,8 @@ class VidhubWidget(BoxLayout):
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.name = value
     def on_vidhub_crosspoints(self, instance, value, **kwargs):
+        if self.crosspoints == value:
+            return
         self.crosspoints[:] = value[:]
     def deselect_all(self, *args, **kwargs):
         self.first_selected = 'None'
