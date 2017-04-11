@@ -55,7 +55,11 @@ class Config(ConfigBase):
             prop = getattr(self, d['prop'])
             for item_data in items.values():
                 obj = d['cls'](**item_data)
-                prop[obj.device_id] = obj
+                device_id = obj.device_id
+                if device_id is None:
+                    device_id = str(id(obj.backend))
+                prop[device_id] = obj
+                obj.backend.bind(device_id=self.on_backend_device_id)
                 obj.bind(trigger_save=self.on_device_trigger_save)
         self.discovery_listener = None
         self.discovery_lock = asyncio.Lock()
@@ -107,8 +111,7 @@ class Config(ConfigBase):
         device_type = backend.device_type
         device_id = backend.device_id
         if device_id is None:
-            backend.bind(device_id=self.on_backend_device_id)
-            device_id = id(backend)
+            device_id = str(id(backend))
         cls = self._device_type_map[device_type]['cls']
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         obj = cls.from_existing(backend)
@@ -118,11 +121,10 @@ class Config(ConfigBase):
     def on_backend_device_id(self, backend, value, **kwargs):
         if value is None:
             return
-        backend.unbind(self.on_backend_device_id)
         prop = getattr(self, self._device_type_map[backend.device_type]['prop'])
-        obj = prop[id(backend)]
+        obj = prop[str(id(backend))]
         obj.device_id = value
-        del prop[id(backend)]
+        del prop[str(id(backend))]
         if value in prop:
             self.save()
             return
