@@ -110,6 +110,7 @@ class DeviceDropdown(DropDown):
         self.app.selected_device = instance.device
     def open_new_device_popup(self, *args, **kwargs):
         popup = NewDevicePopup(port=self._default_port, device_type=self._device_type)
+        self.app.popup_widget = popup
         popup.open()
 
 class VidhubDropdown(DeviceDropdown):
@@ -238,6 +239,12 @@ class VidhubControlApp(App):
         )
     def on_stop(self, *args, **kwargs):
         self.async_server.stop()
+    def on_popup_widget(self, *args):
+        if self.popup_widget is None:
+            return
+        self.popup_widget.bind(on_dismiss=self.on_popup_widget_dismiss)
+    def on_popup_widget_dismiss(self, *args):
+        self.popup_widget = None
     def update_vidhubs(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
