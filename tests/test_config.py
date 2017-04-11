@@ -13,11 +13,12 @@ async def test_config_basic(tempconfig):
 
     vidhub = await DummyBackend.create_async(device_id=None)
     config.add_vidhub(vidhub)
-    assert config.vidhubs[id(vidhub)].backend == vidhub
+    assert config.vidhubs[str(id(vidhub))].backend == vidhub
 
     vidhub.device_id = 'dummy1'
+    await asyncio.sleep(.1)
     assert config.vidhubs['dummy1'].backend == vidhub
-    assert id(vidhub) not in config.vidhubs
+    assert str(id(vidhub)) not in config.vidhubs
 
     preset1 = await vidhub.store_preset(name='PRESET1')
 
