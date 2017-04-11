@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class TelnetBackendBase(object):
     hostaddr = Property()
     hostport = Property()
-    def __init__(self, **kwargs):
+    def _telnet_init(self, **kwargs):
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
@@ -115,8 +115,8 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
         'CONFIGURATION:',
     ]
     def __init__(self, **kwargs):
-        VidhubBackendBase.__init__(self, **kwargs)
-        TelnetBackendBase.__init__(self, **kwargs)
+        super().__init__(**kwargs)
+        self._telnet_init(**kwargs)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -233,8 +233,8 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
         'NETWORK:',
     ]
     def __init__(self, **kwargs):
-        SmartScopeBackendBase.__init__(self, **kwargs)
-        TelnetBackendBase.__init__(self, **kwargs)
+        super().__init__(**kwargs)
+        self._telnet_init(**kwargs)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
