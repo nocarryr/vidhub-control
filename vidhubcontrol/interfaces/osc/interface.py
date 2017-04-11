@@ -21,6 +21,7 @@ class OscInterface(Dispatcher):
     vidhubs = DictProperty(copy_on_change=True)
     vidhubs_by_name = DictProperty()
     def __init__(self, **kwargs):
+        self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
         self.bind(config=self.on_config)
         self.config = kwargs.get('config')
         self.iface_name = kwargs.get('iface_name')
@@ -43,7 +44,11 @@ class OscInterface(Dispatcher):
                 self.iface_name = iface_name
         self.osc_dispatcher = OscDispatcher()
         self.server = None
-        self.root_node = OscNode('vidhubcontrol', osc_dispatcher=self.osc_dispatcher)
+        self.root_node = OscNode(
+            'vidhubcontrol',
+            osc_dispatcher=self.osc_dispatcher,
+            event_loop=self.event_loop,
+        )
         vidhub_node = self.root_node.add_child('vidhubs')
         vidhub_node.add_child(
             'by-id',
@@ -110,7 +115,7 @@ class OscInterface(Dispatcher):
             if vidhub_conf.device_id is None:
                 continue
             vidhub = vidhub_conf.backend
-            asyncio.ensure_future(self.add_vidhub(vidhub))
+            asyncio.ensure_future(self.add_vidhub(vidhub), loop=self.event_loop)
 
 
 class VidhubNode(PubSubOscNode):
@@ -209,7 +214,10 @@ class VidhubCrosspointNode(PubSubOscNode):
             self.ensure_message(client_address, *self.vidhub.crosspoints[:])
         elif len(messages) <= len(self.vidhub.crosspoints):
             args = ((out_idx, in_idx) for out_idx, in_idx in enumerate(messages))
-            asyncio.ensure_future(self.vidhub.set_crosspoints(*args))
+            asyncio.ensure_future(
+                self.vidhub.set_crosspoints(*args),
+                loop=self.vidhub.event_loop,
+            )
             ## TODO: give feedback from async call
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
 
@@ -229,7 +237,10 @@ class VidhubSingleCrosspointNode(PubSubOscNode):
             self.ensure_message(client_address, self.value)
         else:
             xpt = messages[0]
-            asyncio.ensure_future(self.parent.vidhub.set_crosspoint(self.index, xpt))
+            asyncio.ensure_future(
+                self.parent.vidhub.set_crosspoint(self.index, xpt),
+                loop=self.parent.vidhub.event_loop,
+            )
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
 
 class VidhubPresetGroupNode(PubSubOscNode):
@@ -253,20 +264,21 @@ class VidhubPresetGroupNode(PubSubOscNode):
             self.ensure_message(client_address, *response)
         super().on_osc_dispatcher_message(osc_address, client_address, *messages)
     def on_child_message_received(self, node, client_address, *messages):
+        loop = self.vidhub.event_loop
         if node.name == 'recall':
             for i in messages:
                 try:
                     preset = self.vidhub.presets[i]
                 except IndexError:
                     continue
-                asyncio.ensure_future(preset.recall())
+                asyncio.ensure_future(preset.recall(), loop=loop)
         elif node.name == 'store':
             # args:
             #       preset_index (int, optional)
             #       name (str, optional)
             #       outputs_to_store (*ints, optional)
             if not len(messages):
-                asyncio.ensure_future(self.vidhub.store_preset())
+                asyncio.ensure_future(self.vidhub.store_preset(), loop=loop)
             else:
                 i = messages[0]
                 try:
@@ -281,7 +293,7 @@ class VidhubPresetGroupNode(PubSubOscNode):
                     outputs_to_store=outputs_to_store,
                     name=name,
                     index=i,
-                ))
+                ), loop=loop)
         super().on_child_message_received(node, client_address, *messages)
 
 class VidhubPresetNode(PubSubOscNode):
@@ -293,6 +305,7 @@ class VidhubPresetNode(PubSubOscNode):
         for name in ['recall', 'store']:
             self.add_child(name)
     def on_child_message_received(self, node, client_address, *messages):
+        loop = self.preset.backend.event_loop
         if node.name == 'name':
             if not len(messages):
                 node.ensure_message(client_address, self.preset.name)
@@ -301,11 +314,14 @@ class VidhubPresetNode(PubSubOscNode):
         elif node.name == 'active':
             node.ensure_message(client_address, self.preset.active)
         elif node.name == 'recall':
-            asyncio.ensure_future(self.preset.recall())
+            asyncio.ensure_future(self.preset.recall(), loop=loop)
         elif node.name == 'store':
             if not len(messages):
                 outputs_to_store = None
             else:
                 outputs_to_store = list(messages)
-            asyncio.ensure_future(self.preset.store(outputs_to_store=outputs_to_store))
+            asyncio.ensure_future(
+                self.preset.store(outputs_to_store=outputs_to_store),
+                loop=loop,
+            )
         super().on_child_message_received(node, client_address, *messages)

@@ -93,6 +93,7 @@ class Config(ConfigBase):
             if kwargs.get('hostaddr') is not None and kwargs['hostaddr'] == obj.hostaddr:
                 return obj.backend
         cls = BACKENDS[device_type][backend_name]
+        kwargs['event_loop'] = self.loop
         backend = cls(**kwargs)
         self.add_device(backend)
         return backend

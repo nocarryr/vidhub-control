@@ -19,6 +19,9 @@ class OscNode(Dispatcher):
         self.parent = parent
         if self.parent is None:
             self.osc_address = self.build_osc_address()
+            self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
+        else:
+            self.event_loop = self.parent.event_loop
         osc_dispatcher = kwargs.get('osc_dispatcher')
         if osc_dispatcher is None:
             if self.parent is not None:
@@ -110,7 +113,10 @@ class OscNode(Dispatcher):
         for child in self:
             child.osc_dispatcher = obj
     def ensure_message(self, client_address, *args, **kwargs):
-        asyncio.ensure_future(self.send_message(client_address, *args, **kwargs))
+        asyncio.ensure_future(
+            self.send_message(client_address, *args, **kwargs),
+            loop=self.event_loop,
+        )
     async def send_message(self, client_address, *args, **kwargs):
         await self.osc_dispatcher.send_message(self, client_address, *args, **kwargs)
     def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
@@ -149,7 +155,10 @@ class PubSubOscNode(OscNode):
             remove = True
         else:
             remove = False
-        asyncio.ensure_future(self._add_or_remove_subscriber(client_address, remove))
+        asyncio.ensure_future(
+            self._add_or_remove_subscriber(client_address, remove),
+            loop=self.event_loop,
+        )
     async def _add_or_remove_subscriber(self, client_address, remove):
         async with self._subscriber_lock:
             if remove:
@@ -163,7 +172,7 @@ class PubSubOscNode(OscNode):
             for client_address in self.subscribers:
                 await self.send_message(client_address, *messages)
     def update_subscribers(self, *messages):
-        asyncio.ensure_future(self._send_to_subscribers(*messages))
+        asyncio.ensure_future(self._send_to_subscribers(*messages), loop=self.event_loop)
     def on_query_node_message(self, node, client_address, *messages):
         recursive = False
         if len(messages) and isinstance(messages[0], str):

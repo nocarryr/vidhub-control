@@ -35,8 +35,8 @@ def parse_args():
         help='Disable OSC server')
     return p.parse_args()
 
-async def start(opts):
-    config = Config.load(opts.config_filename)
+async def start(loop, opts):
+    config = Config.load(opts.config_filename, loop=loop)
     await config.start()
     logger.debug('Config started')
     interfaces = []
@@ -47,6 +47,7 @@ async def start(opts):
             hostaddr=opts.osc_address,
             hostport=opts.osc_port,
             hostiface=opts.osc_iface_name,
+            event_loop=loop,
         )
         logger.debug('OSC built')
         await osc.start()
@@ -62,7 +63,7 @@ async def stop(config, interfaces):
     await config.stop()
 
 async def run(loop, opts):
-    config, interfaces = await start(opts)
+    config, interfaces = await start(loop, opts)
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, on_sigint, config, interfaces)
     logger.info('Ready')

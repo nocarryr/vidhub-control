@@ -330,7 +330,7 @@ class AsyncServer(AioBridge):
             'osc_disabled':osc_disabled,
         })
     async def aiostartup(self):
-        self.config, self.interfaces = await runserver.start(self.opts)
+        self.config, self.interfaces = await runserver.start(self.event_loop, self.opts)
     async def aioshutdown(self):
         await runserver.stop(self.config, self.interfaces)
 
