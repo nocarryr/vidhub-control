@@ -117,6 +117,7 @@ class Config(ConfigBase):
         obj = cls.from_existing(backend)
         prop[device_id] = obj
         obj.bind(trigger_save=self.on_device_trigger_save)
+        backend.bind(device_id=self.on_backend_device_id)
         self.save()
     def on_backend_device_id(self, backend, value, **kwargs):
         if value is None:
