@@ -22,6 +22,7 @@ from vidhubcontrol import runserver
 from vidhubcontrol.kivyui.vidhubview import VidhubWidget
 from vidhubcontrol.kivyui.vidhubedit import VidhubEditView
 from vidhubcontrol.kivyui.smartview import SmartViewWidget
+from vidhubcontrol.kivyui.newdevice import NewDevicePopup
 
 APP_SETTINGS = [
     {
@@ -94,6 +95,10 @@ class DeviceDropdown(DropDown):
             btn.bind(on_release=self.on_device_btn_release)
             self.btns[key] = btn
             self.add_widget(btn)
+        to_remove = set(self.btns.keys()) - set(devices.keys())
+        for key in to_remove:
+            self.remove_widget(self.btns[key])
+            del self.btns[key]
     def update_devices(self, app, devices):
         self.devices.update(devices)
     def on_app_selected_device(self, instance, value):
@@ -103,20 +108,29 @@ class DeviceDropdown(DropDown):
             self.select(value.device_id)
     def on_device_btn_release(self, instance):
         self.app.selected_device = instance.device
+    def open_new_device_popup(self, *args, **kwargs):
+        popup = NewDevicePopup(port=self._default_port, device_type=self._device_type)
+        popup.open()
 
 class VidhubDropdown(DeviceDropdown):
+    _device_type = 'vidhub'
+    _default_port = '9990'
     def on_app(self, *args):
         super().on_app(*args)
         self.update_devices(self.app, self.app.vidhubs)
         self.app.bind(vidhubs=self.update_devices)
 
 class SmartViewDropdown(DeviceDropdown):
+    _device_type = 'smartview'
+    _default_port = '9992'
     def on_app(self, *args):
         super().on_app(*args)
         self.update_devices(self.app, self.app.smartviews)
         self.app.bind(smartviews=self.update_devices)
 
 class SmartScopeDropdown(DeviceDropdown):
+    _device_type = 'smartscope'
+    _default_port = '9992'
     def on_app(self, *args):
         super().on_app(*args)
         self.update_devices(self.app, self.app.smartscopes)
@@ -128,7 +142,7 @@ class DeviceDropdownButton(Button):
     def on_device(self, instance, value):
         if self.device is None:
             return
-        self.text = self.device.device_name
+        self.text = str(self.device.device_name)
         if self.app is None:
             return
         self.app.bind_events(self.device, device_name=self.on_device_name)
@@ -137,7 +151,7 @@ class DeviceDropdownButton(Button):
             return
         self.app.bind_events(self.device, device_name=self.on_device_name)
     def on_device_name(self, instance, value, **kwargs):
-        self.text = value
+        self.text = str(value)
 
 class VidhubPanel(TabbedPanel):
     vidhub_widget = ObjectProperty(None)
@@ -190,6 +204,7 @@ class VidhubControlApp(App):
     smartviews = DictProperty()
     smartscopes = DictProperty()
     selected_device = ObjectProperty(None)
+    popup_widget = ObjectProperty(None, allownone=True)
     def build_config(self, config):
         for section_name, section in APP_SETTINGS_DEFAULTS.items():
             config.setdefaults(section_name, section)

@@ -1,0 +1,58 @@
+<NewDevicePopup>:
+    app: app
+    ip_widget: ip_widget
+    port_widget: port_widget
+    BoxLayout:
+        orientation: 'vertical'
+        AttrField:
+            size_hint_y: .1
+            label_text: 'Name:'
+            value: root.name
+            on_value: root.name = self.value
+        AttrField:
+            id: ip_widget
+            size_hint_y: .1
+            label_text: 'IP Address:'
+            value: root.ip_address
+            on_value: root.ip_address = self.value
+        AttrField:
+            id: port_widget
+            size_hint_y: .1
+            label_text: 'Port:'
+            value: root.port
+            on_value: root.port = self.value
+        Widget:
+            size_hint_y: .7
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .1
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()
+            Button:
+                text: 'OK'
+                on_release: root.on_submit()
+
+<AttrField@BoxLayout>:
+    orientation: 'vertical'
+    label_text: ''
+    value: None
+    validation_error: False
+    validation_message: ''
+    canvas:
+        Color:
+            rgb: (1, 0, 0) if self.validation_error else (.5, .5, .5)
+        Line:
+            rectangle: (self.x, self.y, self.width, self.height)
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: .5 if root.validation_error else 1
+        Label:
+            text: root.label_text
+            size_hint_x: .5
+        TextInput:
+            size_hint_x: .5
+            multiline: False
+            text: str(root.value)
+            on_text_validate: root.value = self.text
+            on_focus: if not self.focus: root.value = self.text

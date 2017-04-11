@@ -1,6 +1,7 @@
 #:include vidhubcontrol/kivyui/vidhubview.kv
 #:include vidhubcontrol/kivyui/vidhubedit.kv
 #:include vidhubcontrol/kivyui/smartview.kv
+#:include vidhubcontrol/kivyui/newdevice.kv
 #:include vidhubcontrol/kivyui/utils.kv
 
 RootWidget:
@@ -84,6 +85,11 @@ RootWidget:
 
 <DeviceDropdown>:
     app: app
+    Button:
+        size_hint_y: None
+        height: 44
+        text: 'Add New'
+        on_release: root.open_new_device_popup()
 
 <DeviceDropdownButton>:
     app: app
