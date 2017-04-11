@@ -20,6 +20,7 @@ class NewDevicePopup(Popup):
     name = StringProperty('')
     ip_address = StringProperty('')
     port = StringProperty('9990')
+    name_widget = ObjectProperty(None)
     ip_widget = ObjectProperty(None)
     port_widget = ObjectProperty(None)
     device_type = StringProperty()

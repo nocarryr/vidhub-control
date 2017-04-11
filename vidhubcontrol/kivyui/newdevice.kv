@@ -1,10 +1,12 @@
 <NewDevicePopup>:
     app: app
+    name_widget: name_widget
     ip_widget: ip_widget
     port_widget: port_widget
     BoxLayout:
         orientation: 'vertical'
         AttrField:
+            id: name_widget
             size_hint_y: .1
             label_text: 'Name:'
             value: root.name
