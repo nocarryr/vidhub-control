@@ -106,7 +106,8 @@ def kivy_app(tmpdir, monkeypatch):
             while not self._kv_loop.quit:
                 now = aio_loop.time()
                 if now >= start_ts + KIVY_STALL_TIMEOUT:
-                    raise Exception('Exiting app. Runtime exceeded threshold')
+                    print ('Exiting app. Runtime exceeded threshold')
+                    raise KeyboardInterrupt()
                 self._kv_loop.idle()
                 await asyncio.sleep(0)
             self._kv_loop.exit()
