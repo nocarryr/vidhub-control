@@ -13,8 +13,6 @@ class TelnetBackendBase(object):
     hostaddr = Property()
     hostport = Property()
     def _telnet_init(self, **kwargs):
-        keys = ['crosspoints', 'input_labels', 'output_labels']
-        self._feedback_locks = {k:asyncio.Lock() for k in keys}
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
@@ -190,7 +188,7 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
             tx_lines.append('{} {}'.format(out_idx, in_idx))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        async with self._feedback_locks['crosspoints']:
+        async with self.emission_lock('crosspoints'):
             await self.send_to_client(tx_bfr)
             r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
@@ -205,7 +203,7 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
             tx_lines.append('{} {}'.format(out_idx, label))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        async with self._feedback_locks['output_labels']:
+        async with self.emission_lock('output_labels'):
             await self.send_to_client(tx_bfr)
             r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
@@ -220,30 +218,12 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
             tx_lines.append('{} {}'.format(in_idx, label))
         tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
         tx_bfr += b'\n\n'
-        async with self._feedback_locks['input_labels']:
+        async with self.emission_lock('input_labels'):
             await self.send_to_client(tx_bfr)
             r = await self.wait_for_response()
         if r is None or r.startswith('NAK'):
             return False
         return True
-    def on_prop_feedback(self, instance, value, **kwargs):
-        prop = kwargs.get('property')
-        if prop.name in self._feedback_locks:
-            if self._feedback_locks[prop.name].locked():
-                return
-        prop_map = {
-            'crosspoints':'crosspoint_control',
-            'output_labels':'output_label_control',
-            'input_labels':'input_label_control',
-        }
-        if prop.name not in prop_map:
-            return
-        control_prop = getattr(self, prop_map[prop.name], None)
-        if control_prop is None:
-            return
-        if control_prop == value:
-            return
-        control_prop[:] = value[:]
 
 class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
     DEFAULT_PORT = 9992

@@ -21,19 +21,19 @@ class DummyBackend(VidhubBackendBase):
     async def set_crosspoint(self, out_idx, in_idx):
         self.crosspoints[out_idx] = in_idx
     async def set_crosspoints(self, *args):
-        with self.emission_lock('crosspoints'):
+        async with self.emission_lock('crosspoints'):
             for out_idx, in_idx in args:
                 self.crosspoints[out_idx] = in_idx
     async def set_output_label(self, out_idx, lbl):
         self.output_labels[out_idx] = lbl
     async def set_output_labels(self, *args):
-        with self.emission_lock('output_labels'):
+        async with self.emission_lock('output_labels'):
             for out_idx, lbl in args:
                 self.output_labels[out_idx] = lbl
     async def set_input_label(self, in_idx, lbl):
         self.input_labels[in_idx] = lbl
     async def set_input_labels(self, *args):
-        with self.emission_lock('input_labels'):
+        async with self.emission_lock('input_labels'):
             for in_idx, lbl in args:
                 self.input_labels[in_idx] = lbl
 
