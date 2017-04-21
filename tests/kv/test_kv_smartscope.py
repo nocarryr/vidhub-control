@@ -141,4 +141,28 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
                     await set_monitor_prop_from_ui(monitor, monitor_widget, prop, i)
                     check_values()
 
+    # Test device_name edit
+    smartscope_widget.edit_name_enabled = True
+    popup = kivy_app.popup_widget
+    assert popup == smartscope_widget.edit_name_widget
+    assert popup.text == smartscope.device_name
+
+    popup.text = 'foobarbaz'
+    popup.dispatch('on_cancel')
+
+    assert kivy_app.popup_widget is None
+    assert smartscope_widget.edit_name_widget is None
+    assert smartscope_widget.edit_name_enabled is False
+    assert smartscope.device_name != 'foobarbaz'
+
+    smartscope_widget.edit_name_enabled = True
+    popup = kivy_app.popup_widget
+    assert popup == smartscope_widget.edit_name_widget
+    assert popup.text == smartscope.device_name
+
+    popup.text = 'foobarbaz'
+    popup.dispatch('on_submit')
+
+    assert smartscope.device_name == 'foobarbaz'
+
     await kivy_app.stop_async()
