@@ -45,11 +45,13 @@ class Config(ConfigBase):
         'smartview':{'prop':'smartviews'},
         'smartscope':{'prop':'smartscopes'},
     }
+    loop = None
     def __init__(self, **kwargs):
         self.running = asyncio.Event()
         self.stopped = asyncio.Event()
         self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
-        self.loop = kwargs.get('loop', asyncio.get_event_loop())
+        if self.loop is None:
+            Config.loop = kwargs.get('loop', asyncio.get_event_loop())
         for key, d in self._device_type_map.items():
             items = kwargs.get(d['prop'], {})
             prop = getattr(self, d['prop'])
@@ -87,6 +89,7 @@ class Config(ConfigBase):
         for smartscope in self.smartscopes.values():
             await smartscope.backend.disconnect()
         self.stopped.set()
+        Config.loop = None
     def build_backend(self, device_type, backend_name, **kwargs):
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         for obj in prop.values():
@@ -232,6 +235,7 @@ class DeviceConfigBase(ConfigBase):
             kwargs.setdefault(key, val)
         return cls(**kwargs)
     def build_backend(self, cls=None, **kwargs):
+        kwargs.setdefault('event_loop', Config.loop)
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
         return cls(**kwargs)
