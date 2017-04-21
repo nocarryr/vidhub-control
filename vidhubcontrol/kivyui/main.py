@@ -206,6 +206,8 @@ class VidhubControlApp(App):
     smartscopes = DictProperty()
     selected_device = ObjectProperty(None)
     popup_widget = ObjectProperty(None, allownone=True)
+    aio_loop = ObjectProperty(None)
+    async_server_loop = ObjectProperty(None)
     def build_config(self, config):
         for section_name, section in APP_SETTINGS_DEFAULTS.items():
             config.setdefaults(section_name, section)
@@ -224,7 +226,8 @@ class VidhubControlApp(App):
         self.config.set('main', 'last_device', value.device_id)
         self.config.write()
     def on_start(self, *args, **kwargs):
-        self.aio_loop = asyncio.get_event_loop()
+        if self.aio_loop is None:
+            self.aio_loop = asyncio.get_event_loop()
         self.async_server = AsyncServer(self)
         self.async_server.start()
         self.async_server.thread_run_event.wait()
@@ -295,15 +298,18 @@ def wrapped_callback(f):
     return update_wrapper(wrapped_(f), f, assigned=WRAPPER_ASSIGNMENTS)
 
 class AioBridge(threading.Thread):
-    def __init__(self):
+    def __init__(self, event_loop=None):
         super().__init__()
         self.daemon = True
         self.running = False
         self.thread_run_event = threading.Event()
         self.thread_stop_event = threading.Event()
+        self.event_loop = event_loop
     def run(self):
-        loop = self.event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        loop = self.event_loop
+        if loop is None:
+            loop = self.event_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         self.aio_stop_event = asyncio.Event()
         self.running = True
         loop.run_until_complete(self.aioloop())
@@ -341,7 +347,7 @@ class Opts(object):
 
 class AsyncServer(AioBridge):
     def __init__(self, app):
-        super().__init__()
+        super().__init__(app.async_server_loop)
         self.app = app
         osc_disabled = self.app.config.get('osc', 'enable') != 'yes'
         self.opts = Opts({
@@ -352,6 +358,7 @@ class AsyncServer(AioBridge):
             'osc_disabled':osc_disabled,
         })
     async def aiostartup(self):
+        self.app.async_server_loop = self.event_loop
         self.config, self.interfaces = await runserver.start(self.event_loop, self.opts)
     async def aioshutdown(self):
         await runserver.stop(self.config, self.interfaces)

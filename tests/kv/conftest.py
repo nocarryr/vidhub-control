@@ -29,6 +29,7 @@ def kivy_app(tmpdir, monkeypatch):
             self._startup_ready.set()
 
         def run(self):
+            self.aio_loop = aio_loop
             kv_dir = os.path.dirname(os.path.abspath(kivy_main.__file__))
             self.kv_file = os.path.join(kv_dir, 'vidhubcontrol.kv')
             self._startup_ready = asyncio.Event()
@@ -102,9 +103,9 @@ def kivy_app(tmpdir, monkeypatch):
                 await asyncio.sleep(.1)
 
         async def _aio_mainloop(self):
-            start_ts = aio_loop.time()
+            start_ts = self.aio_loop.time()
             while not self._kv_loop.quit:
-                now = aio_loop.time()
+                now = self.aio_loop.time()
                 if now >= start_ts + KIVY_STALL_TIMEOUT:
                     print ('Exiting app. Runtime exceeded threshold')
                     raise KeyboardInterrupt()
