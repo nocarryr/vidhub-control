@@ -3,7 +3,6 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_vidhub_routing(kivy_app, KvEventWaiter):
-    from vidhubcontrol.backends import DummyBackend
 
     kv_waiter = KvEventWaiter()
     kv_waiter.bind(kivy_app, 'on_start')
@@ -11,14 +10,22 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
-    vidhub1 = await DummyBackend.create_async(device_id='dummy1', device_name='Dummy 1')
-    vidhub2 = await DummyBackend.create_async(device_id='dummy2', device_name='Dummy 2')
+
+    async def build_vidhub(**kwargs):
+        async def do_build(**kwargs_):
+            obj = config.build_backend('vidhub', 'DummyBackend', **kwargs_)
+            await obj.connect_fut
+        kivy_app.run_async_coro(do_build(**kwargs))
 
     kv_waiter.bind(kivy_app, 'vidhubs')
-    config.add_vidhub(vidhub1)
+
+    await build_vidhub(device_id='dummy1', device_name='Dummy 1')
     await kv_waiter.wait()
-    config.add_vidhub(vidhub2)
+    vidhub1 = kivy_app.vidhubs['dummy1']
+
+    await build_vidhub(device_id='dummy2', device_name='Dummy 2')
     await kv_waiter.wait()
+    vidhub2 = kivy_app.vidhubs['dummy2']
 
     kv_waiter.bind(kivy_app.root, 'active_widget')
     kivy_app.selected_device = vidhub1
@@ -79,10 +86,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     kv_waiter2.bind(output_button_grid, 'button_labels')
 
     lbls = [(i, 'FOO IN {}'.format(i)) for i in range(vidhub1.num_inputs)]
-    await vidhub1.set_input_labels(*lbls)
+    kivy_app.run_async_coro(vidhub1.set_input_labels(*lbls))
 
     lbls = [(i, 'FOO OUT {}'.format(i)) for i in range(vidhub1.num_outputs)]
-    await vidhub1.set_output_labels(*lbls)
+    kivy_app.run_async_coro(vidhub1.set_output_labels(*lbls))
 
     await kv_waiter.wait()
     await kv_waiter2.wait()

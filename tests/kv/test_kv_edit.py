@@ -3,7 +3,6 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_vidhub_edit(kivy_app, KvEventWaiter):
-    from vidhubcontrol.backends import DummyBackend
 
     kv_waiter = KvEventWaiter()
     kv_waiter.bind(kivy_app, 'on_start')
@@ -11,11 +10,16 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
-    vidhub = await DummyBackend.create_async(device_id='dummy1', device_name='Dummy 1')
+    async def build_vidhub(**kwargs):
+        async def do_build(**kwargs_):
+            obj = config.build_backend('vidhub', 'DummyBackend', **kwargs_)
+            await obj.connect_fut
+        kivy_app.run_async_coro(do_build(**kwargs))
 
     kv_waiter.bind(kivy_app, 'vidhubs')
-    config.add_vidhub(vidhub)
+    await build_vidhub(device_id='dummy1', device_name='Dummy 1')
     await kv_waiter.wait()
+    vidhub = kivy_app.vidhubs['dummy1']
 
     kv_waiter.bind(kivy_app.root, 'active_widget')
     kivy_app.selected_device = vidhub
@@ -78,7 +82,7 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
 
             # Set label from vidhub and test ui updates
             lbl = '{} FOO {}'.format(lbl_type, i)
-            await vidhub_set_fn(i, lbl)
+            kivy_app.run_async_coro(vidhub_set_fn(i, lbl))
             await kv_waiter.wait()
 
             assert vidhub_labels[i] == item.text == lbl
