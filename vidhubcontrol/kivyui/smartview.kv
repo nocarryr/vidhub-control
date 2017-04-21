@@ -2,13 +2,41 @@
     app: app
     monitor_widget_container: monitor_widget_container
     orientation: 'vertical'
-    Label:
-        text: root.name
+    BoxLayout:
+        orientation: 'horizontal'
         size_hint_y: .1
+        Label:
+            size_hint_x: .9
+            text: root.name
+        Button:
+            size_hint_x: .1
+            text: 'Edit'
+            on_release: root.edit_name_enabled = True
     BoxLayout:
         orientation: 'horizontal'
         id: monitor_widget_container
         size_hint_y: .9
+
+<SmartViewEditNamePopup>:
+    size_hint: (.5, .5)
+    title: 'Edit Name'
+    BoxLayout:
+        orientation: 'vertical'
+        TextInput:
+            multiline: False
+            text: root.text
+            on_text_validate: root.text = self.text
+            on_focus: if not self.focus: root.text = self.text
+        Widget:
+
+        BoxLayout:
+            orientation: 'horizontal'
+            Button:
+                text: 'Ok'
+                on_release: root.dispatch('on_submit')
+            Button:
+                text: 'Cancel'
+                on_release: root.dispatch('on_cancel')
 
 <MonitorWidget>:
     app: app

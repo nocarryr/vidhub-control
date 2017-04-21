@@ -8,6 +8,7 @@ from kivy.properties import (
     DictProperty,
 )
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
 
 class SmartViewWidget(BoxLayout):
     app = ObjectProperty(None)
@@ -16,6 +17,8 @@ class SmartViewWidget(BoxLayout):
     monitor_widgets = ListProperty()
     monitor_widget_container = ObjectProperty(None)
     device = ObjectProperty(None, allownone=True)
+    edit_name_enabled = BooleanProperty(False)
+    edit_name_widget = ObjectProperty(None, allownone=True)
     def on_app(self, *args):
         device = self.app.selected_device
         if device is not None and device.device_type in ['smartview', 'smartscope']:
@@ -64,7 +67,41 @@ class SmartViewWidget(BoxLayout):
         if value and not len(self.monitor_widgets):
             instance.unbind(self)
             self.build_monitors()
+    def on_edit_name_enabled(self, instance, value):
+        if value:
+            r = self.open_edit_name_popup()
+            if r is False:
+                self.edit_name_enabled = False
+        else:
+            if self.edit_name_widget is None:
+                return
+            self.edit_name_widget.dismiss()
+            self.edit_name_widget = None
+    def open_edit_name_popup(self, *args, **kwargs):
+        if self.edit_name_widget is not None:
+            return False
+        if self.device is None:
+            return False
+        w = self.edit_name_widget = SmartViewEditNamePopup(device=self.device)
+        self.app.popup_widget = w
+        w.bind(on_dismiss=self.on_edit_name_popup_dismiss)
+        w.open()
+    def on_edit_name_popup_dismiss(self, *args):
+        self.edit_name_widget = None
+        self.edit_name_enabled = False
 
+
+class SmartViewEditNamePopup(Popup):
+    text = StringProperty('')
+    device = ObjectProperty(None)
+    __events__ = ['on_submit', 'on_cancel']
+    def on_device(self, *args):
+        self.text = self.device.device_name
+    def on_submit(self, *args):
+        self.device.device_name = self.text
+        self.dismiss()
+    def on_cancel(self, *args):
+        self.dismiss()
 
 class MonitorWidget(BoxLayout):
     app = ObjectProperty(None)
