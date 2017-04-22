@@ -190,9 +190,13 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
         tx_bfr += b'\n\n'
         async with self.emission_lock('crosspoints'):
             await self.send_to_client(tx_bfr)
-            r = await self.wait_for_response()
-        if r is None or r.startswith('NAK'):
-            return False
+            r = await self.wait_for_ack_or_nak()
+            if not r:
+                return False
+            xpts = self.crosspoints[:]
+            for out_idx, in_idx in args:
+                xpts[out_idx] = in_idx
+            self.crosspoints[:] = xpts
         return True
     async def set_output_label(self, out_idx, label):
         return await self.set_output_labels((out_idx, label))
@@ -205,9 +209,13 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
         tx_bfr += b'\n\n'
         async with self.emission_lock('output_labels'):
             await self.send_to_client(tx_bfr)
-            r = await self.wait_for_response()
-        if r is None or r.startswith('NAK'):
-            return False
+            r = await self.wait_for_ack_or_nak()
+            if not r:
+                return False
+            lbls = self.output_labels[:]
+            for out_idx, label in args:
+                lbls[out_idx] = label
+            self.output_labels = lbls[:]
         return True
     async def set_input_label(self, in_idx, label):
         return await self.set_input_labels((in_idx, label))
@@ -220,9 +228,13 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
         tx_bfr += b'\n\n'
         async with self.emission_lock('input_labels'):
             await self.send_to_client(tx_bfr)
-            r = await self.wait_for_response()
-        if r is None or r.startswith('NAK'):
-            return False
+            r = await self.wait_for_ack_or_nak()
+            if not r:
+                return False
+            lbls = self.input_labels[:]
+            for in_idx, label in args:
+                lbls[in_idx] = label
+            self.input_labels = lbls[:]
         return True
 
 class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
