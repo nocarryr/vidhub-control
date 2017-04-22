@@ -67,6 +67,11 @@ class VidhubBackendBase(BackendBase):
     num_outputs = Property(0)
     num_inputs = Property(0)
     device_type = 'vidhub'
+    feedback_prop_map = {
+        'crosspoints':'crosspoint_control',
+        'input_labels':'input_label_control',
+        'output_labels':'output_label_control',
+    }
     _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -147,12 +152,11 @@ class VidhubBackendBase(BackendBase):
         self.input_labels = [''] * value
     def on_prop_feedback(self, instance, value, **kwargs):
         prop = kwargs.get('property')
-        if prop.name == 'crosspoints':
-            self.crosspoint_control = value[:]
-        elif prop.name == 'output_labels':
-            self.output_label_control = value[:]
-        elif prop.name == 'input_labels':
-            self.input_label_control = value[:]
+        if prop.name not in self.feedback_prop_map:
+            return
+        elock = self.emission_lock(prop.name)
+        control_prop = self.feedback_prop_map[prop.name]
+        setattr(self, control_prop, value[:])
     def on_prop_control(self, instance, value, **kwargs):
         if not self.connected:
             return
@@ -163,6 +167,9 @@ class VidhubBackendBase(BackendBase):
         if keys is None:
             keys = range(len(value))
         feedback_prop = '{}s'.format(prop.name.split('_control')[0])
+        elock = self.emission_lock(feedback_prop)
+        if elock.held or elock.aio_lock.locked():
+            return
         if value == getattr(self, feedback_prop):
             return
         coro_name = '_'.join(['set', feedback_prop])
