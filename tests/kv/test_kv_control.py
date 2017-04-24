@@ -61,17 +61,34 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
             assert input_button_grid.button_labels[i] == lbl
 
             btn = input_button_grid.button_widgets[i]
-            assert btn.text == lbl
+            assert btn.title_text == lbl
+
+            routed_dests = [out_idx for out_idx, in_idx in enumerate(_vidhub.crosspoints) if in_idx == i]
+            assert btn.selected_outputs == routed_dests
+
+            if not len(routed_dests):
+                assert btn.content_text == ''
+            elif len(routed_dests) == 1:
+                assert btn.content_text == _vidhub.output_labels[routed_dests[0]]
+            else:
+                assert btn.content_text == ','.join([str(out_idx) for out_idx in routed_dests])
+
             if i in input_states:
                 assert btn.selection_state == input_states[i]
             else:
                 assert btn.selection_state == 'normal'
+
         for i in range(_vidhub.num_outputs):
             lbl = _vidhub.output_labels[i]
             assert output_button_grid.button_labels[i] == lbl
 
             btn = output_button_grid.button_widgets[i]
-            assert btn.text == lbl
+            assert btn.title_text == lbl
+
+            selected_input = _vidhub.crosspoints[i]
+            assert btn.selected_input == selected_input
+            assert btn.content_text == _vidhub.input_labels[selected_input]
+
             if i in output_states:
                 assert btn.selection_state == output_states[i]
             else:

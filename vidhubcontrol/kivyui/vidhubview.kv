@@ -60,4 +60,13 @@
 <PresetButtonGrid>:
 
 <ButtonGridBtn>:
-    text: self.parent.button_labels[self.index] if self.parent else ''
+    title_text: self.parent.button_labels[self.index] if self.parent else ''
+    text: self.title_text if not self.markup else '{}\n[size=10]{}[/size]'.format(self.title_text, self.content_text)
+
+<InputButtonGridBtn>:
+    markup: True
+    vidhub_widget: self.button_grid.vidhub_widget
+
+<OutputButtonGridBtn>:
+    markup: True
+    vidhub_widget: self.button_grid.vidhub_widget

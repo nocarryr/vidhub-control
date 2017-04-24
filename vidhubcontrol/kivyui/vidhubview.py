@@ -133,6 +133,9 @@ class ButtonGrid(GridLayout):
     button_labels = DictProperty()
     button_widgets = DictProperty()
     __events__ = ['on_button_release']
+    @classmethod
+    def get_button_cls(cls):
+        return ButtonGridBtn
     def on_vidhub(self, instance, vidhub):
         self.clear_widgets()
         self.button_widgets.clear()
@@ -158,10 +161,11 @@ class ButtonGrid(GridLayout):
         self.rows = value // self.cols
         if value % (self.cols * self.rows):
             self.rows += 1
+        btncls = self.get_button_cls()
         for i in range(value):
             if i in self.button_widgets:
                 continue
-            btn = ButtonGridBtn(index=i, button_grid=self)
+            btn = btncls(index=i, button_grid=self)
             self.button_widgets[i] = btn
         for i in sorted(self.button_widgets.keys()):
             btn = self.button_widgets[i]
@@ -175,6 +179,9 @@ class ButtonGrid(GridLayout):
         pass
 
 class InputButtonGrid(ButtonGrid):
+    @classmethod
+    def get_button_cls(cls):
+        return InputButtonGridBtn
     def on_vidhub(self, instance, vidhub):
         super().on_vidhub(instance, vidhub)
         if not vidhub:
@@ -198,6 +205,9 @@ class InputButtonGrid(ButtonGrid):
         self.selected_buttons = [xpts[dest_idx]]
 
 class OutputButtonGrid(ButtonGrid):
+    @classmethod
+    def get_button_cls(cls):
+        return OutputButtonGridBtn
     def on_vidhub(self, instance, vidhub):
         super().on_vidhub(instance, vidhub)
         if not vidhub:
@@ -292,6 +302,8 @@ class PresetButtonGrid(ButtonGrid):
 
 
 class ButtonGridBtn(Button):
+    title_text = StringProperty('')
+    content_text = StringProperty('')
     index = NumericProperty()
     button_grid = ObjectProperty(None)
     flash_interval = NumericProperty(.5)
@@ -335,3 +347,43 @@ class ButtonGridBtn(Button):
         return
     def _do_release(self, *args, **kwargs):
         return
+
+class InputButtonGridBtn(ButtonGridBtn):
+    selected_outputs = ListProperty([])
+    vidhub_widget = ObjectProperty(None)
+    def on_vidhub_widget(self, *args):
+        if self.vidhub_widget is None:
+            return
+        self.update_crosspoints()
+        self.vidhub_widget.bind(crosspoints=self.update_crosspoints)
+        self.vidhub_widget.output_button_grid.bind(button_labels=self.on_output_button_labels)
+    def update_crosspoints(self, *args, **kwargs):
+        l = []
+        for out_idx, in_idx in enumerate(self.vidhub_widget.crosspoints):
+            if in_idx == self.index:
+                l.append(out_idx)
+        self.selected_outputs = l
+    def on_selected_outputs(self, instance, value):
+        if not len(value):
+            self.content_text = ''
+        elif len(value) == 1:
+            self.content_text = self.vidhub_widget.output_button_grid.button_labels[value[0]]
+        else:
+            self.content_text = ','.join((str(i) for i in self.selected_outputs))
+    def on_output_button_labels(self, instance, value):
+        self.on_selected_outputs(None, self.selected_outputs)
+
+class OutputButtonGridBtn(ButtonGridBtn):
+    selected_input = NumericProperty(0)
+    vidhub_widget = ObjectProperty(None)
+    def on_vidhub_widget(self, *args):
+        if self.vidhub_widget is None:
+            return
+        self.update_crosspoints()
+        self.vidhub_widget.bind(crosspoints=self.update_crosspoints)
+        self.vidhub_widget.input_button_grid.bind(button_labels=self.on_input_button_labels)
+    def update_crosspoints(self, *args, **kwargs):
+        self.selected_input = int(self.vidhub_widget.crosspoints[self.index])
+        self.on_input_button_labels(None, self.vidhub_widget.input_button_grid.button_labels)
+    def on_input_button_labels(self, instance, value):
+        self.content_text = value.get(self.selected_input, '')
