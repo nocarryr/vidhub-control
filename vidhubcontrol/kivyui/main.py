@@ -323,9 +323,9 @@ class AioBridge(threading.Thread):
         await self.aio_stop_event.wait()
         await self.aioshutdown()
     async def aiostartup(self):
-        pass
+        pass # pragma: no cover
     async def aioshutdown(self):
-        pass
+        pass # pragma: no cover
     def bind_events(self, obj, **kwargs):
         # Override pydispatch.Dispatcher.bind() using wrapped_callback
         # Events should then be dispatched from the thread's event loop to

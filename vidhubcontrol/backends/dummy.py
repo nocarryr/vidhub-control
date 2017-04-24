@@ -15,9 +15,9 @@ class DummyBackend(VidhubBackendBase):
         self.prelude_parsed = True
         return True
     async def do_disconnect(self):
-        pass
+        pass # pragma: no cover
     async def get_status(self):
-        pass
+        pass # pragma: no cover
     async def set_crosspoint(self, out_idx, in_idx):
         return await self.set_crosspoints((out_idx, in_idx))
     async def set_crosspoints(self, *args):
@@ -56,9 +56,9 @@ class SmartViewDummyBackend(SmartViewBackendBase):
         self.prelude_parsed = True
         return True
     async def do_disconnect(self):
-        pass
+        pass # pragma: no cover
     async def get_status(self):
-        pass
+        pass # pragma: no cover
     async def set_monitor_property(self, monitor, name, value):
         await monitor.set_property_from_backend(name, value)
 
@@ -82,8 +82,8 @@ class SmartScopeDummyBackend(SmartScopeBackendBase):
         self.prelude_parsed = True
         return True
     async def do_disconnect(self):
-        pass
+        pass # pragma: no cover
     async def get_status(self):
-        pass
+        pass # pragma: no cover
     async def set_monitor_property(self, monitor, name, value):
         await monitor.set_property_from_backend(name, value)
