@@ -60,8 +60,8 @@ class VidhubWidget(BoxLayout):
     def on_app_selected_device(self, instance, value):
         if self.vidhub is not None:
             self.vidhub.unbind(self)
-            self.vidhub.unbind(self.input_button_grid)
-            self.vidhub.unbind(self.output_button_grid)
+            self.input_button_grid.unbind_vidhub()
+            self.output_button_grid.unbind_vidhub()
             self.preset_button_grid.unbind_vidhub()
         if value.device_type == 'vidhub':
             self.vidhub = value
@@ -136,6 +136,9 @@ class ButtonGrid(GridLayout):
     @classmethod
     def get_button_cls(cls):
         return ButtonGridBtn
+    def unbind_vidhub(self):
+        self.vidhub.unbind(self)
+        self.vidhub = None
     def on_vidhub(self, instance, vidhub):
         self.clear_widgets()
         self.button_widgets.clear()
@@ -351,6 +354,10 @@ class ButtonGridBtn(Button):
 class InputButtonGridBtn(ButtonGridBtn):
     selected_outputs = ListProperty([])
     vidhub_widget = ObjectProperty(None)
+    def on_parent(self, *args):
+        if self.parent is None and self.vidhub_widget is not None:
+            self.vidhub_widget.unbind(crosspoints=self.update_crosspoints)
+            self.vidhub_widget.output_button_grid.unbind(button_labels=self.on_output_button_labels)
     def on_vidhub_widget(self, *args):
         if self.vidhub_widget is None:
             return
@@ -376,6 +383,10 @@ class InputButtonGridBtn(ButtonGridBtn):
 class OutputButtonGridBtn(ButtonGridBtn):
     selected_input = NumericProperty(0)
     vidhub_widget = ObjectProperty(None)
+    def on_parent(self, *args):
+        if self.parent is None and self.vidhub_widget is not None:
+            self.vidhub_widget.unbind(crosspoints=self.update_crosspoints)
+            self.vidhub_widget.input_button_grid.unbind(button_labels=self.on_input_button_labels)
     def on_vidhub_widget(self, *args):
         if self.vidhub_widget is None:
             return
