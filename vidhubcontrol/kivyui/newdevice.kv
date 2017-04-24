@@ -25,15 +25,10 @@
             on_value: root.port = self.value
         Widget:
             size_hint_y: .7
-        BoxLayout:
-            orientation: 'horizontal'
+        SubmitRow:
             size_hint_y: .1
-            Button:
-                text: 'Cancel'
-                on_release: root.dismiss()
-            Button:
-                text: 'OK'
-                on_release: root.on_submit()
+            on_cancel: root.dismiss()
+            on_submit: root.on_submit()
 
 <AttrField@BoxLayout>:
     orientation: 'vertical'

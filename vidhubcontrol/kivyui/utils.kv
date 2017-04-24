@@ -1,3 +1,5 @@
+#: import SubmitRow vidhubcontrol.kivyui.utils.SubmitRow
+
 <OutlinedWidget@Widget>:
     canvas:
         Color:
@@ -24,3 +26,12 @@
             rgba: self.color_on + [1] if self.state else self.color_off + [1]
         Line:
             circle: (self.center_x, self.center_y, min(self.size)/4)
+
+<SubmitRow>:
+    orientation: 'horizontal'
+    Button:
+        text: 'Ok'
+        on_release: root.dispatch('on_submit')
+    Button:
+        text: 'Cancel'
+        on_release: root.dispatch('on_cancel')

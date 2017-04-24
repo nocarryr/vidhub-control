@@ -29,14 +29,9 @@
             on_focus: if not self.focus: root.text = self.text
         Widget:
 
-        BoxLayout:
-            orientation: 'horizontal'
-            Button:
-                text: 'Ok'
-                on_release: root.dispatch('on_submit')
-            Button:
-                text: 'Cancel'
-                on_release: root.dispatch('on_cancel')
+        SubmitRow:
+            on_submit: root.dispatch('on_submit')
+            on_cancel: root.dispatch('on_cancel')
 
 <MonitorWidget>:
     app: app
