@@ -355,14 +355,16 @@ class Preset(Dispatcher):
         else:
             self.backend.bind(prelude_parsed=self.on_backend_ready)
         self.backend.bind(crosspoints=self.on_backend_crosspoints)
+        self.bind(crosspoints=self.on_preset_crosspoints)
     async def store(self, outputs_to_store=None, clear_current=True):
         if outputs_to_store is None:
             outputs_to_store = range(self.backend.num_outputs)
         if clear_current:
             self.crosspoints = {}
-        for out_idx in outputs_to_store:
-            self.crosspoints[out_idx] = self.backend.crosspoints[out_idx]
-        self.active = True
+        async with self.emission_lock('crosspoints'):
+            for out_idx in outputs_to_store:
+                self.crosspoints[out_idx] = self.backend.crosspoints[out_idx]
+            self.active = True
         self.emit('on_preset_stored', preset=self)
     async def recall(self):
         if not len(self.crosspoints):
@@ -386,5 +388,9 @@ class Preset(Dispatcher):
         self.check_active()
     def on_backend_crosspoints(self, instance, value, **kwargs):
         if not self.backend.prelude_parsed:
+            return
+        self.check_active()
+    def on_preset_crosspoints(self, instance, value, **kwargs):
+        if not len(self.crosspoints) or not self.backend.prelude_parsed:
             return
         self.check_active()
