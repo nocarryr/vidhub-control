@@ -12,6 +12,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 
+from vidhubcontrol.kivyui.vidhubpresetedit import VidhubPresetEditPopup
+
 class VidhubEditView(BoxLayout):
     app = ObjectProperty(None)
     device_name_text_widget = ObjectProperty(None)
@@ -169,6 +171,8 @@ class VidhubPresetEditList(VidhubEditLabelList):
             self.label_list_widget.add_widget(item)
     def on_vidhub_preset_added(self, *args, **kwargs):
         self.build_items()
+    def add_preset(self):
+        self.app.run_async_coro(self.vidhub.add_preset())
 
 class VidhubEditLabelItem(BoxLayout):
     index = NumericProperty()
@@ -177,6 +181,7 @@ class VidhubEditLabelItem(BoxLayout):
 class VidhubEditPresetItem(VidhubEditLabelItem):
     app = ObjectProperty(None)
     preset = ObjectProperty(None)
+    edit_popup_widget = ObjectProperty(None, allownone=True)
     def on_text(self, *args):
         if self.preset is None:
             return
@@ -199,3 +204,10 @@ class VidhubEditPresetItem(VidhubEditLabelItem):
         self.app.bind_events(self.preset, name=self.on_preset_name)
     def on_preset_name(self, instance, value, **kwargs):
         self.text = value
+    def open_edit_popup(self, *args, **kwargs):
+        w = self.edit_popup_widget = VidhubPresetEditPopup(preset=self.preset)
+        w.bind(on_dismiss=self.on_edit_popup_dismiss)
+        self.app.popup_widget = w
+        w.open()
+    def on_edit_popup_dismiss(self, *args):
+        self.edit_popup_widget = None

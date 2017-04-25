@@ -35,6 +35,10 @@
             id: preset_label_list
             size_hint_x: .3
             text: 'Presets'
+            Button:
+                size_hint_y: .1
+                text: 'Add New'
+                on_release: preset_label_list.add_preset()
 
 
 <VidhubEditLabelList>:
@@ -72,3 +76,7 @@
 
 <VidhubEditPresetItem>:
     app: app
+    Button:
+        size_hint_x: .3
+        text: 'Edit'
+        on_release: root.open_edit_popup()
