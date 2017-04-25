@@ -132,6 +132,8 @@ class ButtonGrid(GridLayout):
     selected_buttons = ListProperty()
     button_labels = DictProperty()
     button_widgets = DictProperty()
+    max_columns = NumericProperty(8)
+    min_columns = NumericProperty(6)
     __events__ = ['on_button_release']
     @classmethod
     def get_button_cls(cls):
@@ -152,18 +154,29 @@ class ButtonGrid(GridLayout):
         self.vidhub_widget.bind(
             crosspoints=self.update_selections,
         )
+    def find_cols_rows(self):
+        i = self.num_buttons
+        c = self.max_columns
+        while c > 1:
+            if c > i:
+                c -= 1
+                continue
+            r = i // c
+            if i % c != 0:
+                r += 1
+            if r > 1 and r * c == i:
+                return c, r
+            c -= 1
+            if c == self.min_columns:
+                return c, r
+        return None, None
     def on_num_buttons(self, instance, value):
         if not value:
             return
         if not value:
             return
-        if value % 8 == 0:
-            self.cols = 8
-        else:
-            self.cols = 6
-        self.rows = value // self.cols
-        if value % (self.cols * self.rows):
-            self.rows += 1
+        c, r = self.find_cols_rows()
+        self.cols, self.rows = c, r
         btncls = self.get_button_cls()
         for i in range(value):
             if i in self.button_widgets:
