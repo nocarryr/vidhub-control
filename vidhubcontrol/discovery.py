@@ -217,7 +217,7 @@ class BMDDiscovery(Listener):
                 kwargs['device_type'] = 'smartscope'
             else:
                 self.smart_views[bmd_id] = info
-                kwargs['device_type'] = smartview
+                kwargs['device_type'] = 'smartview'
             kwargs.update({'class':device_cls, 'id':bmd_id})
         await super().add_service_info(info, **kwargs)
     async def remove_service_info(self, info, **kwargs):
