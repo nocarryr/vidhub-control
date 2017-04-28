@@ -63,9 +63,26 @@ async def test_config_discovery(tempconfig,
                                 smartscope_zeroconf_info,
                                 mocked_vidhub_telnet_device):
 
+    class Waiter(object):
+        def __init__(self):
+            self.queue = asyncio.Queue()
+        def bind(self, obj, *event_names):
+            for event_name in event_names:
+                obj.bind(**{event_name:self.on_event})
+        def unbind(self, obj):
+            obj.unbind(self)
+        def on_event(self, *args, **kwargs):
+            self.queue.put_nowait((args, kwargs))
+        async def wait(self):
+            ev = await self.queue.get()
+            self.queue.task_done()
+            return ev
+    waiter = Waiter()
 
     config = Config.load(str(tempconfig))
     await config.start()
+
+    waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
 
     args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
     await config.discovery_listener.publish_service(*args, **kwargs)
@@ -76,7 +93,10 @@ async def test_config_discovery(tempconfig,
     args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
     await config.discovery_listener.publish_service(*args, **kwargs)
 
-    await asyncio.sleep(2)
+    events_received = 0
+    while events_received < 3:
+        await waiter.wait()
+        events_received += 1
 
     assert vidhub_zeroconf_info['device_id'] in config.vidhubs
     assert smartview_zeroconf_info['device_id'] in config.smartviews
