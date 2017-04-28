@@ -21,4 +21,5 @@ fi
 
 # Install from pre-built wheels
 pip install --no-cache-dir --no-index --find-links=build/ kivy
-pip install --no-cache-dir --no-index --find-links=build/ -r requirements-test.txt
+pip install -U --no-cache-dir --no-index --find-links=build/ -r requirements-test.txt
+pip install --no-cache-dir --no-index --find-links=build/ -r vidhubcontrol/kivyui/requirements.txt

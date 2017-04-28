@@ -4,4 +4,3 @@ pytest-cov
 pytest-xdist
 git+https://github.com/The-Compiler/pytest-xvfb.git@master#egg=pytest-xvfb
 coveralls
--r vidhubcontrol/kivyui/requirements.txt
