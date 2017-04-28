@@ -57,13 +57,20 @@ async def test_config_basic(tempconfig):
     await config.stop()
 
 @pytest.mark.asyncio
-async def test_config_discovery(tempconfig, vidhub_zeroconf_info,
-                                smartscope_zeroconf_info , mocked_vidhub_telnet_device):
+async def test_config_discovery(tempconfig,
+                                vidhub_zeroconf_info,
+                                smartview_zeroconf_info,
+                                smartscope_zeroconf_info,
+                                mocked_vidhub_telnet_device):
+
 
     config = Config.load(str(tempconfig))
     await config.start()
 
     args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
+    await config.discovery_listener.publish_service(*args, **kwargs)
+
+    args, kwargs = [smartview_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
     await config.discovery_listener.publish_service(*args, **kwargs)
 
     args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
@@ -72,6 +79,7 @@ async def test_config_discovery(tempconfig, vidhub_zeroconf_info,
     await asyncio.sleep(2)
 
     assert vidhub_zeroconf_info['device_id'] in config.vidhubs
+    assert smartview_zeroconf_info['device_id'] in config.smartviews
     assert smartscope_zeroconf_info['device_id'] in config.smartscopes
 
     await config.stop()

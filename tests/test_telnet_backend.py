@@ -2,7 +2,7 @@ import asyncio
 import pytest
 
 from vidhubcontrol.backends import telnet
-from vidhubcontrol.backends.telnet import TelnetBackend, SmartScopeTelnetBackend
+from vidhubcontrol.backends.telnet import TelnetBackend, SmartViewTelnetBackend, SmartScopeTelnetBackend
 
 from utils import AsyncEventWaiter
 
@@ -31,19 +31,41 @@ async def test_telnet_vidhub(mocked_vidhub_telnet_device, vidhub_telnet_response
 
     await backend.disconnect()
 
+
+@pytest.fixture(params=['smartview', 'smartscope'])
+def smartview_backend(request, mocked_vidhub_telnet_device):
+    d = {'backend_name':request.param, 'kwargs':{'hostaddr':True}}
+    if request.param == 'smartview':
+        d['cls'] = SmartViewTelnetBackend
+        d['kwargs']['hostport'] = 9991
+        d.update({
+            'device_id':'a10203040506',
+            'device_model':'SmartView Something',
+            'device_name':'SmartView Something',
+        })
+    elif request.param == 'smartscope':
+        d['cls'] = SmartScopeTelnetBackend
+        d['kwargs']['hostport'] = 9992
+        d.update({
+            'device_id':'0a1b2c3d4e5f',
+            'device_model':'SmartScope Duo 4K',
+            'device_name':'SmartScope Duo',
+        })
+    return d
+
 @pytest.mark.asyncio
-async def test_telnet_smartscope(mocked_vidhub_telnet_device):
+async def test_telnet_smartscope(smartview_backend):
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    backend = await SmartScopeTelnetBackend.create_async(hostaddr=True)
+    backend = await smartview_backend['cls'].create_async(**smartview_backend['kwargs'])
     waiter = AsyncEventWaiter(backend)
 
     assert backend.prelude_parsed
 
-    assert backend.device_model == 'SmartScope Duo 4K'
-    assert backend.device_name == 'SmartScope Duo'
-    assert backend.device_id.lower() == '0a1b2c3d4e5f'
+    assert backend.device_model == smartview_backend['device_model']
+    assert backend.device_name == smartview_backend['device_name']
+    assert backend.device_id.lower() == smartview_backend['device_id']
     assert not backend.inverted
     assert backend.num_monitors == len(backend.monitors) == 2
 
@@ -75,7 +97,9 @@ async def test_telnet_smartscope(mocked_vidhub_telnet_device):
 
         for key, val in defaults.items():
             assert getattr(monitor, key) == val
-        assert monitor.scope_mode == default_scopes[i]
+
+        if smartview_backend['backend_name'] == 'smartscope':
+            assert monitor.scope_mode == default_scopes[i]
 
         props = monitor.PropertyChoices._bind_properties
         for prop in props:
