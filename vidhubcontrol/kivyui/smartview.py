@@ -26,8 +26,10 @@ class SmartViewWidget(BoxLayout):
         self.app.bind(selected_device=self.on_app_selected_device)
     def on_app_selected_device(self, instance, device):
         if self.device is not None:
-            self.monitor_widget_container.clear_widgets()
+            for w in self.monitor_widgets:
+                w.unbind_monitor()
             self.monitor_widgets = []
+            self.monitor_widget_container.clear_widgets()
             self.device.unbind(self)
         if device.device_type not in ['smartview', 'smartscope']:
             device = None
@@ -116,7 +118,7 @@ class MonitorWidget(BoxLayout):
     identify = BooleanProperty(False)
     audio_channel = NumericProperty()
     scope_mode = StringProperty('')
-    monitor = ObjectProperty(None)
+    monitor = ObjectProperty(None, allownone=True)
     _prop_keys = [
         'name', 'brightness', 'contrast', 'saturation', 'widescreen_sd',
         'border', 'identify', 'audio_channel', 'scope_mode',
@@ -163,6 +165,11 @@ class MonitorWidget(BoxLayout):
             self.monitor,
             **{key:self.on_monitor_prop for key in self._prop_keys}
         )
+    def unbind_monitor(self):
+        if self.monitor is None:
+            return
+        self.monitor.unbind(self)
+        self.monitor = None
     def on_monitor_prop(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         if prop.name in self._prop_keys:
