@@ -12,12 +12,13 @@ from vidhubcontrol.backends import (
     SmartViewDummyBackend,
     SmartScopeDummyBackend,
     TelnetBackend,
+    SmartViewTelnetBackend,
     SmartScopeTelnetBackend,
 )
 
 BACKENDS = {
     'vidhub':{cls.__name__:cls for cls in [DummyBackend, TelnetBackend]},
-    'smartview':{cls.__name__:cls for cls in [SmartViewDummyBackend]},
+    'smartview':{cls.__name__:cls for cls in [SmartViewDummyBackend, SmartViewTelnetBackend]},
     'smartscope':{cls.__name__:cls for cls in [SmartScopeDummyBackend, SmartScopeTelnetBackend]},
 }
 

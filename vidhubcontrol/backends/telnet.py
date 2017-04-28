@@ -5,7 +5,12 @@ import string
 from pydispatch import Property
 
 from vidhubcontrol import aiotelnetlib
-from .base import VidhubBackendBase, SmartScopeBackendBase, MONITOR_PROPERTY_MAP
+from .base import (
+    VidhubBackendBase,
+    SmartViewBackendBase,
+    SmartScopeBackendBase,
+    MONITOR_PROPERTY_MAP,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -237,16 +242,13 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
             self.input_labels = lbls[:]
         return True
 
-class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
+class SmartViewTelnetBackendBase(TelnetBackendBase):
     DEFAULT_PORT = 9992
     SECTION_NAMES = [
         'PROTOCOL PREAMBLE:',
         'SMARTVIEW DEVICE:',
         'NETWORK:',
     ]
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._telnet_init(**kwargs)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -337,3 +339,13 @@ class SmartScopeTelnetBackend(TelnetBackendBase, SmartScopeBackendBase):
             await monitor.set_property_from_backend(name, value)
     def _on_monitors(self, *args, **kwargs):
         return
+
+class SmartViewTelnetBackend(SmartViewTelnetBackendBase, SmartViewBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._telnet_init(**kwargs)
+
+class SmartScopeTelnetBackend(SmartViewTelnetBackendBase, SmartScopeBackendBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._telnet_init(**kwargs)
