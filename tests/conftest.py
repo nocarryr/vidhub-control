@@ -10,6 +10,13 @@ def get_vidhub_preamble():
     assert type(s) is bytes
     return s
 
+def get_smartview_preamble():
+    p = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(p, 'smartview-preamble.txt'), 'rb') as f:
+        s = f.read()
+    assert type(s) is bytes
+    return s
+
 def get_smartscope_preamble():
     p = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(p, 'smartscope-preamble.txt'), 'rb') as f:
@@ -21,11 +28,19 @@ VIDHUB_PREAMBLE = get_vidhub_preamble()
 VIDHUB_DEVICE_ID = 'a0b2c3d4e5f6'
 VIDHUB_PORT = 9990
 
+SMARTVIEW_PREAMBLE = get_smartview_preamble()
+SMARTVIEW_DEVICE_ID = 'a10203040506'
+SMARTVIEW_PORT = 9991
+
 SMARTSCOPE_PREAMBLE = get_smartscope_preamble()
 SMARTSCOPE_DEVICE_ID = '0a1b2c3d4e5f'
 SMARTSCOPE_PORT = 9992
 
-PREAMBLES = {'vidhub':VIDHUB_PREAMBLE, 'smartscope':SMARTSCOPE_PREAMBLE}
+PREAMBLES = {
+    'vidhub':VIDHUB_PREAMBLE,
+    'smartview':SMARTVIEW_PREAMBLE,
+    'smartscope':SMARTSCOPE_PREAMBLE,
+}
 
 @pytest.fixture
 def vidhub_telnet_responses():
@@ -79,11 +94,30 @@ def vidhub_zeroconf_info():
     return d
 
 @pytest.fixture
+def smartview_zeroconf_info():
+    d = {
+        'device_name':'SmartView Something',
+        'device_id':SMARTVIEW_DEVICE_ID.upper(),
+        'info_args':['_blackmagic._tcp.local.', SMARTVIEW_PORT],
+        'info_kwargs':{
+            'name':'SmartView Something-{}._blackmagic._tcp.local.'.format(SMARTVIEW_DEVICE_ID.upper()),
+            'addresses':['127.0.0.1'],
+            'properties':{
+                'name':'SmartView Something',
+                'protocol version':'1.3',
+                'class':'SmartView',
+                'unique id':SMARTVIEW_DEVICE_ID,
+            },
+        },
+    }
+    return d
+
+@pytest.fixture
 def smartscope_zeroconf_info():
     d = {
         'device_name':'SmartScope Duo',
         'device_id':SMARTSCOPE_DEVICE_ID.upper(),
-        'info_args':['_blackmagic._tcp.local.', 9992],
+        'info_args':['_blackmagic._tcp.local.', SMARTSCOPE_PORT],
         'info_kwargs':{
             'name':'SmartScope Duo-{}._blackmagic._tcp.local.'.format(SMARTSCOPE_DEVICE_ID.upper()),
             'addresses':['127.0.0.1'],
@@ -116,6 +150,8 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
             self._port = value
             if value == VIDHUB_PORT:
                 self.preamble = 'vidhub'
+            elif value == SMARTVIEW_PORT:
+                self.preamble = 'smartview'
             elif value == SMARTSCOPE_PORT:
                 self.preamble = 'smartscope'
         async def open(self, host, port=0, timeout=0, loop=None):

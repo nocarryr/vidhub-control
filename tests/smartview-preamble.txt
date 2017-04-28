@@ -1,0 +1,37 @@
+PROTOCOL PREAMBLE:
+Version: 1.3
+
+SMARTVIEW DEVICE:
+Model: SmartView Something
+Hostname: SmartViewSomething-a10203040506
+Name: SmartView Something
+Monitors: 2
+Inverted: false
+
+NETWORK:
+Dynamic IP: true
+Static address: 192.168.0.3
+Static netmask: 255.255.255.0
+Static gateway: 192.168.0.1
+Current address: 192.168.1.101
+Current netmask: 255.255.255.0
+Current gateway: 192.168.1.1
+
+MONITOR A:
+Brightness: 255
+Contrast: 128
+Saturation: 128
+Identify: false
+Border: None
+WidescreenSD: auto
+AudioChannel: 0
+
+MONITOR B:
+Brightness: 255
+Contrast: 128
+Saturation: 128
+Identify: false
+Border: None
+WidescreenSD: auto
+AudioChannel: 0
+
