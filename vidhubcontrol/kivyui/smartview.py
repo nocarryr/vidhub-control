@@ -148,7 +148,7 @@ class MonitorWidget(BoxLayout):
         return value
     def bind_monitor(self):
         if self.monitor.parent.device_type != 'smartscope':
-            self._prop_keys = []
+            self._prop_keys = self._prop_keys[:]
             self._prop_keys.remove('scope_mode')
             if self.scope_mode_widget is not None:
                 self.remove_widget(self.scope_mode_widget)
