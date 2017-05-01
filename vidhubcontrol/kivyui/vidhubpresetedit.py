@@ -50,7 +50,7 @@ class VidhubPresetEditPopup(Popup):
     def on_crosspoint_widget_dest(self, instance, value):
         old_widget = self.crosspoint_widgets.get(value)
         if old_widget is not None:
-            self.on_crosspoint_remove(widget=old_widget)
+            self.on_crosspoint_widget_remove(widget=old_widget)
         old_dest = None
         for dest, w in self.crosspoint_widgets.items():
             if w == instance:
