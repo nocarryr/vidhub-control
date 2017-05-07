@@ -84,7 +84,7 @@
 
 <VidhubPresetEditCrosspoint>:
     orientation: 'horizontal'
-    height: 40
+    height: '40dp'
     size_hint_y: None
     spacing: 4
     canvas:
@@ -105,14 +105,14 @@
             Label:
                 size_hint_x: .4
                 markup: True
-                text: 'Input {}\n[size=12]{}[/size]'.format(root.source+1, root.source_label)
+                text: 'Input {}\n[size=12sp]{}[/size]'.format(root.source+1, root.source_label)
             Label:
                 size_hint_x: .2
                 text: '->'
             Label:
                 size_hint_x: .4
                 markup: True
-                text: 'Output {}\n[size=12]{}[/size]'.format(root.dest+1, root.dest_label)
+                text: 'Output {}\n[size=12sp]{}[/size]'.format(root.dest+1, root.dest_label)
         Button:
             size_hint_x: .1
             text: 'Select\nOutput'
