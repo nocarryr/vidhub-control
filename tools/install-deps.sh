@@ -16,7 +16,7 @@ done
 # Build kivy wheel if not found so it can be cached
 if [ "$KIVY_BUILD_NEEDED" -gt 0 ] ; then
     echo "Building wheels..."
-    pip wheel --build-option build_ext -r requirements-test.txt --wheel-dir=build/
+    pip wheel --build-option build_ext -r vidhubcontrol/kivyui/requirements.txt --wheel-dir=build/
 fi
 
 # Install from pre-built wheels
