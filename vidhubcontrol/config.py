@@ -66,16 +66,26 @@ class Config(ConfigBase):
                 obj.bind(trigger_save=self.on_device_trigger_save)
         self.discovery_listener = None
         self.discovery_lock = asyncio.Lock()
+        self._start_fut = None
         if self.USE_DISCOVERY:
-            asyncio.ensure_future(self.start(), loop=self.loop)
+           fut = asyncio.ensure_future(self.start(), loop=self.loop)
+        else:
+           fut = None
+        self._start_fut = fut
     async def start(self):
         if not self.USE_DISCOVERY:
+            self._start_fut = None
+            self.running.set()
             return
+        if self.discovery_listener is not None:
+           await self.running.wait()
+           return
         self.discovery_listener = BMDDiscovery(self.loop)
         self.discovery_listener.bind(
             service_added=self.on_discovery_service_added,
         )
         await self.discovery_listener.start()
+        self._start_fut = None
         self.running.set()
     async def stop(self):
         self.running.clear()
