@@ -28,6 +28,7 @@ addons:
             - libgles2-mesa-dev
             - xvfb
             - pulseaudio
+            - xclip
 install:
     - ./tools/install-deps.sh
     - pip install -e .
