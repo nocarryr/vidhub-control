@@ -5,7 +5,7 @@ import pytest
 from vidhubcontrol.config import Config
 
 @pytest.mark.asyncio
-async def test_config_basic(tempconfig):
+async def test_config_basic(tempconfig, missing_netifaces):
     from vidhubcontrol.backends import DummyBackend
 
     config = Config.load(str(tempconfig))
@@ -106,7 +106,7 @@ async def test_config_discovery(tempconfig,
 
 
 @pytest.mark.asyncio
-async def test_config_devices(tempconfig):
+async def test_config_devices(tempconfig, missing_netifaces):
     from vidhubcontrol.backends import (
         DummyBackend, SmartViewDummyBackend, SmartScopeDummyBackend,
     )

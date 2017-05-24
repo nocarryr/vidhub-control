@@ -1,6 +1,5 @@
 import asyncio
 import ipaddress
-import netifaces
 
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty

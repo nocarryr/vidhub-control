@@ -4,7 +4,12 @@ import ipaddress
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
 
-import zeroconf
+try:
+    import zeroconf
+    ZEROCONF_AVAILABLE = True
+except ImportError: # pragma: no cover
+    zeroconf = None
+    ZEROCONF_AVAILABLE = False
 
 from vidhubcontrol.utils import find_ip_addresses
 
@@ -116,6 +121,8 @@ class Listener(Dispatcher):
                 if msg.info.id in self.services:
                     await self.remove_service_info(msg.info)
             elif isinstance(msg, PublishMessage):
+                if not ZEROCONF_AVAILABLE:
+                    continue
                 zc_info = msg.info.to_zc_info()
                 await self.mainloop.run_in_executor(
                     None, self.zeroconf.register_service,
@@ -129,6 +136,8 @@ class Listener(Dispatcher):
         self.message_queue.put_nowait(None)
         await self.stopped.wait()
     def run_zeroconf(self):
+        if not ZEROCONF_AVAILABLE:
+            return
         self.zeroconf = zeroconf.Zeroconf()
         self.zeroconf.listener = self
         self.browser = zeroconf.ServiceBrowser(self.zeroconf, self.service_type, self)
@@ -169,6 +178,8 @@ class Listener(Dispatcher):
             if _name is not None and _name != 'localhost':
                 name = _name
                 break
+        if name is None:
+            name = 'localhost'
         self._local_hostname = name
         return name
     async def publish_service(self, type_, port, name=None, addresses=None,

@@ -82,7 +82,7 @@ async def test_nodes():
 
 
 @pytest.mark.asyncio
-async def test_pubsub_nodes():
+async def test_pubsub_nodes(missing_netifaces):
     from pydispatch import Dispatcher, Property
     from vidhubcontrol.interfaces.osc import OscNode, PubSubOscNode, OSCUDPServer, OscDispatcher
 
@@ -300,7 +300,7 @@ async def test_pubsub_nodes():
     await server.stop()
 
 @pytest.mark.asyncio
-async def test_interface():
+async def test_interface(missing_netifaces):
     from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, OscDispatcher
     from vidhubcontrol.backends import DummyBackend
 
@@ -541,7 +541,7 @@ async def test_interface():
     await interface.stop()
 
 @pytest.mark.asyncio
-async def test_interface_config(tempconfig):
+async def test_interface_config(tempconfig, missing_netifaces):
     from vidhubcontrol.config import Config
     from vidhubcontrol.backends import DummyBackend
     from vidhubcontrol.interfaces.osc import OscInterface

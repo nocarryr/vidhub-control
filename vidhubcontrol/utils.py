@@ -1,8 +1,16 @@
 import ipaddress
-import netifaces
+try:
+    import netifaces
+    NETIFACES_AVAILABLE = True
+except ImportError: # pragma: no cover
+    netifaces = None
+    NETIFACES_AVAILABLE = False
 
 def find_ip_addresses(iface_name=None, exclude_loopback=True):
-    if iface_name is not None:
+    if not NETIFACES_AVAILABLE:
+        yield 'lo', ipaddress.IPv4Interface('127.0.0.1/8')
+        iface_names = []
+    elif iface_name is not None:
         iface_names = [iface_name]
     else:
         iface_names = netifaces.interfaces()
