@@ -6,7 +6,7 @@ import pytest
 KIVY_STALL_TIMEOUT = 90
 
 @pytest.fixture
-def kivy_app(tmpdir, monkeypatch):
+async def kivy_app(tmpdir, monkeypatch):
     vidhub_conf = tmpdir.join('vidhubcontrol.json')
     ui_conf = tmpdir.join('vidhubcontrol-ui.ini')
 
@@ -21,6 +21,7 @@ def kivy_app(tmpdir, monkeypatch):
     aio_loop.set_debug(True)
 
     class AppOverride(kivy_main.VidhubControlApp):
+        __events__ = ['on_aio_start']
         def get_application_config(self):
             return str(ui_conf)
 
@@ -63,7 +64,7 @@ def kivy_app(tmpdir, monkeypatch):
             self._aio_running = True
             self.dispatch('on_start')
             runTouchApp(self.root, slave=True)
-            self._aio_mainloop_future = asyncio.ensure_future(self._aio_mainloop())
+            self._aio_mainloop_future = asyncio.ensure_future(self._aio_mainloop(), loop=self.aio_loop)
 
         def stop(self):
             self.dispatch('on_stop')
@@ -104,6 +105,7 @@ def kivy_app(tmpdir, monkeypatch):
 
         async def _aio_mainloop(self):
             start_ts = self.aio_loop.time()
+            initial = True
             while not self._kv_loop.quit:
                 now = self.aio_loop.time()
                 if now >= start_ts + KIVY_STALL_TIMEOUT:
@@ -111,7 +113,13 @@ def kivy_app(tmpdir, monkeypatch):
                     raise KeyboardInterrupt()
                 self._kv_loop.idle()
                 await asyncio.sleep(0)
+                if initial:
+                    self.dispatch('on_aio_start')
+                    initial = False
             self._kv_loop.exit()
+
+        def on_aio_start(self, *args, **kwargs):
+            pass
 
     app = AppOverride()
     return app
@@ -120,6 +128,7 @@ def kivy_app(tmpdir, monkeypatch):
 def KvEventWaiter():
     class KvEventWaiter_(object):
         def __init__(self):
+            self._loop = asyncio.get_event_loop()
             self.aio_event = asyncio.Event()
         def bind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
@@ -135,6 +144,8 @@ def KvEventWaiter():
             self.bind(obj, *events)
             await self.wait()
         def kivy_callback(self, *args, **kwargs):
-            self.aio_event.set()
+            async def do_set():
+                self.aio_event.set()
+            asyncio.run_coroutine_threadsafe(do_set(), loop=self._loop)
 
     return KvEventWaiter_
