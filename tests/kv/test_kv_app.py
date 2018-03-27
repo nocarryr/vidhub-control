@@ -18,9 +18,9 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
     kv_waiter.bind(dropdown, 'btns')
     vidhub1 = await DummyBackend.create_async(device_id='dummy1', device_name='Dummy 1')
     vidhub2 = await DummyBackend.create_async(device_id='dummy2', device_name='Dummy 2')
-    config.add_vidhub(vidhub1)
+    await config.add_vidhub(vidhub1)
     await kv_waiter.wait()
-    config.add_vidhub(vidhub2)
+    await config.add_vidhub(vidhub2)
     await kv_waiter.wait()
     kv_waiter.unbind(dropdown, 'btns')
 

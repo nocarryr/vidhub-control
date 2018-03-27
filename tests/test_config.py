@@ -8,11 +8,11 @@ from vidhubcontrol.config import Config
 async def test_config_basic(tempconfig, missing_netifaces):
     from vidhubcontrol.backends import DummyBackend
 
-    config = Config.load(str(tempconfig))
+    config = await Config.load_async(str(tempconfig))
     await config.start()
 
     vidhub = await DummyBackend.create_async(device_id=None)
-    config.add_vidhub(vidhub)
+    await config.add_vidhub(vidhub)
     assert config.vidhubs[str(id(vidhub))].backend == vidhub
 
     vidhub.device_id = 'dummy1'
@@ -38,7 +38,7 @@ async def test_config_basic(tempconfig, missing_netifaces):
         'crosspoints':{0:12},
     }
 
-    config2 = Config.load(str(tempconfig))
+    config2 = await Config.load_async(str(tempconfig))
     await config2.start()
 
     attrs = config.vidhubs['dummy1']._conf_attrs
@@ -55,6 +55,7 @@ async def test_config_basic(tempconfig, missing_netifaces):
         assert getattr(preset8, attr) == getattr(preset8_2, attr)
 
     await config.stop()
+    await config2.stop()
 
 @pytest.mark.asyncio
 async def test_config_discovery(tempconfig,
@@ -79,7 +80,7 @@ async def test_config_discovery(tempconfig,
             return ev
     waiter = Waiter()
 
-    config = Config.load(str(tempconfig))
+    config = await Config.load_async(str(tempconfig))
     await config.start()
 
     waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
@@ -111,7 +112,7 @@ async def test_config_devices(tempconfig, missing_netifaces):
         DummyBackend, SmartViewDummyBackend, SmartScopeDummyBackend,
     )
 
-    config = Config.load(str(tempconfig))
+    config = await Config.load_async(str(tempconfig))
     await config.start()
 
     for i in range(3):
@@ -129,13 +130,13 @@ async def test_config_devices(tempconfig, missing_netifaces):
             device_name='smartscope{}'.format(i)
         )
         if i == 0:
-            config.add_vidhub(vidhub)
-            config.add_smartview(smartview)
-            config.add_smartscope(smartscope)
+            await config.add_vidhub(vidhub)
+            await config.add_smartview(smartview)
+            await config.add_smartscope(smartscope)
         else:
-            config.add_device(vidhub)
-            config.add_device(smartview)
-            config.add_device(smartscope)
+            await config.add_device(vidhub)
+            await config.add_device(smartview)
+            await config.add_device(smartscope)
 
     keys_expected = set(('dummy{}'.format(i) for i in range(3)))
     assert len(config.vidhubs) == len(config.smartviews) == len(config.smartscopes) == 3
@@ -148,7 +149,7 @@ async def test_config_devices(tempconfig, missing_netifaces):
     for smartscope in config.smartscopes.values():
         assert isinstance(smartscope.backend, SmartScopeDummyBackend)
 
-    config2 = Config.load(str(tempconfig))
+    config2 = await Config.load_async(str(tempconfig))
     await config2.start()
 
     assert len(config2.vidhubs) == len(config2.smartviews) == len(config2.smartscopes) == 3

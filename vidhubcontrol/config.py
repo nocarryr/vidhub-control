@@ -48,33 +48,50 @@ class Config(ConfigBase):
     }
     loop = None
     def __init__(self, **kwargs):
+        self.start_kwargs = kwargs.copy()
+        auto_start = kwargs.get('auto_start', True)
+        self.starting = asyncio.Event()
         self.running = asyncio.Event()
         self.stopped = asyncio.Event()
         self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
-        if self.loop is None:
-            Config.loop = kwargs.get('loop', asyncio.get_event_loop())
+        if 'loop' in kwargs:
+            Config.loop = kwargs['loop']
+        elif Config.loop is None:
+            Config.loop = asyncio.get_event_loop()
+        self.discovery_listener = None
+        self.discovery_lock = asyncio.Lock()
+        if auto_start:
+            self._start_fut = asyncio.ensure_future(self.start(**kwargs), loop=self.loop)
+        else:
+            async def _start_fut(config):
+                await config.running.wait()
+            self._start_fut = asyncio.ensure_future(_start_fut(self), loop=self.loop)
+    async def _initialize_backends(self, **kwargs):
         for key, d in self._device_type_map.items():
             items = kwargs.get(d['prop'], {})
             prop = getattr(self, d['prop'])
             for item_data in items.values():
-                obj = d['cls'](**item_data)
+                obj = await d['cls'].create(**item_data)
                 device_id = obj.device_id
                 if device_id is None:
                     device_id = str(id(obj.backend))
                 prop[device_id] = obj
                 obj.backend.bind(device_id=self.on_backend_device_id)
                 obj.bind(trigger_save=self.on_device_trigger_save)
-        self.discovery_listener = None
-        self.discovery_lock = asyncio.Lock()
-        self._start_fut = None
-        if self.USE_DISCOVERY:
-           fut = asyncio.ensure_future(self.start(), loop=self.loop)
-        else:
-           fut = None
-        self._start_fut = fut
-    async def start(self):
+    async def start(self, **kwargs):
+        if self.starting.is_set():
+            await self.running.wait()
+            return
+        if self.running.is_set():
+            return
+        self.starting.set()
+
+        self.start_kwargs.update(kwargs)
+        kwargs = self.start_kwargs
+
+        await self._initialize_backends(**kwargs)
         if not self.USE_DISCOVERY:
-            self._start_fut = None
+            self.starting.clear()
             self.running.set()
             return
         if self.discovery_listener is not None:
@@ -85,7 +102,7 @@ class Config(ConfigBase):
             service_added=self.on_discovery_service_added,
         )
         await self.discovery_listener.start()
-        self._start_fut = None
+        self.starting.clear()
         self.running.set()
     async def stop(self):
         self.running.clear()
@@ -101,7 +118,7 @@ class Config(ConfigBase):
             await smartscope.backend.disconnect()
         self.stopped.set()
         Config.loop = None
-    def build_backend(self, device_type, backend_name, **kwargs):
+    async def build_backend(self, device_type, backend_name, **kwargs):
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         for obj in prop.values():
             if obj.backend_name != backend_name:
@@ -112,23 +129,23 @@ class Config(ConfigBase):
                 return obj.backend
         cls = BACKENDS[device_type][backend_name]
         kwargs['event_loop'] = self.loop
-        backend = cls(**kwargs)
-        self.add_device(backend)
+        backend = await cls.create_async(**kwargs)
+        await self.add_device(backend)
         return backend
-    def add_vidhub(self, backend):
-        return self.add_device(backend)
-    def add_smartview(self, backend):
-        return self.add_device(backend)
-    def add_smartscope(self, backend):
-        return self.add_device(backend)
-    def add_device(self, backend):
+    async def add_vidhub(self, backend):
+        return await self.add_device(backend)
+    async def add_smartview(self, backend):
+        return await self.add_device(backend)
+    async def add_smartscope(self, backend):
+        return await self.add_device(backend)
+    async def add_device(self, backend):
         device_type = backend.device_type
         device_id = backend.device_id
         if device_id is None:
             device_id = str(id(backend))
         cls = self._device_type_map[device_type]['cls']
         prop = getattr(self, self._device_type_map[device_type]['prop'])
-        obj = cls.from_existing(backend)
+        obj = await cls.from_existing(backend)
         prop[device_id] = obj
         obj.bind(trigger_save=self.on_device_trigger_save)
         backend.bind(device_id=self.on_backend_device_id)
@@ -166,7 +183,7 @@ class Config(ConfigBase):
             if backend.device_id != device_id:
                 await backend.disconnect()
                 return
-            self.add_device(backend)
+            await self.add_device(backend)
     def on_discovery_service_added(self, info, **kwargs):
         if kwargs.get('class') not in ['Videohub', 'SmartView']:
             return
@@ -193,7 +210,7 @@ class Config(ConfigBase):
         with open(filename, 'w') as f:
             f.write(s)
     @classmethod
-    def load(cls, filename=None, **kwargs):
+    def _prepare_load_params(cls, filename=None, **kwargs):
         if filename is None:
             filename = cls.DEFAULT_FILENAME
         kwargs['filename'] = filename
@@ -202,7 +219,20 @@ class Config(ConfigBase):
             with open(filename, 'r') as f:
                 s = f.read()
             kwargs.update(jsonfactory.loads(s))
+        return kwargs
+    @classmethod
+    def load(cls, filename=None, **kwargs):
+        kwargs = cls._prepare_load_params(filename, **kwargs)
         return cls(**kwargs)
+    @classmethod
+    async def load_async(cls, filename=None, **kwargs):
+        kwargs = cls._prepare_load_params(filename, **kwargs)
+        kwargs['auto_start'] = False
+        config = cls(**kwargs)
+        await config.start()
+        await config._start_fut
+        return config
+
 
 class DeviceConfigBase(ConfigBase):
     backend = Property()
@@ -219,11 +249,15 @@ class DeviceConfigBase(ConfigBase):
         'device_id',
     ]
     def __init__(self, **kwargs):
+        self.loop = kwargs.get('event_loop', Config.loop)
+    @classmethod
+    async def create(cls, **kwargs):
+        self = cls(**kwargs)
         for attr in self._conf_attrs:
             setattr(self, attr, kwargs.get(attr))
         self.backend = kwargs.get('backend')
         if self.backend is None:
-            self.backend = self.build_backend(**self._get_conf_data())
+            self.backend = await self.build_backend(**self._get_conf_data())
         if self.backend.device_name != self.device_name:
             self.device_name = self.backend.device_name
         self.backend.bind(device_name=self.on_backend_prop_change)
@@ -232,8 +266,9 @@ class DeviceConfigBase(ConfigBase):
                 hostaddr=self.on_backend_prop_change,
                 hostport=self.on_backend_prop_change,
             )
+        return self
     @classmethod
-    def from_existing(cls, backend, **kwargs):
+    async def from_existing(cls, backend, **kwargs):
         d = dict(
             backend=backend,
             backend_name=backend.__class__.__name__,
@@ -244,12 +279,13 @@ class DeviceConfigBase(ConfigBase):
         )
         for key, val in d.items():
             kwargs.setdefault(key, val)
-        return cls(**kwargs)
-    def build_backend(self, cls=None, **kwargs):
-        kwargs.setdefault('event_loop', Config.loop)
+        kwargs['event_loop'] = backend.event_loop
+        return await cls.create(**kwargs)
+    async def build_backend(self, cls=None, **kwargs):
+        kwargs.setdefault('event_loop', self.loop)
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
-        return cls(**kwargs)
+        return await cls.create_async(**kwargs)
     def on_backend_prop_change(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         setattr(self, prop.name, value)
@@ -261,9 +297,10 @@ class VidhubConfig(DeviceConfigBase):
         'presets',
     ]
     device_type = 'vidhub'
-    def __init__(self, **kwargs):
+    @classmethod
+    async def create(cls, **kwargs):
         kwargs.setdefault('presets', [])
-        super().__init__(**kwargs)
+        self = await super().create(**kwargs)
         pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
         for preset in self.backend.presets:
             preset.bind(**pkwargs)
@@ -273,8 +310,9 @@ class VidhubConfig(DeviceConfigBase):
                 hostaddr=self.on_backend_prop_change,
                 hostport=self.on_backend_prop_change,
             )
+        return self
     @classmethod
-    def from_existing(cls, backend, **kwargs):
+    async def from_existing(cls, backend, **kwargs):
         kwargs.setdefault('presets', [])
         for preset in backend.presets:
             kwargs['presets'].append(dict(
@@ -282,10 +320,10 @@ class VidhubConfig(DeviceConfigBase):
                 index=preset.index,
                 crosspoints=preset.crosspoints.copy(),
             ))
-        return super().from_existing(backend, **kwargs)
-    def build_backend(self, cls=None, **kwargs):
+        return await super().from_existing(backend, **kwargs)
+    async def build_backend(self, cls=None, **kwargs):
         kwargs['presets'] = kwargs['presets'][:]
-        return super().build_backend(cls, **kwargs)
+        return await super().build_backend(cls, **kwargs)
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         self.presets.append(dict(

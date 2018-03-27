@@ -28,12 +28,13 @@ def runserver_scriptname(request):
 async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scriptname):
 
     # Build a config file to be read later in the subprocess
+    Config.loop = None
     Config.USE_DISCOVERY = False
-    config = Config.load(str(tempconfig))
+    config = await Config.load_async(str(tempconfig))
     await config.start()
 
     vidhub = await DummyBackend.create_async(device_id='dummy1')
-    config.add_vidhub(vidhub)
+    await config.add_vidhub(vidhub)
 
     xpts = [(i, 2) for i in range(vidhub.num_outputs)]
     await vidhub.set_crosspoints(*xpts)

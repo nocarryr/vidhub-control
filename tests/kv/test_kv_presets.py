@@ -14,7 +14,7 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     vidhub = await DummyBackend.create_async(device_id='dummy1', device_name='Dummy 1')
 
     kv_waiter.bind(kivy_app, 'vidhubs')
-    config.add_vidhub(vidhub)
+    await config.add_vidhub(vidhub)
     await kv_waiter.wait()
 
     kv_waiter.bind(kivy_app.root, 'active_widget')

@@ -12,7 +12,7 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
     config = kivy_app.vidhub_config
     async def build_vidhub(**kwargs):
         async def do_build(**kwargs_):
-            obj = config.build_backend('vidhub', 'DummyBackend', **kwargs_)
+            obj = await config.build_backend('vidhub', 'DummyBackend', **kwargs_)
             await obj.connect_fut
         kivy_app.run_async_coro(do_build(**kwargs))
 

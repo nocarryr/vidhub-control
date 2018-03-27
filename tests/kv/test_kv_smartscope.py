@@ -18,10 +18,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
 
     kv_waiter.bind(kivy_app, 'smartscopes')
     kv_waiter.bind(kivy_app, 'smartviews')
-    config.add_device(smartscope)
+    await config.add_device(smartscope)
     await kv_waiter.wait()
 
-    config.add_device(smartview)
+    await config.add_device(smartview)
     await kv_waiter.wait()
 
     smartview_widget = None

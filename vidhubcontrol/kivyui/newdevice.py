@@ -1,5 +1,4 @@
 import asyncio
-from functools import partial
 import ipaddress
 
 from kivy.properties import (
@@ -62,5 +61,4 @@ class NewDevicePopup(Popup):
         kw = {'hostaddr':self.ip_address, 'hostport':int(self.port)}
         if len(self.name):
             kw['device_name'] = self.name
-        p = partial(config.build_backend, self.device_type, backend_name, **kw)
-        config.loop.call_soon_threadsafe(p)
+        self.app.run_async_coro(config.build_backend(self.device_type, backend_name, **kw))

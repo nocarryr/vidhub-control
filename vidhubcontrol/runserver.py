@@ -37,7 +37,7 @@ def parse_args():
 
 async def start(loop, opts):
     Config.loop = loop
-    config = Config.load(opts.config_filename)
+    config = await Config.load_async(opts.config_filename)
     await config.start()
     logger.debug('Config started')
     interfaces = []

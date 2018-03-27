@@ -553,7 +553,7 @@ async def test_interface_config(tempconfig, missing_netifaces):
     await interface.start()
 
     vidhub = await DummyBackend.create_async(device_id='foo')
-    config.add_vidhub(vidhub)
+    await config.add_vidhub(vidhub)
 
     while 'foo' not in interface.vidhubs:
         await asyncio.sleep(.1)
