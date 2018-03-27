@@ -1,0 +1,15 @@
+[ver:1,total:2370]
+vidhubcontrol/kivyui/main.py:1190,1522162800:382,1522166400:376,1522170000:152,1522173600:280,r
+tests/conftest.py:420,1518717600:240,1522076400:140,1522162800:20,1522173600:20,r
+vidhubcontrol/aiotelnetlib.py:180,1518717600:180,r
+vidhubcontrol/backends/dummy.py:139,1522069200:20,1522166400:119,r
+vidhubcontrol/discovery.py:120,1522076400:120,r
+tests/kv/newconftest.txt:104,1522173600:104,r
+vidhubcontrol/interfaces/osc/interface.py:40,1522076400:40,r
+tests/test_telnet_backend.py:32,1522173600:32,r
+tests/test_prop_setters.py:30,1522162800:30,r
+vidhubcontrol/kivyui/requirements.txt:30,1522162800:30,r
+.gitignore:30,1522069200:30,m
+vidhubcontrol/kivyui/newdevice.kv:20,1522173600:20,r
+tests/utils.py:20,1522173600:20,r
+vidhubcontrol/kivyui/smartview.py:15,1522162800:15,r
