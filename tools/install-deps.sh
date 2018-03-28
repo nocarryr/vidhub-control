@@ -3,7 +3,7 @@ KIVY_WHEEL_GLOB="build/Kivy-*linux_x86_64.whl"
 KIVY_BUILD_NEEDED=1
 
 pip install -U pip setuptools wheel
-pip install -U Cython>=0.23
+pip install -U Cython==0.25.2
 
 # Find cached wheel for kivy
 for file in $KIVY_WHEEL_GLOB ; do
