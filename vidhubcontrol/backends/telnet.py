@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import string
+import errno
 
 from pydispatch import Property
 
@@ -37,6 +38,7 @@ class TelnetBackendBase(object):
             except Exception as e:
                 self.client = None
                 self.read_enabled = False
+                self._catch_exception(e)
                 self.connected = False
                 logger.error(e)
                 return
@@ -57,6 +59,7 @@ class TelnetBackendBase(object):
             await c.write(data)
         except Exception as e:
             self.client = None
+            self._catch_exception(e)
             self.connected = False
             logger.error(e)
     async def do_connect(self):
@@ -67,6 +70,7 @@ class TelnetBackendBase(object):
         except OSError as e:
             logger.error(e)
             self.client = None
+            self._catch_exception(e)
             return False
         self.prelude_parsed = False
         self.read_enabled = True
@@ -122,6 +126,12 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
+    def _catch_exception(self, e):
+        super()._catch_exception(e)
+        if isinstance(e, OSError):
+            err = e.args[0]
+            if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
+                self.connection_unavailable = True
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -344,8 +354,20 @@ class SmartViewTelnetBackend(SmartViewTelnetBackendBase, SmartViewBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
+    def _catch_exception(self, e):
+        super()._catch_exception(e)
+        if isinstance(e, OSError):
+            err = e.args[0]
+            if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
+                self.connection_unavailable = True
 
 class SmartScopeTelnetBackend(SmartViewTelnetBackendBase, SmartScopeBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
+    def _catch_exception(self, e):
+        super()._catch_exception(e)
+        if isinstance(e, OSError):
+            err = e.args[0]
+            if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
+                self.connection_unavailable = True

@@ -1,5 +1,6 @@
 import os
 import asyncio
+import errno
 
 import pytest
 
@@ -23,6 +24,9 @@ def get_smartscope_preamble():
         s = f.read()
     assert type(s) is bytes
     return s
+
+TELNET_HOSTADDR_GOOD = '127.0.0.1'
+TELNET_HOSTADDR_BAD = '0.0.0.0'
 
 VIDHUB_PREAMBLE = get_vidhub_preamble()
 VIDHUB_DEVICE_ID = 'a0b2c3d4e5f6'
@@ -136,6 +140,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
         def __init__(self, host=None, port=None, timeout=None, loop=None):
+            self.host = host
             self.port = port
             self.loop = loop
             self.rx_bfr = b''
@@ -158,6 +163,9 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
             if self.port is None:
                 self.port = port
             self.port
+            if self.host == TELNET_HOSTADDR_BAD:
+                # Raise a fake 'Connect call failed' exception
+                raise OSError(errno.EHOSTUNREACH, (self.host, self.port))
             if not loop and not self.loop:
                 loop = self.loop = asyncio.get_event_loop()
             async with self.tx_lock:

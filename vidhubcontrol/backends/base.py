@@ -10,6 +10,10 @@ class BackendBase(Dispatcher):
     device_id = Property()
     device_version = Property()
     connected = Property(False)
+    connection_error = Property(False)
+    exception_type = Property(None)
+    exception_info = Property(None)
+    connection_unavailable = Property(False)
     running = Property(False)
     prelude_parsed = Property(False)
     def __init__(self, **kwargs):
@@ -23,7 +27,9 @@ class BackendBase(Dispatcher):
     async def create_async(cls, **kwargs):
         obj = cls(**kwargs)
         await obj.connect_fut
-        if not obj.connected or not obj.prelude_parsed:
+        if obj.connection_error:
+            return obj
+        elif not obj.connected or not obj.prelude_parsed:
             return None
         return obj
     async def connect(self):
@@ -32,6 +38,7 @@ class BackendBase(Dispatcher):
         self.connected = True
         r = await self.do_connect()
         if r is False:
+            self.connection_error = True
             self.connected = False
         else:
             if self.client is not None:
@@ -43,6 +50,13 @@ class BackendBase(Dispatcher):
         await self.do_disconnect()
         self.client = None
         self.connected = False
+    def _catch_exception(self, e):
+        self.exception_type = e.__class__
+        try:
+            self.exception_info = e.args
+        except:
+            self.exception_info = str(e)
+        self.connection_error = True
     async def do_connect(self):
         raise NotImplementedError()
     async def do_disconnect(self):

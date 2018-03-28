@@ -66,18 +66,37 @@ class Config(ConfigBase):
             async def _start_fut(config):
                 await config.running.wait()
             self._start_fut = asyncio.ensure_future(_start_fut(self), loop=self.loop)
+    def id_for_device(self, device):
+        if not isinstance(device, DeviceConfigBase):
+            prop = getattr(self, self._device_type_map[device.device_type]['prop'])
+            obj = None
+            for _obj in prop.values():
+                if _obj.backend is device:
+                    obj = _obj
+                    break
+            if obj is None:
+                raise Exception('Could not find device {!r}'.format(device))
+            else:
+                device = obj
+        if device.device_id is not None:
+            return device.device_id
+        return str(id(device))
     async def _initialize_backends(self, **kwargs):
         for key, d in self._device_type_map.items():
             items = kwargs.get(d['prop'], {})
             prop = getattr(self, d['prop'])
             for item_data in items.values():
-                obj = await d['cls'].create(**item_data)
+                okwargs = item_data.copy()
+                okwargs['config'] = self
+                obj = await d['cls'].create(**okwargs)
                 device_id = obj.device_id
                 if device_id is None:
-                    device_id = str(id(obj.backend))
+                    device_id = self.id_for_device(obj)
                 prop[device_id] = obj
-                obj.backend.bind(device_id=self.on_backend_device_id)
-                obj.bind(trigger_save=self.on_device_trigger_save)
+                obj.bind(
+                    device_id=self.on_backend_device_id,
+                    trigger_save=self.on_device_trigger_save,
+                )
     async def start(self, **kwargs):
         if self.starting.is_set():
             await self.running.wait()
@@ -130,6 +149,8 @@ class Config(ConfigBase):
         cls = BACKENDS[device_type][backend_name]
         kwargs['event_loop'] = self.loop
         backend = await cls.create_async(**kwargs)
+        if backend.backend_unavailable:
+            return None
         await self.add_device(backend)
         return backend
     async def add_vidhub(self, backend):
@@ -140,27 +161,32 @@ class Config(ConfigBase):
         return await self.add_device(backend)
     async def add_device(self, backend):
         device_type = backend.device_type
-        device_id = backend.device_id
-        if device_id is None:
-            device_id = str(id(backend))
         cls = self._device_type_map[device_type]['cls']
         prop = getattr(self, self._device_type_map[device_type]['prop'])
-        obj = await cls.from_existing(backend)
-        prop[device_id] = obj
-        obj.bind(trigger_save=self.on_device_trigger_save)
-        backend.bind(device_id=self.on_backend_device_id)
+        if backend.device_id is not None and backend.device_id in prop:
+            obj = prop[backend.device_id]
+            obj.backend = backend
+        else:
+            obj = await cls.from_existing(backend, config=self)
+        if obj.device_id is None:
+            obj.device_id = self.id_for_device(obj)
+        prop[obj.device_id] = obj
+        obj.bind(
+            trigger_save=self.on_device_trigger_save,
+            device_id=self.on_backend_device_id,
+        )
         self.save()
     def on_backend_device_id(self, backend, value, **kwargs):
         if value is None:
             return
+        old = kwargs.get('old')
         prop = getattr(self, self._device_type_map[backend.device_type]['prop'])
-        obj = prop[str(id(backend))]
-        obj.device_id = value
-        del prop[str(id(backend))]
+        if old in prop:
+            del prop[old]
         if value in prop:
             self.save()
             return
-        prop[value] = obj
+        prop[value] = backend
         self.save()
     async def add_discovered_device(self, device_type, info, device_id):
         async with self.discovery_lock:
@@ -171,7 +197,9 @@ class Config(ConfigBase):
                     cls = _cls
                     break
             if device_id in prop:
-                return
+                obj = prop[device_id]
+                if not obj.backend_unavailable:
+                    return
             addr = str(info.address)
             backend = await cls.create_async(
                 hostaddr=addr,
@@ -193,8 +221,10 @@ class Config(ConfigBase):
             return
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         if device_id in prop:
-            return
-        asyncio.ensure_future(self.add_discovered_device(device_type, info, device_id))
+            obj = prop[device_id]
+            if not obj.backend_unavailable:
+                return
+        asyncio.run_coroutine_threadsafe(self.add_discovered_device(device_type, info, device_id), loop=self.loop)
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
@@ -235,12 +265,14 @@ class Config(ConfigBase):
 
 
 class DeviceConfigBase(ConfigBase):
+    config = Property()
     backend = Property()
     backend_name = Property()
     hostaddr = Property()
     hostport = Property(9990)
     device_name = Property()
     device_id = Property()
+    backend_unavailable = Property(False)
     _conf_attrs = [
         'backend_name',
         'hostaddr',
@@ -249,6 +281,8 @@ class DeviceConfigBase(ConfigBase):
         'device_id',
     ]
     def __init__(self, **kwargs):
+        self.config = kwargs.get('config')
+        self.bind(backend=self.on_backend_set)
         self.loop = kwargs.get('event_loop', Config.loop)
     @classmethod
     async def create(cls, **kwargs):
@@ -258,14 +292,6 @@ class DeviceConfigBase(ConfigBase):
         self.backend = kwargs.get('backend')
         if self.backend is None:
             self.backend = await self.build_backend(**self._get_conf_data())
-        if self.backend.device_name != self.device_name:
-            self.device_name = self.backend.device_name
-        self.backend.bind(device_name=self.on_backend_prop_change)
-        if hasattr(self.backend, 'hostport'):
-            self.backend.bind(
-                hostaddr=self.on_backend_prop_change,
-                hostport=self.on_backend_prop_change,
-            )
         return self
     @classmethod
     async def from_existing(cls, backend, **kwargs):
@@ -285,11 +311,50 @@ class DeviceConfigBase(ConfigBase):
         kwargs.setdefault('event_loop', self.loop)
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
-        return await cls.create_async(**kwargs)
+        backend = await cls.create_async(**kwargs)
+        if backend is not None:
+            if backend.connection_unavailable:
+                self.backend_unavailable = True
+                backend = None
+        return backend
     def on_backend_prop_change(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         setattr(self, prop.name, value)
         self.emit('trigger_save')
+    def on_backend_set(self, instance, backend, **kwargs):
+        old = kwargs.get('old')
+        if old is not None:
+            old.unbind(self)
+        if backend is None:
+            return
+        if self.backend.device_name != self.device_name:
+            self.device_name = self.backend.device_name
+        if backend.device_id is None:
+            if self.device_id is not None:
+                self.device_id = self.config.id_for_device(self)
+        else:
+            self.device_id = backend.device_id
+        backend.bind(
+            device_name=self.on_backend_prop_change,
+            device_id=self._on_backend_device_id,
+        )
+        if hasattr(backend, 'hostport'):
+            if backend.connected:
+                self.hostaddr = backend.hostaddr
+                self.hostport = backend.hostport
+            backend.bind(
+                hostaddr=self.on_backend_prop_change,
+                hostport=self.on_backend_prop_change,
+            )
+    def _on_backend_device_id(self, backend, value, **kwargs):
+        if backend is not self.backend:
+            return
+        if backend.device_id is None:
+            if self.device_id is not None:
+                self.device_id = self.config.id_for_device(self)
+        else:
+            self.device_id = backend.device_id
+
 
 class VidhubConfig(DeviceConfigBase):
     presets = ListProperty()
@@ -301,15 +366,6 @@ class VidhubConfig(DeviceConfigBase):
     async def create(cls, **kwargs):
         kwargs.setdefault('presets', [])
         self = await super().create(**kwargs)
-        pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
-        for preset in self.backend.presets:
-            preset.bind(**pkwargs)
-        self.backend.bind(on_preset_added=self.on_preset_added)
-        if hasattr(self.backend, 'hostport'):
-            self.backend.bind(
-                hostaddr=self.on_backend_prop_change,
-                hostport=self.on_backend_prop_change,
-            )
         return self
     @classmethod
     async def from_existing(cls, backend, **kwargs):
@@ -324,6 +380,14 @@ class VidhubConfig(DeviceConfigBase):
     async def build_backend(self, cls=None, **kwargs):
         kwargs['presets'] = kwargs['presets'][:]
         return await super().build_backend(cls, **kwargs)
+    def on_backend_set(self, instance, backend, **kwargs):
+        super().on_backend_set(instance, backend, **kwargs)
+        if self.backend is None:
+            return
+        pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
+        for preset in self.backend.presets:
+            preset.bind(**pkwargs)
+        self.backend.bind(on_preset_added=self.on_preset_added)
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         self.presets.append(dict(
