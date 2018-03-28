@@ -22,7 +22,7 @@ addons:
             - libavcodec-dev
             - libjpeg-dev
             - libtiff4-dev
-            - libX11-dev
+            - libx11-dev
             - libmtdev-dev
             - libgl1-mesa-dev
             - libgles2-mesa-dev
