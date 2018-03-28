@@ -149,7 +149,7 @@ class Config(ConfigBase):
         cls = BACKENDS[device_type][backend_name]
         kwargs['event_loop'] = self.loop
         backend = await cls.create_async(**kwargs)
-        if backend.backend_unavailable:
+        if backend.connection_unavailable:
             return None
         await self.add_device(backend)
         return backend
