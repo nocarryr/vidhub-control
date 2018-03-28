@@ -90,6 +90,9 @@ class PublishMessage(Message):
         super().__init__(info)
         self.ttl = ttl
 
+class UnPublishMessage(Message):
+    pass
+
 class Listener(Dispatcher):
     _events_ = ['service_added', 'service_removed']
     services = DictProperty()
@@ -127,6 +130,11 @@ class Listener(Dispatcher):
                 await self.mainloop.run_in_executor(
                     None, self.zeroconf.register_service,
                     zc_info, msg.ttl,
+                )
+            elif isinstance(msg, UnPublishMessage):
+                zc_info = msg.info.to_zc_info()
+                await self.mainloop.run_in_executor(
+                    None, self.zeroconf.unregister_service, zc_info,
                 )
         await self.mainloop.run_in_executor(None, self.stop_zeroconf)
         self.stopped.set()
@@ -208,6 +216,32 @@ class Listener(Dispatcher):
                 continue
             self.published_services[info.id][info.address] = info
             msg = PublishMessage(info, ttl)
+            asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
+    async def unpublish_service(self, type_, port, name=None, addresses=None, properties=None):
+        hostname = await self.get_local_hostname()
+        if name is None:
+            name = '.'.join([hostname, type_])
+        if addresses is None:
+            addresses = await self.get_local_ifaces()
+        if properties is None:
+            properties = {}
+        info_kwargs = {
+            'type':type_,
+            'port':port,
+            'name':name,
+            'properties':properties,
+        }
+        for addr in addresses:
+            if not isinstance(addr, ipaddress.IPv4Address):
+                addr = ipaddress.IPv4Address(addr)
+            info_kwargs['address'] = addr
+            info = ServiceInfo(**info_kwargs)
+            if info.id not in self.published_services:
+                continue
+            if info.address not in self.published_services[info.id]:
+                continue
+            del self.published_services[info.id][info.address]
+            msg = PublishMessage(info)
             asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
 
 class BMDDiscovery(Listener):
