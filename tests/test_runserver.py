@@ -3,6 +3,7 @@ import sys
 import shlex
 import asyncio
 import signal
+import threading
 
 import pytest
 
@@ -92,72 +93,99 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
         pid_str = pid_fh.read()
     assert int(pid_str) == int(proc.pid)
 
-    client_node = OscNode('vidhubcontrol')
-    client_dispatcher = OscDispatcher()
-    client_node.osc_dispatcher = client_dispatcher
-    client_addr = (str(HOST_IFACE.ip), osc_client_port)
-    client = OSCUDPServer(client_addr, client_dispatcher)
+    async def test_client_ops():
+        client_node = OscNode('vidhubcontrol')
+        client_dispatcher = OscDispatcher()
+        client_node.osc_dispatcher = client_dispatcher
+        client_addr = (str(HOST_IFACE.ip), osc_client_port)
+        client = OSCUDPServer(client_addr, client_dispatcher)
 
-    server_addr = (str(HOST_IFACE.ip), osc_server_port)
+        server_addr = (str(HOST_IFACE.ip), osc_server_port)
 
-    print('starting client')
-    await client.start()
+        print('starting client')
+        await client.start()
 
-    vidhub_node = client_node.add_child('vidhubs/by-id/dummy1')
+        vidhub_node = client_node.add_child('vidhubs/by-id/dummy1')
 
-    node_messages = []
-    node_message_rx = asyncio.Event()
-    def on_node_msg(node, client_addr, *messages):
-        print(node, client_addr, messages)
-        node_messages.append((node, messages))
-        node_message_rx.set()
+        node_messages = []
+        node_message_rx = asyncio.Event()
+        def on_node_msg(node, client_addr, *messages):
+            print(node, client_addr, messages)
+            node_messages.append((node, messages))
+            node_message_rx.set()
 
-    client_node.bind(on_tree_message_received=on_node_msg)
+        client_node.bind(on_tree_message_received=on_node_msg)
 
-    # TODO: this fails in OscInterface. Need to add test and debug
-    # info_node = vidhub_node.add_child('info')
-    # info_node.ensure_message(server_addr)
-    #
-    # await node_message_rx.wait()
-    # node_message_rx.clear()
+        # TODO: this fails in OscInterface. Need to add test and debug
+        # info_node = vidhub_node.add_child('info')
+        # info_node.ensure_message(server_addr)
+        #
+        # await node_message_rx.wait()
+        # node_message_rx.clear()
 
-    print('setting crosspoints')
-    for i in range(12):
-        n = vidhub_node.add_child('crosspoints/{}'.format(i))
-        n.ensure_message(server_addr, 0)
+        print('setting crosspoints')
+        for i in range(12):
+            n = vidhub_node.add_child('crosspoints/{}'.format(i))
+            n.ensure_message(server_addr, 0)
+            await asyncio.sleep(.1)
+            n.ensure_message(server_addr)
+            await node_message_rx.wait()
+            node_message_rx.clear()
+            messages = node_messages[-1][1]
+            assert messages[0] == 0
+
+        print('recalling preset 0')
+        n = vidhub_node.add_child('presets/0/recall')
+        n.ensure_message(server_addr)
         await asyncio.sleep(.1)
+
+        print('checking preset 0 active')
+        n = vidhub_node.add_child('presets/0/active')
         n.ensure_message(server_addr)
         await node_message_rx.wait()
         node_message_rx.clear()
         messages = node_messages[-1][1]
-        assert messages[0] == 0
-
-    print('recalling preset 0')
-    n = vidhub_node.add_child('presets/0/recall')
-    n.ensure_message(server_addr)
-    await asyncio.sleep(.1)
-
-    print('checking preset 0 active')
-    n = vidhub_node.add_child('presets/0/active')
-    n.ensure_message(server_addr)
-    await node_message_rx.wait()
-    node_message_rx.clear()
-    messages = node_messages[-1][1]
-    assert messages[0]
-    # TODO: this should be "is True" might be an issue with the OSC type tag
-    # assert messages[0] is True
+        assert messages[0]
+        # TODO: this should be "is True" might be an issue with the OSC type tag
+        # assert messages[0] is True
 
 
-    print('checking preset crosspoints')
-    for i in range(12):
-        n = vidhub_node.find('crosspoints/{}'.format(i))
-        n.ensure_message(server_addr)
-        await node_message_rx.wait()
-        node_message_rx.clear()
-        messages = node_messages[-1][1]
-        assert messages[0] == 2
+        print('checking preset crosspoints')
+        for i in range(12):
+            n = vidhub_node.find('crosspoints/{}'.format(i))
+            n.ensure_message(server_addr)
+            await node_message_rx.wait()
+            node_message_rx.clear()
+            messages = node_messages[-1][1]
+            assert messages[0] == 2
 
-    await client.stop()
+        await client.stop()
+    if sys.platform == 'win32':
+        class TestThread(threading.Thread):
+            def __init__(self):
+                super().__init__()
+                self.parent_loop = asyncio.get_event_loop()
+                self.running = False
+                self.stopped = asyncio.Event()
+                self.exc_info = None
+            def run(self):
+                self.running = True
+                self.loop = asyncio.SelectorEventLoop()
+                asyncio.set_event_loop(self.loop)
+                try:
+                    self.loop.run_until_complete(test_client_ops())
+                except Exception as e:
+                    self.exc_info = e
+                asyncio.run_coroutine_threadsafe(self.stop(), self.parent_loop)
+            async def stop(self):
+                self.stopped.set()
+        t = TestThread()
+        t.start()
+        await t.stopped.wait()
+        if t.exc_info is not None:
+            raise t.exc_info
+    else:
+        await test_client_ops()
 
     print('shutting down subprocess')
     proc.send_signal(signal.SIGINT)
