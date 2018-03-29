@@ -96,7 +96,14 @@ async def stop(config, interfaces):
 async def run(loop, opts):
     config, interfaces = await start(loop, opts)
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, on_sigint, config, interfaces)
+        try:
+            loop.add_signal_handler(sig, on_sigint, config, interfaces)
+        except NotImplementedError:
+            async def wakeup():
+                while config.running.is_set():
+                    await asyncio.sleep(.1)
+            signal.signal(sig, partial(on_sigint, config, interfaces))
+            asyncio.ensure_future(wakeup())
     logger.info('Ready')
     await config.stopped.wait()
 
