@@ -33,7 +33,7 @@ def event_loop():
 
 if sys.platform == 'win32':
     POSIX = False
-    SCRIPT_PARAMS = ['%PYTHON%\\python.exe {}'.format(os.path.join('vidhubcontrol', 'runserver.py'))]
+    SCRIPT_PARAMS = [' '.join([sys.executable, SCRIPT_PATH])]
 else:
     POSIX = True
     SCRIPT_PARAMS = [SCRIPT_PATH, ENTRY_POINT]
@@ -64,6 +64,12 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
 
     osc_server_port = 9000
     osc_client_port = 9001
+
+    if sys.platform == 'win32':
+        print('sys.executable="{}", SCRIPT_PATH="{}"'.format(sys.executable, SCRIPT_PATH))
+        assert os.path.exists(sys.executable)
+        assert os.path.exists(SCRIPT_PATH)
+        assert os.path.exists(str(tempconfig))
 
     cmd_str = '{} --config {} --osc-address {} --osc-port {}'.format(
         runserver_scriptname, tempconfig, HOST_IFACE.ip, osc_server_port)
