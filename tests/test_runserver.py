@@ -6,6 +6,7 @@ import signal
 import pytest
 
 import vidhubcontrol
+from vidhubcontrol.runserver import PID_FILENAME
 from vidhubcontrol.utils import find_ip_addresses
 from vidhubcontrol.config import Config
 from vidhubcontrol.backends import DummyBackend
@@ -57,10 +58,16 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
 
     while True:
         line = await proc.stdout.readline()
+        if not len(line):
+            raise Exception('process terminated')
         print(repr(line))
         if b'Ready' in line:
             break
     print('subprocess ready')
+
+    with open(PID_FILENAME, 'r') as pid_fh:
+        pid_str = pid_fh.read()
+    assert int(pid_str) == int(proc.pid)
 
     client_node = OscNode('vidhubcontrol')
     client_dispatcher = OscDispatcher()
@@ -132,5 +139,11 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
     print('shutting down subprocess')
     proc.send_signal(signal.SIGINT)
     err = await proc.wait()
+    if err != 0:
+        while True:
+            line = await proc.stdout.readline()
+            if not len(line):
+                break
+            print(repr(line))
 
     assert err == 0

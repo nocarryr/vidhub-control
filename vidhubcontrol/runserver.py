@@ -1,12 +1,42 @@
 #! /usr/bin/env python
 
 import os
+import sys
+import tempfile
 import signal
 import asyncio
 import argparse
 import logging
 
-from pid import PidFile
+from pidfile import PIDFile
+
+if sys.platform == 'win32':
+    PIDPATH = os.path.join(os.env['APPDATA'], 'vidhubcontrol')
+    if not os.path.exists(PIDPATH):
+        os.makedirs(PIDPATH)
+else:
+    PIDPATH = tempfile.gettempdir()
+PID_FILENAME = os.path.join(PIDPATH, 'vidhubcontrol-server.pid')
+
+class PIDFileWrapper(PIDFile):
+    @property
+    def filename(self):
+        return self._PIDFile__file
+    @property
+    def checked(self):
+        return self._PIDFile__checked
+    @checked.setter
+    def checked(self, value):
+        self._PIDFile__checked = value
+    def __enter__(self):
+        super().__enter__()
+        self.checked = True
+        return self
+    def __exit__(self, *args):
+        super().__exit__(*args)
+        if self.checked and os.path.exists(self.filename):
+            os.unlink(self.filename)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,11 +105,20 @@ def on_sigint(config, interfaces):
     asyncio.ensure_future(stop(config, interfaces))
 
 def main():
-    with PidFile(pidname='vidhubcontrolserver.pid', force_tmpdir=True) as pf:
+    with PIDFileWrapper(PID_FILENAME):
         opts = parse_args()
         loop = asyncio.get_event_loop()
         logger.info('Running server. Press CTRL+c to exit')
         loop.run_until_complete(run(loop, opts))
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+        sys.exit(0)
+    except RuntimeError as e:
+        if 'program already running' in str(e).lower():
+            print('vidhub-control server already running')
+            # EX_OSERR        71      /* system error (e.g., can't fork) */
+            sys.exit(71)
+        else:
+            raise
