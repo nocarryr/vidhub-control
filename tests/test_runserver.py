@@ -32,8 +32,10 @@ def event_loop():
     loop.close()
 
 if sys.platform == 'win32':
+    POSIX = False
     SCRIPT_PARAMS = ['%PYTHON%\\python.exe {}'.format(os.path.join('vidhubcontrol', 'runserver.py'))]
 else:
+    POSIX = True
     SCRIPT_PARAMS = [SCRIPT_PATH, ENTRY_POINT]
 
 @pytest.fixture(params=SCRIPT_PARAMS)
@@ -66,7 +68,7 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
     cmd_str = '{} --config {} --osc-address {} --osc-port {}'.format(
         runserver_scriptname, tempconfig, HOST_IFACE.ip, osc_server_port)
     print('running subprocess: "{}"'.format(cmd_str))
-    proc = await asyncio.create_subprocess_exec(*shlex.split(cmd_str),
+    proc = await asyncio.create_subprocess_exec(*shlex.split(cmd_str, posix=POSIX),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
 
     print('subprocess started')
