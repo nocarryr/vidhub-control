@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import errno
 
@@ -45,6 +46,15 @@ PREAMBLES = {
     'smartview':SMARTVIEW_PREAMBLE,
     'smartscope':SMARTSCOPE_PREAMBLE,
 }
+
+@pytest.yield_fixture
+def event_loop():
+    if sys.platform == 'win32':
+        loop = asyncio.ProactorEventLoop()
+    else:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 @pytest.fixture
 def vidhub_telnet_responses():
