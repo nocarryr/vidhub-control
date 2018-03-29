@@ -1,4 +1,5 @@
 import os
+import sys
 import shlex
 import asyncio
 import signal
@@ -20,6 +21,15 @@ ENTRY_POINT = 'vidhubcontrol-server'
 for iface_name, iface in find_ip_addresses():
     HOST_IFACE = iface
     break
+
+@pytest.yield_fixture
+def event_loop():
+    if sys.platform == 'win32':
+        loop = asyncio.ProactorEventLoop()
+    else:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 @pytest.fixture(params=[SCRIPT_PATH, ENTRY_POINT])
 def runserver_scriptname(request):
