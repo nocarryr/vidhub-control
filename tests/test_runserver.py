@@ -32,7 +32,7 @@ def event_loop():
     loop.close()
 
 if sys.platform == 'win32':
-    SCRIPT_PARAMS = [ENTRY_POINT]
+    SCRIPT_PARAMS = [os.extsep.join([ENTRY_POINT, 'exe'])]
 else:
     SCRIPT_PARAMS = [SCRIPT_PATH, ENTRY_POINT]
 
