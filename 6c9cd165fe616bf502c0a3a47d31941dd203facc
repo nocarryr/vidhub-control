@@ -1,0 +1,4 @@
+[ver:1,total:600]
+tests/test_runserver.py:400,1522339200:400,m
+setup.py:180,1522339200:180,r
+appveyor.yml:20,1522339200:20,r
