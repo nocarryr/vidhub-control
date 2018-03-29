@@ -7,6 +7,7 @@ import signal
 import asyncio
 import argparse
 import logging
+from functools import partial
 
 from pidfile import PIDFile
 
