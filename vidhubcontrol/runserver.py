@@ -11,7 +11,7 @@ import logging
 from pidfile import PIDFile
 
 if sys.platform == 'win32':
-    PIDPATH = os.path.join(os.env['APPDATA'], 'vidhubcontrol')
+    PIDPATH = os.path.join(os.environ['APPDATA'], 'vidhubcontrol')
     if not os.path.exists(PIDPATH):
         os.makedirs(PIDPATH)
 else:
