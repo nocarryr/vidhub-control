@@ -31,7 +31,12 @@ def event_loop():
     yield loop
     loop.close()
 
-@pytest.fixture(params=[SCRIPT_PATH, ENTRY_POINT])
+if sys.platform == 'win32':
+    SCRIPT_PARAMS = [ENTRY_POINT]
+else:
+    SCRIPT_PARAMS = [SCRIPT_PATH, ENTRY_POINT]
+
+@pytest.fixture(params=SCRIPT_PARAMS)
 def runserver_scriptname(request):
     return request.param
 
