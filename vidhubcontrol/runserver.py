@@ -96,17 +96,21 @@ async def stop(config, interfaces):
 
 async def run(loop, opts):
     config, interfaces = await start(loop, opts)
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        try:
+    if sys.platform == 'win32':
+        async def wakeup():
+            if config.running.is_set():
+                await asyncio.sleep(.1)
+                await wakeup()
+        signal.signal(signal.SIGINT, partial(on_sigint, config, interfaces))
+        wakup_fut = asyncio.ensure_future(wakeup())
+        logger.info('ready')
+        await config.stopped.wait()
+        await wakeup_fut
+    else:
+        for sig in [signal.SIGINT, signal.SIGTERM]:
             loop.add_signal_handler(sig, on_sigint, config, interfaces)
-        except NotImplementedError:
-            async def wakeup():
-                while config.running.is_set():
-                    await asyncio.sleep(.1)
-            signal.signal(sig, partial(on_sigint, config, interfaces))
-            asyncio.ensure_future(wakeup())
-    logger.info('Ready')
-    await config.stopped.wait()
+        logger.info('Ready')
+        await config.stopped.wait()
 
 def on_sigint(config, interfaces):
     logger.info('Exiting...')
