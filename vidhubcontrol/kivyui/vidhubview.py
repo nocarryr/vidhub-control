@@ -1,4 +1,4 @@
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.properties import (
     ObjectProperty,
     NumericProperty,
@@ -67,10 +67,13 @@ class VidhubWidget(BoxLayout):
             self.vidhub = value
         else:
             self.vidhub = None
+    @mainthread
     def on_vidhub_connected(self, instance, value, **kwargs):
         self.connected = value
+    @mainthread
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.name = value
+    @mainthread
     def on_vidhub_crosspoints(self, instance, value, **kwargs):
         if self.crosspoints == value:
             return
@@ -186,9 +189,11 @@ class ButtonGrid(GridLayout):
         for i in sorted(self.button_widgets.keys()):
             btn = self.button_widgets[i]
             self.add_widget(btn)
+    @mainthread
     def on_vidhub_labels(self, instance, value, **kwargs):
         for i, lbl in enumerate(value):
             self.button_labels[i] = lbl
+    @mainthread
     def on_vidhub_num_buttons(self, instance, value, **kwargs):
         self.num_buttons = value
     def on_button_release(self, *args, **kwargs):
@@ -272,6 +277,7 @@ class PresetButtonGrid(ButtonGrid):
         self.vidhub.unbind(self)
         for preset in self.vidhub.presets:
             preset.unbind(self)
+    @mainthread
     def on_preset_added(self, *args, **kwargs):
         print('on_preset_added: ', args, kwargs)
         preset = kwargs.get('preset')
@@ -285,8 +291,10 @@ class PresetButtonGrid(ButtonGrid):
         self.app.bind_events(preset,
             name=self.on_preset_name,
         )
+    @mainthread
     def on_preset_name(self, instance, value, **kwargs):
         self.button_labels[instance.index] = value
+    @mainthread
     def on_preset_active(self, *args, **kwargs):
         instance = kwargs['preset']
         value = kwargs['value']

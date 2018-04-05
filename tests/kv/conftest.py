@@ -13,7 +13,7 @@ async def kivy_app(tmpdir, monkeypatch):
     monkeypatch.setenv('KIVY_UNITTEST', '1')
     monkeypatch.setattr('vidhubcontrol.runserver.Config.DEFAULT_FILENAME', str(vidhub_conf))
 
-    from kivy.clock import Clock
+    from kivy.clock import Clock, mainthread
     from kivy.base import runTouchApp, stopTouchApp
     from vidhubcontrol.kivyui import main as kivy_main
 
@@ -66,6 +66,7 @@ async def kivy_app(tmpdir, monkeypatch):
             runTouchApp(self.root, slave=True)
             self._aio_mainloop_future = asyncio.ensure_future(self._aio_mainloop(), loop=self.aio_loop)
 
+        @mainthread
         def stop(self):
             self.dispatch('on_stop')
 
@@ -126,6 +127,7 @@ async def kivy_app(tmpdir, monkeypatch):
 
 @pytest.fixture
 def KvEventWaiter():
+    from kivy.clock import mainthread
     class KvEventWaiter_(object):
         def __init__(self):
             self._loop = asyncio.get_event_loop()
@@ -143,6 +145,7 @@ def KvEventWaiter():
             self.aio_event.clear()
             self.bind(obj, *events)
             await self.wait()
+        @mainthread
         def kivy_callback(self, *args, **kwargs):
             async def do_set():
                 self.aio_event.set()

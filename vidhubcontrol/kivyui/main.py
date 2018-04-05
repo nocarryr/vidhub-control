@@ -1,10 +1,9 @@
 import json
 import threading
 import asyncio
-from functools import partial, wraps, update_wrapper
 
 from kivy.logger import Logger
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.app import App
 from kivy.properties import (
     ObjectProperty,
@@ -152,6 +151,7 @@ class DeviceDropdownButton(Button):
         if self.app is None:
             return
         self.app.bind_events(self.device, device_name=self.on_device_name)
+    @mainthread
     def on_device_name(self, instance, value, **kwargs):
         self.text = str(value)
 
@@ -195,6 +195,7 @@ class RootWidget(FloatLayout):
             name=self.update_active_widget_props,
             connected=self.update_active_widget_props,
         )
+    @mainthread
     def update_active_widget_props(self, *args, **kwargs):
         self.name = self.active_widget.name
         self.connected = self.active_widget.connected
@@ -251,6 +252,7 @@ class VidhubControlApp(App):
         self.popup_widget.bind(on_dismiss=self.on_popup_widget_dismiss)
     def on_popup_widget_dismiss(self, *args):
         self.popup_widget = None
+    @mainthread
     def update_vidhubs(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -260,6 +262,7 @@ class VidhubControlApp(App):
             self.vidhubs[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_device = val.backend
+    @mainthread
     def update_smartviews(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -269,6 +272,7 @@ class VidhubControlApp(App):
             self.smartviews[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_device = val.backend
+    @mainthread
     def update_smartscopes(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -284,21 +288,6 @@ class VidhubControlApp(App):
         return self.async_server.run_async_coro(coro)
 
 
-WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__qualname__', '__doc__',
-    '__annotations__', '__self__', '__func__')
-def wrapped_callback(f):
-    # Used by AioBridge.bind_events() to wrap a main thread callback
-    # to be called by kivy.clock.Clock. Attributes are reassigned to make the
-    # wrapped callback 'look' like the original (f.__func__ and f.__self__)
-    # So the weakref storage in pydispatch still functions properly (in theory)
-    class wrapped_(object):
-        def __init__(self, f):
-            pass
-        def __call__(self, *args, **kwargs):
-            Clock.schedule_once(partial(f, *args, **kwargs))
-        def __get__(self, obj, objtype):
-            return types.MethodType(self.__call__, obj, objtype)
-    return update_wrapper(wrapped_(f), f, assigned=WRAPPER_ASSIGNMENTS)
 
 class AioBridge(threading.Thread):
     def __init__(self, event_loop=None):
@@ -342,10 +331,7 @@ class AioBridge(threading.Thread):
         # the main thread using kivy.clock.Clock
         async def do_bind(obj_, **kwargs_):
             obj_.bind(**kwargs_)
-        kwargs_ = {}
-        for name, callback in kwargs.items():
-            kwargs_[name] = wrapped_callback(callback)
-        asyncio.run_coroutine_threadsafe(do_bind(obj, **kwargs_), loop=self.event_loop)
+        asyncio.run_coroutine_threadsafe(do_bind(obj, **kwargs), loop=self.event_loop)
     def run_async_coro(self, coro):
         return asyncio.run_coroutine_threadsafe(coro, loop=self.event_loop)
 

@@ -1,3 +1,4 @@
+from kivy.clock import mainthread
 from kivy.properties import (
     ObjectProperty,
     NumericProperty,
@@ -47,6 +48,7 @@ class VidhubEditView(BoxLayout):
         self.text = self.vidhub.device_name
         if not self.vidhub_bound:
             self.bind_vidhub()
+    @mainthread
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.text = value
     def on_text(self, instance, value):
@@ -141,6 +143,7 @@ class VidhubEditLabelList(BoxLayout):
             item.bind(text=self.on_label_item_text)
             self.list_items[i] = item
             self.label_list_widget.add_widget(item)
+    @mainthread
     def on_vidhub_labels(self, instance, value, **kwargs):
         for i, lbl in enumerate(value):
             item = self.list_items[i]
@@ -169,6 +172,7 @@ class VidhubPresetEditList(VidhubEditLabelList):
             item = VidhubEditPresetItem(preset=preset)
             self.list_items[item.index] = item
             self.label_list_widget.add_widget(item)
+    @mainthread
     def on_vidhub_preset_added(self, *args, **kwargs):
         self.build_items()
     def add_preset(self):
@@ -202,6 +206,7 @@ class VidhubEditPresetItem(VidhubEditLabelItem):
             self.bind_preset()
     def bind_preset(self):
         self.app.bind_events(self.preset, name=self.on_preset_name)
+    @mainthread
     def on_preset_name(self, instance, value, **kwargs):
         self.text = value
     def open_edit_popup(self, *args, **kwargs):

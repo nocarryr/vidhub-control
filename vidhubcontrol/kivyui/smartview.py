@@ -1,3 +1,4 @@
+from kivy.clock import mainthread
 from kivy.properties import (
     ObjectProperty,
     NumericProperty,
@@ -51,6 +52,7 @@ class SmartViewWidget(BoxLayout):
             w.unbind_monitor()
         self.monitor_widgets = []
         self.monitor_widget_container.clear_widgets()
+    @mainthread
     def build_monitors(self, *args, **kwargs):
         if self.monitor_widget_container is None:
             return
@@ -70,8 +72,10 @@ class SmartViewWidget(BoxLayout):
             return
         if self.device and self.device.connected:
             self.build_monitors()
+    @mainthread
     def on_device_name(self, instance, value, **kwargs):
         self.name = value
+    @mainthread
     def on_device_connected(self, instance, value, **kwargs):
         self.connected = value
         if not value:
@@ -179,6 +183,7 @@ class MonitorWidget(BoxLayout):
             return
         self.monitor.unbind(self)
         self.monitor = None
+    @mainthread
     def on_monitor_prop(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         if prop.name in self._prop_keys:
