@@ -24,36 +24,45 @@ class SmartViewWidget(BoxLayout):
         if device is not None and device.device_type in ['smartview', 'smartscope']:
             self.device = device
         self.app.bind(selected_device=self.on_app_selected_device)
-    def on_app_selected_device(self, instance, device):
+    def on_app_selected_device(self, instance, device, *args):
         if self.device is not None:
-            for w in self.monitor_widgets:
-                w.unbind_monitor()
-            self.monitor_widgets = []
-            self.monitor_widget_container.clear_widgets()
+            self.clear_monitors()
             self.device.unbind(self)
         if device.device_type not in ['smartview', 'smartscope']:
             device = None
         self.device = device
     def on_device(self, *args):
         if self.device is None:
+            self.clear_monitors()
             return
         self.name = self.device.device_name
         self.connected = self.device.connected
         self.app.bind_events(self.device,
             device_name=self.on_device_name,
             connected=self.on_device_connected,
+            num_monitors=self.build_monitors,
+            monitors=self.build_monitors,
+            prelude_parsed=self.build_monitors,
         )
         if self.device.connected:
             self.build_monitors()
-        else:
-            self.app.bind_events(self.device, connected=self.on_device_connected)
+    def clear_monitors(self, *args, **kwargs):
+        for w in self.monitor_widgets:
+            w.unbind_monitor()
+        self.monitor_widgets = []
+        self.monitor_widget_container.clear_widgets()
     def build_monitors(self, *args, **kwargs):
         if self.monitor_widget_container is None:
+            return
+        if not self.device.connected:
+            return
+        if not self.device.prelude_parsed:
+            return
+        if len(self.monitor_widgets) == self.device.num_monitors:
             return
         msize = 1 / self.device.num_monitors
         for monitor in self.device.monitors:
             mon_widget = MonitorWidget(monitor=monitor, size_hint_x=msize)
-            mon_widget
             self.monitor_widgets.append(mon_widget)
             self.monitor_widget_container.add_widget(mon_widget)
     def on_monitor_widget_container(self, *args):
@@ -64,11 +73,11 @@ class SmartViewWidget(BoxLayout):
     def on_device_name(self, instance, value, **kwargs):
         self.name = value
     def on_device_connected(self, instance, value, **kwargs):
-        print('on_device_connected: ', instance, value, kwargs)
         self.connected = value
-        if value and not len(self.monitor_widgets):
-            instance.unbind(self)
-            self.build_monitors()
+        if not value:
+            return
+        self.clear_monitors()
+        self.build_monitors()
     def on_edit_name_enabled(self, instance, value):
         if value:
             r = self.open_edit_name_popup()
