@@ -1,3 +1,4 @@
+import ipaddress
 import asyncio
 import pytest
 
@@ -42,6 +43,11 @@ def smartview_backend(request, mocked_vidhub_telnet_device):
             'device_id':'a10203040506',
             'device_model':'SmartView Something',
             'device_name':'SmartView Something',
+            'using_dhcp':True,
+            'static_ip':ipaddress.ip_interface('192.168.0.3/255.255.255.0'),
+            'static_gateway':ipaddress.ip_address('192.168.0.1'),
+            'current_ip':ipaddress.ip_interface('192.168.1.101/255.255.255.0'),
+            'current_gateway':ipaddress.ip_address('192.168.1.1'),
         })
     elif request.param == 'smartscope':
         d['cls'] = SmartScopeTelnetBackend
@@ -50,6 +56,11 @@ def smartview_backend(request, mocked_vidhub_telnet_device):
             'device_id':'0a1b2c3d4e5f',
             'device_model':'SmartScope Duo 4K',
             'device_name':'SmartScope Duo',
+            'using_dhcp':True,
+            'static_ip':ipaddress.ip_interface('192.168.0.2/255.255.255.0'),
+            'static_gateway':ipaddress.ip_address('192.168.0.1'),
+            'current_ip':ipaddress.ip_interface('192.168.1.100/255.255.255.0'),
+            'current_gateway':ipaddress.ip_address('192.168.1.1'),
         })
     return d
 
@@ -66,6 +77,11 @@ async def test_telnet_smartscope(smartview_backend):
     assert backend.device_model == smartview_backend['device_model']
     assert backend.device_name == smartview_backend['device_name']
     assert backend.device_id.lower() == smartview_backend['device_id']
+    assert backend.using_dhcp == smartview_backend['using_dhcp']
+    assert backend.static_ip == smartview_backend['static_ip']
+    assert backend.static_gateway == smartview_backend['static_gateway']
+    assert backend.current_ip == smartview_backend['current_ip']
+    assert backend.current_gateway == smartview_backend['current_gateway']
     assert not backend.inverted
     assert backend.num_monitors == len(backend.monitors) == 2
 

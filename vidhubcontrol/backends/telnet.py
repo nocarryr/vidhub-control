@@ -2,6 +2,7 @@ import asyncio
 import logging
 import string
 import errno
+import ipaddress
 
 from pydispatch import Property
 
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 class TelnetBackendBase(object):
     hostaddr = Property()
     hostport = Property()
+    using_dhcp = Property(False)
+    static_ip = Property()
+    static_gateway = Property()
+    current_ip = Property()
+    current_gateway = Property()
     def _telnet_init(self, **kwargs):
         self.read_enabled = False
         self.current_section = None
@@ -125,12 +131,78 @@ class TelnetBackendBase(object):
         self.ack_or_nak = None
         self.ack_or_nak_event.clear()
         return resp.startswith('ACK')
+    def _parse_network_line(self, line):
+        value = line.split(':')[1].strip(' ')
+        if line.startswith('Dynamic IP:'):
+            self.using_dhcp = 'true' in value
+            return True
+
+        if line.startswith('Static'):
+            prop = 'static'
+        elif line.startswith('Current'):
+            prop = 'current'
+        else:
+            return False
+
+        if 'gateway' in line:
+            prop = '_'.join([prop, 'gateway'])
+            setattr(self, prop, ipaddress.ip_address(value))
+            return True
+
+        if 'address:' in line:
+            prop = '_'.join([prop, 'ip'])
+            if getattr(self, prop) is not None:
+                value = '{}/{}'.format(value, getattr(self, prop).netmask)
+        elif 'netmask:' in line:
+            prop = '_'.join([prop, 'ip'])
+            if getattr(self, prop) is not None:
+                value = '{}/{}'.format(getattr(self, prop).ip, value)
+        setattr(self, prop, ipaddress.ip_interface(value))
+        return True
+    async def _reconfigure_device_network(self, address, gateway, use_dhcp):
+        address_changed = False
+        tx_lines = [
+            'NETWORK:',
+            'Dynamic IP: {}'.format(str(use_dhcp).lower()),
+        ]
+        if not self.using_dhcp and using_dhcp:
+            address_changed = True
+        if not use_dhcp:
+            if not isinstance(address, ipaddress.IPv4Interface):
+                address = ipaddress.ip_interface(address)
+            if not isinstance(gateway, ipaddress.IPv4Address):
+                gateway = ipaddress.ip_address(gateway)
+            if address.ip != self.static_ip:
+                address_changed = True
+            self.static_ip = address
+            self.static_gateway = gateway
+            self.using_dhcp = False
+            tx_lines.extend([
+                'Static address: {}'.format(address.ip),
+                'Static netmask: {}'.format(address.netmask),
+                'Static gateway: {}'.format(gateway),
+            ])
+        tx_bfr = bytes('\n'.join(tx_lines), 'UTF-8')
+        tx_bfr += b'\n\n'
+        await self.send_to_client(tx_bfr)
+        return address_changed
+    async def set_dhcp(self):
+        address_changed = await self._reconfigure_device_network(None, None, True)
+        if address_changed:
+            await self.disconnect()
+    async def set_device_static_ip(self, address, gateway):
+        address_changed = await self._reconfigure_device_network(address, gateway, False)
+        if address_changed:
+            await self.disconnect()
+            self.hostaddr = str(self.static_ip.ip)
+            await self.connect()
 
 class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
     DEFAULT_PORT = 9990
     SECTION_NAMES = [
         'PROTOCOL PREAMBLE:',
         'VIDEOHUB DEVICE:',
+        'NETWORK:',
         'INPUT LABELS:',
         'OUTPUT LABELS:',
         'VIDEO OUTPUT LOCKS:',
@@ -181,6 +253,10 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
                     self.num_outputs = int(split_value(line))
                 elif line.startswith('Video inputs:'):
                     self.num_inputs = int(split_value(line))
+            elif self.current_section == 'NETWORK:':
+                r = self._parse_network_line(line)
+                if r is False:
+                    section_parsed = True
             elif self.current_section == 'OUTPUT LABELS':
                 i = int(line.split(' ')[0])
                 self.output_labels[i] = ' '.join(line.split(' ')[1:])
@@ -320,7 +396,9 @@ class SmartViewTelnetBackendBase(TelnetBackendBase):
                 elif line.startswith('Inverted:'):
                     self.inverted = split_value(line) == 'true'
             elif self.current_section == 'NETWORK':
-                pass
+                r = self._parse_network_line(line)
+                if r is False:
+                    section_parsed = True
             elif self.current_section.startswith('MONITOR '):
                 monitor_name = self.current_section
                 await self.parse_monitor_line(monitor_name, line, split_value(line))
