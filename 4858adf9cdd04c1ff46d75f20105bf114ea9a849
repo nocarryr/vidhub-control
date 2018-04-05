@@ -1,0 +1,10 @@
+[ver:1,total:3493]
+vidhubcontrol/backends/telnet.py:2468,1522771200:1614,1522774800:335,1522846800:262,1522850400:60,1522854000:32,1522857600:45,1522868400:30,1522936800:90,m
+vidhubcontrol/runserver.py:305,1522846800:125,1522861200:150,1522864800:30,r
+vidhubcontrol/backends/dummy.py:210,1522674000:210,r
+tests/test_config.py:210,1522861200:210,r
+vidhubcontrol/kivyui/vidhubpresetedit.py:105,1522857600:105,r
+tests/test_runserver.py:100,1522767600:40,1522861200:60,r
+vidhubcontrol/kivyui/smartview.kv:35,1522854000:35,r
+vidhubcontrol/kivyui/newdevice.py:30,1522857600:30,r
+setup.py:30,1522674000:30,r
