@@ -32,17 +32,25 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     for device_type, device, app_prop in params:
         kv_waiter = KvEventWaiter()
 
-        kv_waiter.bind(kivy_app.root, 'active_widget')
-        kivy_app.selected_device = device
         if smartview_widget is None:
+            kv_waiter.bind(kivy_app.root, 'active_widget')
+            kivy_app.selected_device = device
             await kv_waiter.wait()
-        kv_waiter.unbind(kivy_app.root, 'active_widget')
+            kv_waiter.unbind(kivy_app.root, 'active_widget')
+        else:
+            kv_waiter.bind(smartview_widget, 'device')
+            smartview_widget.device = None
+            await kv_waiter.wait()
+            kivy_app.selected_device = device
+            await kv_waiter.wait()
+            kv_waiter.unbind(smartview_widget, 'device')
 
         smartview_widget = kivy_app.root.active_widget
         await kivy_app.wait_for_widget_init(smartview_widget)
 
         while len(smartview_widget.monitor_widget_container.children) < device.num_monitors:
             await asyncio.sleep(0)
+        await asyncio.sleep(.1)
 
         def check_values():
             assert device.device_name == smartview_widget.name
@@ -78,23 +86,36 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         await kv_waiter.wait()
         assert smartview_widget.name == 'FOO'
 
+        kv_waiter.unbind(smartview_widget, 'name')
+
+        print('set from backend')
         for monitor in device.monitors:
+            print('monitor index: ', monitor.index)
+            monitor_widget = smartview_widget.monitor_widgets[monitor.index]
             props = monitor.PropertyChoices._bind_properties
             for prop in props:
+                print('prop: ', prop)
+                kv_waiter.bind(monitor_widget, prop)
                 choices = monitor.get_property_choices(prop)
                 if choices is not None:
                     for prop_val, device_val in choices.items():
                         if getattr(monitor, prop) == prop_val:
                             continue
                         await monitor.set_property_from_backend(prop, device_val)
+                        await kv_waiter.wait()
                         check_values()
                 elif prop == 'identify':
                     await monitor.set_property_from_backend(prop, str(not monitor.identify))
+                    await kv_waiter.wait()
                     check_values()
                 else:
                     for i in range(20):
+                        if getattr(monitor, prop) == i:
+                            continue
                         await monitor.set_property_from_backend(prop, i)
+                        await kv_waiter.wait()
                         check_values()
+                kv_waiter.unbind(monitor_widget, prop)
 
         # Set values from ui
         def find_widget(monitor_widget, property_name):
@@ -138,23 +159,33 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
                 widget.text = monitor.get_choice_for_property(prop, value).title()
             await asyncio.sleep(0)
 
+        print('set from UI')
         for monitor, monitor_widget in zip(device.monitors, smartview_widget.monitor_widgets):
+            print('monitor index: ', monitor.index)
             props = monitor.PropertyChoices._bind_properties
             for prop in props:
+                print('prop: ', prop)
+                kv_waiter.bind(monitor_widget, prop)
                 choices = monitor.get_property_choices(prop)
                 if choices is not None:
                     for prop_val, device_val in choices.items():
                         if getattr(monitor, prop) == prop_val:
                             continue
                         await set_monitor_prop_from_ui(monitor, monitor_widget, prop, prop_val)
+                        await kv_waiter.wait()
                         check_values()
                 elif prop == 'identify':
                     await set_monitor_prop_from_ui(monitor, monitor_widget, prop, not monitor.identify)
+                    await kv_waiter.wait()
                     check_values()
                 else:
                     for i in range(20):
+                        if getattr(monitor, prop) == i:
+                            continue
                         await set_monitor_prop_from_ui(monitor, monitor_widget, prop, i)
+                        await kv_waiter.wait()
                         check_values()
+                kv_waiter.unbind(monitor_widget, prop)
 
         # Test device_name edit
         smartview_widget.edit_name_enabled = True

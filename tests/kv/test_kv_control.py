@@ -188,6 +188,7 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         print(xpts)
         await vidhub1.set_crosspoints(*xpts)
         await kv_waiter2.wait()
+        await asyncio.sleep(.1)
         check_values(vidhub1)
 
 
