@@ -3,6 +3,7 @@ import threading
 import asyncio
 from functools import partial, wraps, update_wrapper
 
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.properties import (
@@ -242,6 +243,8 @@ class VidhubControlApp(App):
         )
     def on_stop(self, *args, **kwargs):
         self.async_server.stop()
+        if self.async_server.exc_info is not None:
+            Logger.error(self.async_server.exc_info)
     def on_popup_widget(self, *args):
         if self.popup_widget is None:
             return
@@ -302,6 +305,7 @@ class AioBridge(threading.Thread):
         super().__init__()
         self.daemon = True
         self.running = False
+        self.exc_info = None
         self.thread_run_event = threading.Event()
         self.thread_stop_event = threading.Event()
         self.event_loop = event_loop
@@ -312,8 +316,15 @@ class AioBridge(threading.Thread):
             asyncio.set_event_loop(loop)
         self.aio_stop_event = asyncio.Event()
         self.running = True
-        loop.run_until_complete(self.aioloop())
-        self.thread_stop_event.set()
+        try:
+            loop.run_until_complete(self.aioloop())
+            self.thread_stop_event.set()
+        except Exception as e:
+            self.exc_info = e
+            raise
+        finally:
+            if not self.thread_stop_event.is_set():
+                loop.run_until_complete(self.aioshutdown())
     def stop(self):
         self.running = False
         self.event_loop.call_soon_threadsafe(self.aio_stop_event.set)
@@ -321,7 +332,6 @@ class AioBridge(threading.Thread):
         await self.aiostartup()
         self.thread_run_event.set()
         await self.aio_stop_event.wait()
-        await self.aioshutdown()
     async def aiostartup(self):
         pass # pragma: no cover
     async def aioshutdown(self):
