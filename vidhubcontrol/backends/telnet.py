@@ -22,12 +22,10 @@ class TelnetBackendBase(object):
         self.read_enabled = False
         self.current_section = None
         self.ack_or_nak = None
-        self.ack_or_nak_event = asyncio.Event()
         self.read_coro = None
         self.hostaddr = kwargs.get('hostaddr')
         self.hostport = kwargs.get('hostport', self.DEFAULT_PORT)
         self.rx_bfr = b''
-        self.response_ready = asyncio.Event()
     async def read_loop(self):
         while self.read_enabled:
             await self.client.wait_for_data()
@@ -63,6 +61,8 @@ class TelnetBackendBase(object):
             self.connected = False
             logger.error(e)
     async def do_connect(self):
+        self.ack_or_nak_event = asyncio.Event()
+        self.response_ready = asyncio.Event()
         self.rx_bfr = b''
         logger.debug('connecting')
         try:
