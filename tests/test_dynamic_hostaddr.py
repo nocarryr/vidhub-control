@@ -110,9 +110,9 @@ async def test_hostaddr_change(tempconfig,
 
     # Republish correct addresses
     waiter2 = Waiter()
-    waiter2.bind(vidhub, 'backend')
-    waiter2.bind(smartview, 'backend')
-    waiter2.bind(smartscope, 'backend')
+    waiter2.bind(vidhub.backend, 'connected')
+    waiter2.bind(smartview.backend, 'connected')
+    waiter2.bind(smartscope.backend, 'connected')
 
     args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
     kwargs['ttl'] = 5
@@ -130,6 +130,10 @@ async def test_hostaddr_change(tempconfig,
     while events_received < 3:
         await waiter2.wait()
         events_received += 1
+
+    assert vidhub.backend.connected
+    assert smartview.backend.connected
+    assert smartscope.backend.connected
 
     assert vidhub.hostaddr == '127.0.0.1'
     assert smartview.hostaddr == '127.0.0.1'

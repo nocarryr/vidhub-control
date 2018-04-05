@@ -27,10 +27,6 @@ class BackendBase(Dispatcher):
     async def create_async(cls, **kwargs):
         obj = cls(**kwargs)
         await obj.connect_fut
-        if obj.connection_error:
-            return obj
-        elif not obj.connected or not obj.prelude_parsed:
-            return None
         return obj
     async def connect(self):
         if self.connected:

@@ -149,8 +149,6 @@ class Config(ConfigBase):
         cls = BACKENDS[device_type][backend_name]
         kwargs['event_loop'] = self.loop
         backend = await cls.create_async(**kwargs)
-        if backend.connection_unavailable:
-            return None
         await self.add_device(backend)
         return backend
     async def add_vidhub(self, backend):
@@ -196,14 +194,16 @@ class Config(ConfigBase):
                 if 'Telnet' in key:
                     cls = _cls
                     break
+            hostaddr = str(info.address)
+            hostport = int(info.port)
             if device_id in prop:
                 obj = prop[device_id]
-                if not obj.backend_unavailable:
-                    return
-            addr = str(info.address)
+                if obj.hostaddr != hostaddr or obj.hostport != hostport:
+                    await obj.reset_hostaddr(hostaddr, hostport)
+                return
             backend = await cls.create_async(
-                hostaddr=addr,
-                hostport=int(info.port),
+                hostaddr=hostaddr,
+                hostport=hostport,
                 event_loop=self.loop,
             )
             if backend is None:
@@ -307,6 +307,16 @@ class DeviceConfigBase(ConfigBase):
             kwargs.setdefault(key, val)
         kwargs['event_loop'] = backend.event_loop
         return await cls.create(**kwargs)
+    async def reset_hostaddr(self, hostaddr, hostport=None):
+        if hostport is None:
+            hostport = self.hostport
+        await self.backend.disconnect()
+        self.hostaddr = hostaddr
+        self.hostport = hostport
+        self.backend.hostaddr = hostaddr
+        self.backend.hostport = hostport
+        await self.backend.connect()
+        self.emit('trigger_save')
     async def build_backend(self, cls=None, **kwargs):
         kwargs.setdefault('event_loop', self.loop)
         if cls is None:
@@ -315,9 +325,12 @@ class DeviceConfigBase(ConfigBase):
         if backend is not None:
             if backend.connection_unavailable:
                 self.backend_unavailable = True
-                backend = None
         return backend
     def on_backend_prop_change(self, instance, value, **kwargs):
+        if instance is not self.backend:
+            return
+        if not instance.connected:
+            return
         prop = kwargs.get('property')
         setattr(self, prop.name, value)
         self.emit('trigger_save')
@@ -327,12 +340,13 @@ class DeviceConfigBase(ConfigBase):
             old.unbind(self)
         if backend is None:
             return
-        if self.backend.device_name != self.device_name:
-            self.device_name = self.backend.device_name
+        if backend.connected:
+            if self.backend.device_name != self.device_name:
+                self.device_name = self.backend.device_name
         if backend.device_id is None:
-            if self.device_id is not None:
+            if self.device_id is None:
                 self.device_id = self.config.id_for_device(self)
-        else:
+        elif backend.connected:
             self.device_id = backend.device_id
         backend.bind(
             device_name=self.on_backend_prop_change,
@@ -348,6 +362,8 @@ class DeviceConfigBase(ConfigBase):
             )
     def _on_backend_device_id(self, backend, value, **kwargs):
         if backend is not self.backend:
+            return
+        if not backend.connected:
             return
         if backend.device_id is None:
             if self.device_id is not None:
