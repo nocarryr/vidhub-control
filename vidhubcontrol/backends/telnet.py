@@ -28,17 +28,21 @@ class TelnetBackendBase(object):
         self.rx_bfr = b''
     async def read_loop(self):
         while self.read_enabled:
-            await self.client.wait_for_data()
+            try:
+                await self.client.wait_for_data()
+            except Exception as e:
+                logger.error(e)
+                await self._close_client()
+                self._catch_exception(e)
+                return
             if not self.read_enabled:
                 break
             try:
                 rx_bfr = await self.client.read_very_eager()
             except Exception as e:
-                self.client = None
-                self.read_enabled = False
-                self._catch_exception(e)
-                self.connected = False
                 logger.error(e)
+                await self._close_client()
+                self._catch_exception(e)
                 return
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
@@ -56,10 +60,9 @@ class TelnetBackendBase(object):
         try:
             await c.write(data)
         except Exception as e:
-            self.client = None
-            self._catch_exception(e)
-            self.connected = False
             logger.error(e)
+            await self._close_client()
+            self._catch_exception(e)
     async def do_connect(self):
         self.ack_or_nak_event = asyncio.Event()
         self.response_ready = asyncio.Event()
@@ -78,6 +81,17 @@ class TelnetBackendBase(object):
         await self.wait_for_response(prelude=True)
         logger.debug('prelude parsed')
         return c
+    async def _close_client(self):
+        logger.info('close_client')
+        self.read_enabled = False
+        self.response_ready.set()
+        if self.client is not None:
+            try:
+                await self.client.close_async()
+            except Exception as e:
+                logger.error(e)
+            self.client = None
+        self.connected = False
     async def do_disconnect(self):
         logger.debug('disconnecting')
         self.read_enabled = False
