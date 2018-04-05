@@ -23,6 +23,7 @@ from vidhubcontrol.kivyui.vidhubview import VidhubWidget
 from vidhubcontrol.kivyui.vidhubedit import VidhubEditView
 from vidhubcontrol.kivyui.smartview import SmartViewWidget
 from vidhubcontrol.kivyui.newdevice import NewDevicePopup
+from vidhubcontrol.kivyui.ipsettings import IPSettingsPopup
 
 APP_SETTINGS = [
     {
@@ -199,6 +200,10 @@ class RootWidget(FloatLayout):
     def update_active_widget_props(self, *args, **kwargs):
         self.name = self.active_widget.name
         self.connected = self.active_widget.connected
+    def launch_ip_settings(self):
+        popup = IPSettingsPopup()
+        self.app.popup_widget = popup
+        popup.open()
 
 class VidhubControlApp(App):
     async_server = ObjectProperty(None)

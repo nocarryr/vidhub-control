@@ -1,0 +1,72 @@
+#:include vidhubcontrol/kivyui/newdevice.kv
+<IPSettingsPopup>:
+    app: app
+    device: app.selected_device
+    ip_widget: ip_widget
+    netmask_widget: netmask_widget
+    gateway_widget: gateway_widget
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .1
+            ToggleButton:
+                text: 'Dynamic Address'
+                state: 'down' if root.use_dhcp else 'normal'
+                on_release: root.use_dhcp = True
+            ToggleButton:
+                text: 'Static Address'
+                state: 'normal' if root.use_dhcp else 'down'
+                on_release: root.use_dhcp = False
+        AttrField:
+            id: ip_widget
+            size_hint_y: .1
+            label_text: 'IP Address:'
+            value: root.ip_address
+            on_value: root.ip_address = self.value
+            disabled: root.use_dhcp
+        AttrField:
+            id: netmask_widget
+            size_hint_y: .1
+            label_text: 'Netmask:'
+            value: root.netmask
+            on_value: root.netmask = self.value
+            disabled: root.use_dhcp
+        AttrField:
+            id: gateway_widget
+            size_hint_y: .1
+            label_text: 'Gateway:'
+            value: root.gateway
+            on_value: root.gateway = self.value
+            disabled: root.use_dhcp
+        BoxLayout:
+            size_hint_y: .2
+            orientation: 'vertical'
+            OutlinedBoxLayout:
+                orientation: 'horizontal'
+                OutlinedLabel:
+                    text: 'Current DHCP'
+                OutlinedLabel:
+                    text: str(root.device_use_dhcp)
+            OutlinedBoxLayout:
+                orientation: 'horizontal'
+                OutlinedLabel:
+                    text: 'Current IP'
+                OutlinedLabel:
+                    text: str(root.device_ip.ip)
+            OutlinedBoxLayout:
+                orientation: 'horizontal'
+                OutlinedLabel:
+                    text: 'Current netmask'
+                OutlinedLabel:
+                    text: str(root.device_ip.netmask)
+            OutlinedBoxLayout:
+                orientation: 'horizontal'
+                OutlinedLabel:
+                    text: 'Current gateway'
+                OutlinedLabel:
+                    text: str(root.device_gateway)
+        SubmitRow:
+            size_hint_y: .1
+            on_cancel: root.dismiss()
+            on_submit: root.on_submit()

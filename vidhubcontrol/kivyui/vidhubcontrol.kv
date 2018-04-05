@@ -3,6 +3,7 @@
 #:include vidhubcontrol/kivyui/vidhubpresetedit.kv
 #:include vidhubcontrol/kivyui/smartview.kv
 #:include vidhubcontrol/kivyui/newdevice.kv
+#:include vidhubcontrol/kivyui/ipsettings.kv
 #:include vidhubcontrol/kivyui/utils.kv
 
 RootWidget:
@@ -46,7 +47,12 @@ RootWidget:
                             StatusIndicator:
                                 state: root.connected
                 BoxLayout:
-                    size_hint_x: .75
+                    size_hint_x: .2
+                Button:
+                    size_hint_x: .4
+                    text: 'IP Settings'
+                    on_release: root.launch_ip_settings()
+                    disabled: app.selected_device is None or app.selected_device.connected is False
 
 <VidhubPanel>:
     size_hint: 1, 1
