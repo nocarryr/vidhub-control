@@ -165,7 +165,7 @@ class TelnetBackendBase(object):
             'NETWORK:',
             'Dynamic IP: {}'.format(str(use_dhcp).lower()),
         ]
-        if not self.using_dhcp and using_dhcp:
+        if not self.using_dhcp and use_dhcp:
             address_changed = True
         if not use_dhcp:
             if not isinstance(address, ipaddress.IPv4Interface):
