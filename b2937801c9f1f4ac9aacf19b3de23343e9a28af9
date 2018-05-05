@@ -1,0 +1,9 @@
+[ver:1,total:600]
+setup.py:389,1525539600:389,m
+vidhubcontrol/kivyui/oschandler.py:60,1525539600:60,r
+README.md:40,1525539600:40,m
+vidhubcontrol/interactive.py:30,1525539600:30,r
+buildozer.spec:30,1525539600:30,r
+.travis.yml:24,1525539600:24,m
+tools/packaging/install_deps.sh:15,1525539600:15,d
+requirements-test.txt:12,1525539600:12,m
