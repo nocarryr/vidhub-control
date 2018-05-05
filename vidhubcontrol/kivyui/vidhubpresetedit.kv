@@ -1,0 +1,123 @@
+<VidhubPresetEditPopup>:
+    app: app
+    crosspoint_container: crosspoint_container
+    title: 'Edit Preset'
+    size_hint: 1, 1
+    BoxLayout:
+        size_hint: 1,1
+        orientation: 'vertical'
+        Label:
+            size_hint_y: .1
+            text: root.preset.name
+        FloatLayout:
+            id: scr_parent
+            ScrollView:
+                size_hint: 1, None
+                size: scr_parent.size
+                pos: scr_parent.pos
+                BoxLayout:
+                    id: crosspoint_container
+                    orientation: 'vertical'
+                    size_hint_y: None
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .1
+            Widget:
+                size_hint_x: .9
+            Button:
+                size_hint_x: .1
+                text: '+'
+                on_release: root.add_crosspoint()
+        SubmitRow:
+            size_hint_y: .1
+            on_submit: root.dispatch('on_submit')
+            on_cancel: root.dispatch('on_cancel')
+
+
+<VidhubPresetEditInputPopup>:
+    title: 'Input Select for Output {} ({})'.format(self.crosspoint_widget.dest+1, self.crosspoint_widget.dest_label)
+    size_hint: .8, .8
+    button_grid: button_grid
+    BoxLayout:
+        orientation: 'vertical'
+        VidhubPresetEditInputGrid:
+            id: button_grid
+            size_hint_y: .6
+            crosspoint_widget: root.crosspoint_widget
+            preset: root.crosspoint_widget.preset
+            selected_output: root.crosspoint_widget.dest
+        Widget:
+            size_hint_y: .2
+        SubmitRow:
+            size_hint_y: .2
+            on_submit: root.dispatch('on_submit')
+            on_cancel: root.dispatch('on_cancel')
+
+<VidhubPresetEditOutputPopup>:
+    title: 'Output Select for Input {} ({})'.format(self.crosspoint_widget.source+1, self.crosspoint_widget.source_label)
+    size_hint: .8, .8
+    button_grid: button_grid
+    BoxLayout:
+        orientation: 'vertical'
+        VidhubPresetEditOutputGrid:
+            id: button_grid
+            size_hint_y: .6
+            crosspoint_widget: root.crosspoint_widget
+            preset: root.crosspoint_widget.preset
+            selected_input: root.crosspoint_widget.source
+        Widget:
+            size_hint_y: .2
+        SubmitRow:
+            size_hint_y: .2
+            on_submit: root.dispatch('on_submit')
+            on_cancel: root.dispatch('on_cancel')
+
+
+<VidhubPresetEditGrid>:
+
+<VidhubPresetEditInputGrid>:
+
+<VidhubPresetEditOutputGrid>:
+
+<VidhubPresetEditGridBtn>:
+
+
+<VidhubPresetEditCrosspoint>:
+    orientation: 'horizontal'
+    height: '40dp'
+    size_hint_y: None
+    spacing: 4
+    canvas:
+        Color:
+            rgba: [.5,.5,.5,1]
+        Line:
+            rectangle: (self.x, self.y, self.width, self.height)
+    BoxLayout:
+        size_hint_x: .9
+        orientation: 'horizontal'
+        Button:
+            size_hint_x: .1
+            text: 'Select\nInput'
+            on_release: root.open_input_selection()
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_x: .8
+            Label:
+                size_hint_x: .4
+                markup: True
+                text: 'Input {}\n[size=12sp]{}[/size]'.format(root.source+1, root.source_label)
+            Label:
+                size_hint_x: .2
+                text: '->'
+            Label:
+                size_hint_x: .4
+                markup: True
+                text: 'Output {}\n[size=12sp]{}[/size]'.format(root.dest+1, root.dest_label)
+        Button:
+            size_hint_x: .1
+            text: 'Select\nOutput'
+            on_release: root.open_output_selection()
+    Button:
+        size_hint_x: .1
+        text: 'Remove'
+        on_release: root.dispatch('on_crosspoint_remove', widget=root)

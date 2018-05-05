@@ -1,10 +1,47 @@
+dist: trusty
+sudo: false
 language: python
 python: "3.5"
+cache:
+    directories:
+        - "build/"
+addons:
+    apt:
+        packages:
+            - libsdl2-dev
+            - libsdl2-ttf-dev
+            - libsdl2-image-dev
+            - libsdl2-mixer-dev
+            - libgstreamer1.0-dev
+            - gstreamer1.0-alsa
+            - gstreamer1.0-plugins-base
+            - python-dev
+            - libsmpeg-dev
+            - libswscale-dev
+            - libavformat-dev
+            - libavcodec-dev
+            - libjpeg-dev
+            - libtiff4-dev
+            - libx11-dev
+            - libmtdev-dev
+            - libgl1-mesa-dev
+            - libgles2-mesa-dev
+            - xvfb
+            - pulseaudio
+            - xclip
 install:
-    - pip install -U pip setuptools wheel
-    - pip install -r requirements-test.txt
+    - ./tools/install-deps.sh
     - pip install -e .
 script:
-    - py.test --cov-config .coveragerc --cov=vidhubcontrol
+    - ./runtests.sh
 after_success:
     - coveralls
+deploy:
+    provider: pypi
+    distributions: "sdist bdist_wheel"
+    on:
+        python: "3.5"
+        tags: true
+    user: nocarryr
+    password:
+        secure: oHq8f+ktVrpciBPqWGoLFcLb/44DcYhj0Jtm6Shexo8q7vUim3Tc3qaDcxw1VjQdwBxvSDgN9alI46NAxl49b0IAMvdtlzsy4I7NnqxRGFIcn34VN9hkEDtbs2HBLYLJbAZKP0J2VqzugmwomVGnks+xKom9z81mJpudb3lB17ukT+SmD3hck+9QuBCJYOqCUoRzuIfvSBXCsLZi2asW61SbPl9DJE6En1UYDeWRBL3YhY1khs8d+eWKrEz1/8rcZv3qC/PzSRuaNK1AIDAYHb6c0Z1shs6XnglP+W7vUcojc1sGiMhVVhDwv8w2TQkaFRSAwvByxuVtRdR3e2MQr/fZjxj71QcsmYFM8FRV9CRGhKCOuwlY8XYF0aznZJ2JvD/wdsY8Vq/1TpBktqI1k01ZSwEMmlw0GOyTlfc/K2PMZeVITvNqs1kGKZeVBDTmaRN+j6Xe126TIN1Hduof2V00cWtemF/TC1ajJ3B8R2BX71vrmDO6/AIzyxn17TTDtWs1E/tn7K5MhQs995OO2S+M273tO7buM3e5JLUQan6P5lqL6R6ZQER4sq5ghHZqwSUXtbu+ZYg6s1Yb1WXN5lhMgMaRAO+yYKje07yEu8zmpIbeQ5zpzebz/Q8BvpRj8h0bh4bS4IwkAhJsfaQjZavn6maTuw1VMGeC1gYYTVA=

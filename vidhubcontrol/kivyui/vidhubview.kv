@@ -1,0 +1,72 @@
+<VidhubWidget>:
+    app: app
+    id: vidhub_widget
+    input_button_grid: input_button_grid
+    output_button_grid: output_button_grid
+    preset_button_grid: preset_button_grid
+    orientation: 'vertical'
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: .35
+        Label:
+            text: 'Sources'
+            size_hint_y: .1
+        InputButtonGrid:
+            app: app
+            id: input_button_grid
+            size_hint_y: .9
+            vidhub: root.vidhub
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: .35
+        Label:
+            text: 'Destinations'
+            size_hint_y: .1
+        OutputButtonGrid:
+            app: app
+            id: output_button_grid
+            size_hint_y: .9
+            vidhub: root.vidhub
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: .25
+        Label:
+            text: 'Presets'
+            size_hint_y: .1
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .9
+            PresetButtonGrid:
+                app: app
+                id: preset_button_grid
+                size_hint_x: .9
+                vidhub: root.vidhub
+            AnchorLayout:
+                size_hint_x: .1
+                Button:
+                    text: 'Store'
+                    state: 'down' if preset_button_grid.record_enable else 'normal'
+                    on_release: preset_button_grid.record_enable = not preset_button_grid.record_enable
+
+
+<ButtonGrid>:
+    cols: 6
+    rows: 2
+
+<InputButtonGrid>:
+
+<OutputButtonGrid>:
+
+<PresetButtonGrid>:
+
+<ButtonGridBtn>:
+    title_text: self.parent.button_labels[self.index] if self.parent else ''
+    text: self.title_text if not self.markup else '{}\n[size=10sp]{}[/size]'.format(self.title_text, self.content_text)
+
+<InputButtonGridBtn>:
+    markup: True
+    vidhub_widget: self.button_grid.vidhub_widget
+
+<OutputButtonGridBtn>:
+    markup: True
+    vidhub_widget: self.button_grid.vidhub_widget

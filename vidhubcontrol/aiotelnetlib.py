@@ -1,6 +1,28 @@
 import asyncio
 import telnetlib
 
+_DEFAULT_LIMIT = 2 ** 16
+
+class ReaderProtocol(asyncio.streams.StreamReaderProtocol):
+    def __init__(self, stream_reader, client_connected_cb=None, loop=None):
+        super().__init__(stream_reader, client_connected_cb, loop)
+        self.read_ready_event = asyncio.Event()
+    def data_received(self, data):
+        super().data_received(data)
+        print('data_received')
+        self.read_ready_event.set()
+
+async def open_connection(host=None, port=None, *,
+                          loop=None, limit=_DEFAULT_LIMIT, **kwds):
+    if loop is None:
+        loop = asyncio.get_event_loop()
+    reader = asyncio.streams.StreamReader(limit=limit, loop=loop)
+    protocol = ReaderProtocol(reader, loop=loop)
+    transport, _ = await loop.create_connection(
+        lambda: protocol, host, port, **kwds)
+    writer = asyncio.streams.StreamWriter(transport, protocol, reader, loop)
+    return reader, writer
+
 class FakeSocket(object):
     '''Fake socket operations to avoid implementing Telnet.process_rawq
     '''
@@ -41,12 +63,20 @@ class _Telnet(telnetlib.Telnet):
         self.timeout = timeout
         self.sock = FakeSocket(self)
         self.sock_fut = asyncio.ensure_future(self.sock.run())
-        self.reader, self.writer = await asyncio.open_connection(host, port, loop=loop)
+        try:
+            self.reader, self.writer = await open_connection(host, port, loop=loop)
+        except:
+            self.sock.close()
+            await self.sock_fut
+            self.sock = None
+            raise
 
     def close(self):
         super().close()
         if self.writer:
             self.writer.close()
+        if self.reader:
+            self.reader._transport._protocol.read_ready_event.set()
         self.reader = None
         self.writer = None
 
@@ -63,6 +93,9 @@ class _Telnet(telnetlib.Telnet):
         self.msg("send %r", bfr)
         self.writer.write(bfr)
         await self.writer.drain()
+
+    async def wait_for_data(self):
+        await self.reader._transport._protocol.read_ready_event.wait()
 
     async def read_until(self, match, timeout=None):
         """Read until a given string is encountered or until timeout.
@@ -172,7 +205,10 @@ class _Telnet(telnetlib.Telnet):
 
     def sock_avail(self):
         """Test whether data is available on the socket."""
-        return len(self.reader._buffer) > 0
+        r = len(self.reader._buffer) > 0
+        if not r:
+            self.reader._transport._protocol.read_ready_event.clear()
+        return r
 
 async def Telnet(host=None, port=0, timeout=0, loop=None):
     '''Wrap the init in a coroutine so ``open`` can be awaited

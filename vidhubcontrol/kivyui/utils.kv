@@ -1,0 +1,37 @@
+#: import SubmitRow vidhubcontrol.kivyui.utils.SubmitRow
+
+<OutlinedWidget@Widget>:
+    canvas:
+        Color:
+            rgba: [.5,.5,.5,1]
+        Line:
+            rectangle: (self.x, self.y, self.width, self.height)
+
+<OutlinedBoxLayout@BoxLayout+OutlinedWidget>:
+
+<OutlinedLabel@Label+OutlinedWidget>:
+
+<StatusIndicator@Widget>:
+    color_on: (0, 1, 0)
+    color_off: (1, 0, 0)
+    state: False
+    canvas:
+        Clear
+        Color:
+            rgba: self.color_on + [.6] if self.state else self.color_off + [.6]
+        Ellipse:
+            pos: [self.center_x-(min(self.size)/4), self.center_y-(min(self.size)/4)]
+            size: [min(self.size)/2, min(self.size)/2]
+        Color:
+            rgba: self.color_on + [1] if self.state else self.color_off + [1]
+        Line:
+            circle: (self.center_x, self.center_y, min(self.size)/4)
+
+<SubmitRow>:
+    orientation: 'horizontal'
+    Button:
+        text: 'Ok'
+        on_release: root.dispatch('on_submit')
+    Button:
+        text: 'Cancel'
+        on_release: root.dispatch('on_cancel')
