@@ -329,6 +329,24 @@ class VidhubBackendBase(BackendBase):
         tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
 
 class SmartViewBackendBase(BackendBase):
+    """Base class for SmartView devices
+
+    Attributes:
+        num_monitors (int): Number of physical monitors as reported by the device
+        inverted (bool): ``True`` if the device has been mounted in an inverted
+            configuration (to optimize viewing angle).
+        monitors (list): A ``list`` containing instances of :class:`SmartViewMonitor`
+            or :class:`SmartScopeMonitor`, depending on device type.
+
+        Events:
+            on_monitor_property_change: Dispatched when any
+                :class:`~pydispatch.properties.Property` value changes. The event
+                signature for callbacks is
+                ``(smartview_device, property_name, value, **kwargs)`` containing
+                a keyword argument "monitor" containing the :class:`SmartViewMonitor`
+                instance.
+
+    """
     num_monitors = Property()
     inverted = Property(False)
     monitors = ListProperty()
@@ -340,6 +358,16 @@ class SmartViewBackendBase(BackendBase):
         super().__init__(**kwargs)
         self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def set_monitor_property(self, monitor, name, value):
+        """Set a property value for the given :class:`SmartViewMonitor` instance
+
+        Arguments:
+            monitor: The :class:`SmartViewMonitor` instance to set
+            name (str): Property name
+            value: The new value to set
+
+        This method is a coroutine.
+
+        """
         raise NotImplementedError()
     def get_monitor_cls(self):
         cls = self.monitor_cls
@@ -377,6 +405,26 @@ MONITOR_PROPERTY_MAP.update({
 })
 
 class SmartViewMonitor(Dispatcher):
+    """A single instance of a monitor within a SmartView device
+
+    Attributes:
+        index (int): Index of the monitor (zero-based)
+        name (str): The name of the monitor (can be user-defined)
+        brightness (int): The brightness value of the monitor (0-255)
+        contrast (int): The contrast value of the monitor (0-255)
+        saturation (int): The saturation value of the monitor (0-255)
+        widescreen_sd: Aspect ratio setting for SD format. Choices can be:
+            ``True`` (stretching enabled), ``False`` (pillar-box), or
+            ``None`` (auto-detect).
+        identify (bool): If set to ``True``, the monitor's border will be white
+            for a brief duration to physically locate the device.
+        border (str): Sets the border of the monitor to the given color. Choices
+            are: 'red', 'green', 'blue', 'white', or ``None``.
+        audio_channel (int): The audio channel pair (Embedded in the SDI input)
+            used when :attr:`scope_mode` is set to audio monitoring.
+            Values are from 0 to 7 (0 == Channels 1&2, etc).
+
+    """
     index = Property()
     name = Property()
     brightness = Property()
@@ -469,6 +517,14 @@ class SmartViewMonitor(Dispatcher):
 
 
 class SmartScopeMonitor(SmartViewMonitor):
+    """A single instance of a monitor within a SmartScope device
+
+    Attributes:
+        scope_mode (str): The type of scope to display.  Choices are:
+            'audio_dbfs', 'audio_dbvu', 'histogram', 'parade_rgb', 'parade_yuv',
+            'video', 'vector_100', 'vector_75', 'waveform'.
+
+    """
     scope_mode = Property()
     class PropertyChoices(SmartViewMonitor.PropertyChoices):
         scope_mode = {
