@@ -27,7 +27,7 @@ This project relies heavily on `asyncio` and other features available in
   * [python-osc](https://pypi.org/project/python-osc/)
   * [pid](https://pypi.org/project/pid/)
 * User interface (optional)
-  * [Kivy framework](http://kivy.org/)
+  * [Kivy](http://kivy.org/)
 
 ## Installation
 
