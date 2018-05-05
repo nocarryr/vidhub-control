@@ -1,3 +1,4 @@
+m2r
 pytest>=3.0.2
 pytest-asyncio
 pytest-cov
