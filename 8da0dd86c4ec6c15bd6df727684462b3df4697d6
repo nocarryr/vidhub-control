@@ -1,0 +1,8 @@
+[ver:1,total:824]
+tests/test_config.py:315,1525536000:315,r
+setup.py:195,1525532400:160,1525536000:35,m
+requirements.txt:159,1525532400:159,r
+vidhubcontrol/config.py:75,1525536000:75,r
+.travis.yml:50,1525532400:50,r
+tests/conftest.py:15,1525536000:15,r
+tests/smartscope-preamble.txt:15,1525536000:15,r
