@@ -11,38 +11,6 @@ class BackendBase(Dispatcher):
         device_id (str): The unique id as reported by the switcher.
         device_version (str): The firmware version as reported by the switcher.
         device_model (str): The model name as reported by the switcher.
-        num_outputs (int): The number of outputs as reported by the switcher.
-        num_inputs (int): The number of inputs as reported by the switcher.
-
-        crosspoints (list): This represents the currently active routing of the
-            switcher. Each element in the ``list`` represents an output (the
-            zero-based index of the ``list``) with its selected index as the
-            value (also zero-based).
-            This is a :class:`pydispatch.properties.ListProperty` and can be
-            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        output_labels (list): A ``list`` containing the names of each output
-            as reported by the switcher
-            This is a :class:`pydispatch.properties.ListProperty` and can be
-            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        input_labels (list): A ``list`` containing the names of each input
-            as reported by the switcher
-            This is a :class:`pydispatch.properties.ListProperty` and can be
-            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        crosspoint_control (list): This is similar to :attr:`~BackendBase.crosspoints`
-            but if modified from outside code, the crosspoint changes will be
-            set on the device (no method calls required).
-            :class:`pydispatch.properties.ListProperty`
-        output_label_control (list): This is similar to :attr:~BackendBase.output_labels`
-            but if modified from outside code, the label changes will be written
-            to the device (no method calls required).
-            :class:`pydispatch.properties.ListProperty`
-        input_label_control (list): This is similar to :attr:~BackendBase.input_labels`
-            but if modified from outside code, the label changes will be written
-            to the device (no method calls required).
-            :class:`pydispatch.properties.ListProperty`
-        presets (list): The currently available (stored) ``list`` of :class:`Preset`
-            instances
-            :class:`pydispatch.properties.ListProperty`
         connected (bool): A flag indicating the connection status.
             :class:`pydispatch.properties.Property`
 
@@ -118,6 +86,42 @@ class BackendBase(Dispatcher):
         self.unbind(self.on_device_id)
 
 class VidhubBackendBase(BackendBase):
+    """Base class for Videohub devices
+
+    Attributes:
+        num_outputs (int): The number of outputs as reported by the switcher.
+        num_inputs (int): The number of inputs as reported by the switcher.
+
+        crosspoints (list): This represents the currently active routing of the
+            switcher. Each element in the ``list`` represents an output (the
+            zero-based index of the ``list``) with its selected index as the
+            value (also zero-based).
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        output_labels (list): A ``list`` containing the names of each output
+            as reported by the switcher
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        input_labels (list): A ``list`` containing the names of each input
+            as reported by the switcher
+            This is a :class:`pydispatch.properties.ListProperty` and can be
+            observed using the :meth:`~pydispatch.Dispatcher.bind` method.
+        crosspoint_control (list): This is similar to :attr:`~VidhubBackendBase.crosspoints`
+            but if modified from outside code, the crosspoint changes will be
+            set on the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        output_label_control (list): This is similar to :attr:~VidhubBackendBase.output_labels`
+            but if modified from outside code, the label changes will be written
+            to the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        input_label_control (list): This is similar to :attr:~VidhubBackendBase.input_labels`
+            but if modified from outside code, the label changes will be written
+            to the device (no method calls required).
+            :class:`pydispatch.properties.ListProperty`
+        presets (list): The currently available (stored) ``list`` of :class:`Preset`
+            instances
+            :class:`pydispatch.properties.ListProperty`
+    """
     crosspoints = ListProperty()
     output_labels = ListProperty()
     input_labels = ListProperty()
