@@ -43,6 +43,7 @@ setup(
     version = "0.0.1",
     author = "Matthew Reid",
     author_email = "matt@nomadic-recording.com",
+    url="https://github.com/nocarryr/vidhub-control",
     description = "Control Smart Videohub Devices",
     long_description=long_description,
     packages=find_packages(exclude=['tests*']),
@@ -62,9 +63,17 @@ setup(
     platforms=['any'],
     classifiers = [
         'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
+        'Framework :: AsyncIO',
+        'Intended Audience :: Developers',
+        'Intended Audience :: End Users/Desktop',
+        'Topic :: Multimedia',
+        'Topic :: Multimedia :: Graphics',
+        'Topic :: Multimedia :: Video',
+
     ],
 )
