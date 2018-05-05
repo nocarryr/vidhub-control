@@ -40,7 +40,7 @@ else:
 
 setup(
     name = "vidhub-control",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Matthew Reid",
     author_email = "matt@nomadic-recording.com",
     url="https://github.com/nocarryr/vidhub-control",
