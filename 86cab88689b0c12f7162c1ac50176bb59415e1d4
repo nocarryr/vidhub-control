@@ -1,0 +1,14 @@
+[ver:1,total:3418]
+doc/source/conf.py:934,1525629600:30,1525633200:844,1525701600:60,m
+doc/source/index.rst:885,1525629600:138,1525633200:12,1525701600:345,1525878000:120,1525881600:60,1525892400:210,m
+doc/source/backends.rst:722,1525629600:296,1525633200:36,1525701600:370,1525960800:20,m
+setup.py:350,1525546800:180,1525629600:170,r
+doc/build/html/_modules/vidhubcontrol/backends/base.html:165,1525633200:165,r
+doc/requirements.txt:120,1525629600:120,m
+doc/source/Reference.rst:95,1525701600:95,d
+doc/source/overview.rst:55,1525701600:55,m
+doc/build/html/backends.html:30,1525633200:30,r
+doc/backends_base.rst:20,1525629600:20,d
+doc/build/doctrees/backends.doctree:15,1525633200:15,r
+doc/source/reference.rst:15,1525701600:15,m
+vidhubcontrol/aiotelnetlib.py:12,1525629600:12,r
