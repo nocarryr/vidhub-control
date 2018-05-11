@@ -91,7 +91,6 @@ class VidhubBackendBase(BackendBase):
     Attributes:
         num_outputs (int): The number of outputs as reported by the switcher.
         num_inputs (int): The number of inputs as reported by the switcher.
-
         crosspoints (list): This represents the currently active routing of the
             switcher. Each element in the ``list`` represents an output (the
             zero-based index of the ``list``) with its selected index as the
@@ -556,6 +555,9 @@ class Preset(Dispatcher):
         active (bool): A flag indicating whether all of the crosspoints stored
             in this preset are currently active on the switcher.
             This is a :class:`pydispatch.Property`
+
+    Events:
+        on_preset_stored: Dispatched after the preset stores its state.
 
     """
     name = Property()
