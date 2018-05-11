@@ -1,0 +1,5 @@
+[ver:1,total:5640]
+vidhubcontrol/discovery.py:5504,1526050800:1544,1526054400:3420,1526058000:540,m
+doc/source/config.rst:60,1526050800:60,r
+vidhubcontrol/config.py:52,1526050800:52,r
+tests/conftest.py:24,1526050800:24,r
