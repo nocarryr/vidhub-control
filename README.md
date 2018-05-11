@@ -15,6 +15,15 @@ a need arose for instantaneous multiple routing changes.  This, as well as
 setting the names for inputs and outputs within a single application can be
 accomplished using this project.
 
+## Links
+
+* Releases:
+    https://pypi.org/project/vidhub-control/
+* Source code:
+    https://github.com/nocarryr/vidhub-control
+* Documentation:
+    https://nocarryr.github.io/vidhub-control/
+
 ## Dependencies
 
 This project relies heavily on `asyncio` and other features available in
@@ -97,8 +106,3 @@ launched by:
 ```bash
 python vidhubcontrol/kivyui/main.py
 ```
-
-
-## Documentation
-
-TODO
