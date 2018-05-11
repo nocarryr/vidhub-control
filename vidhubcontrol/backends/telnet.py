@@ -16,6 +16,16 @@ from .base import (
 logger = logging.getLogger(__name__)
 
 class TelnetBackendBase(object):
+    """Mix-in class for backends implementing telnet
+
+    Attributes:
+        hostaddr (str): IPv4 address of the device
+        hostport (int): Port address of the device
+        read_enabled (bool): Internal flag to keep the :meth:`read_loop` running
+        rx_bfr (bytes): Data received from the device to be parsed
+        client: Instance of :class:`vidhubcontrol.aiotelnetlib._Telnet`
+
+    """
     hostaddr = Property()
     hostport = Property()
     def _telnet_init(self, **kwargs):
@@ -127,6 +137,9 @@ class TelnetBackendBase(object):
         return resp.startswith('ACK')
 
 class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
+    """Base class for backends implementing telnet
+
+    """
     DEFAULT_PORT = 9990
     SECTION_NAMES = [
         'PROTOCOL PREAMBLE:',

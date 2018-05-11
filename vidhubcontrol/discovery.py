@@ -22,6 +22,20 @@ def convert_dict_bytes(d):
     return {bytes(k, 'UTF-8'):bytes(d[k], 'UTF-8') for k in d.keys()}
 
 class ServiceInfo(Dispatcher):
+    """Container for Zeroconf service information
+
+    Closely related to :class:`zeroconf.ServiceInfo`
+
+    Attributes:
+        type (str): Fully qualified service type
+        name (str): Fully qualified service name
+        server (str): Fully qualified name for service host
+            (defaults to :attr:`name`)
+        address (:class:`ipaddress.IPv4Address`): The service ip address
+        port (int): The service port
+        properties (dict): Custom properties for the service
+
+    """
     properties = DictProperty()
     _attrs = ['type', 'name', 'server', 'address', 'port', 'properties']
     def __init__(self, **kwargs):
@@ -29,6 +43,15 @@ class ServiceInfo(Dispatcher):
             setattr(self, attr, kwargs.get(attr))
     @classmethod
     def from_zc_info(cls, info):
+        """Creates an instance from a :class:`zeroconf.ServiceInfo` object
+
+        Arguments:
+            info (:class:`zeroconf.ServiceInfo`):
+
+        Returns:
+            An instance of :class:`ServiceInfo`
+
+        """
         kwargs = {}
         for attr in cls._attrs:
             val = getattr(info, attr)
@@ -40,8 +63,12 @@ class ServiceInfo(Dispatcher):
         return cls(**kwargs)
     @property
     def id(self):
+        """Unique id for the service as a ``tuple`` of (:attr:`type`, :attr:`name`)
+        """
         return (self.type, self.name)#, self.address, self.port)
     def to_zc_info(self):
+        """Creates a copy as an instance of :class:`zeroconf.ServiceInfo`
+        """
         kwargs = {}
         for attr in self._attrs:
             val = getattr(self, attr)
@@ -59,6 +86,8 @@ class ServiceInfo(Dispatcher):
         name = kwargs.pop('name')
         return zeroconf.ServiceInfo(type_, name, **kwargs)
     def update(self, other):
+        """Updates the :attr:`properties` from another :class:`ServiceInfo` instance
+        """
         if self.properties == other.properties:
             return
         self.properties = other.properties.copy()
@@ -72,6 +101,16 @@ class ServiceInfo(Dispatcher):
         return '{self.name}: {self.type} ({self.address}:{self.port}), properties={self.properties}'.format(self=self)
 
 class Message(object):
+    """A message to communicate actions to and from :class:`Listener`
+
+    Attributes:
+        info: The :class:`ServiceInfo` related to the message
+
+    Note:
+        This class and its subclasses are not meant to be used directly. They
+        are used internally in :class:`Listener` methods.
+
+    """
     def __init__(self, info):
         self.info = info
     def __repr__(self):
@@ -94,6 +133,24 @@ class UnPublishMessage(Message):
     pass
 
 class Listener(Dispatcher):
+    """An async zeroconf service listener
+
+    Allows async communication with :class:`zeroconf.Zeroconf` through
+    :meth:`asyncio.AbstractEventLoop.run_in_executor` calls.
+
+    Arguments:
+        mainloop (:class:`asyncio.BaseEventLoop`): asyncio event loop instance
+        service_type (str): The fully qualified service type name to subscribe to
+
+    Attributes:
+        services (dict): All services currently discovered as instances of
+            :class:`ServiceInfo`. Stored using :attr:`ServiceInfo.id` as keys
+        message_queue (:class:`asyncio.Queue`): Used to communicate actions and
+            events with instances of :class:`Message`
+        published_services (dict): Stores services that have been published
+            using :meth:`publish_service` as :class:`ServiceInfo` instances.
+
+    """
     _events_ = ['service_added', 'service_removed']
     services = DictProperty()
     def __init__(self, mainloop, service_type):
@@ -105,10 +162,27 @@ class Listener(Dispatcher):
         self.zeroconf = None
         self.published_services = {}
     async def start(self):
+        """Starts the service listener
+
+        Runs :class:`zeroconf.Zeroconf` in an :class:`~concurrent.futures.Executor`
+        instance through `asyncio.AbstractEventLoop.run_in_executor`
+        (see :meth:`run_zeroconf`).
+
+        """
         await self.mainloop.run_in_executor(None, self.run_zeroconf)
         self.running = True
         self.run_future = asyncio.ensure_future(self.run(), loop=self.mainloop)
     async def run(self):
+        """Main loop for communicating with :class:`zeroconf.Zeroconf`
+
+        Waits for messages on the :attr:`message_queue` and processes them.
+        The loop will exit if an object placed on the queue is not an instance
+        of :class:`Message`.
+
+        When the loop exits, the :class:`zeroconf.Zeroconf` instance will be
+        closed.
+
+        """
         while self.running:
             msg = await self.message_queue.get()
             self.message_queue.task_done()
@@ -139,21 +213,41 @@ class Listener(Dispatcher):
         await self.mainloop.run_in_executor(None, self.stop_zeroconf)
         self.stopped.set()
     async def stop(self):
+        """Stops the loop in :meth:`run`
+        """
         if not self.running:
             return
         self.message_queue.put_nowait(None)
         await self.stopped.wait()
     def run_zeroconf(self):
+        """Starts :class:`zeroconf.Zeroconf` and :class:`zeroconf.ServiceBrowser` instances
+
+        This is meant to be called inside of an :class:`concurrent.futures.Executor`
+        and not used directly.
+
+        """
         if not ZEROCONF_AVAILABLE:
             return
         self.zeroconf = zeroconf.Zeroconf()
         self.zeroconf.listener = self
         self.browser = zeroconf.ServiceBrowser(self.zeroconf, self.service_type, self)
     def stop_zeroconf(self):
+        """Closes the :class:`zeroconf.Zeroconf` instance
+
+        This is meant to be called inside of an :class:`concurrent.futures.Executor`
+        and not used directly.
+
+        """
         if self.zeroconf is None:
             return
         self.zeroconf.close()
     async def add_message(self, msg):
+        """Adds a message to the :attr:`message_queue`
+
+        Arguments:
+            msg (:class:`Message`): Message to send
+
+        """
         await self.message_queue.put(msg)
     async def add_service_info(self, info, **kwargs):
         self.services[info.id] = info
@@ -192,6 +286,22 @@ class Listener(Dispatcher):
         return name
     async def publish_service(self, type_, port, name=None, addresses=None,
                               properties=None, ttl=PUBLISH_TTL):
+        """Publishes a service on the network
+
+        Arguments:
+            type_ (str): Fully qualified service type
+            port (int): The service port
+            name (str, optional): Fully qualified service name. If not provided,
+                this will be generated from the ``type_`` and the hostname
+                detected by :meth:`get_local_hostname`
+            addresses (optional): If provided, an ``iterable`` of IP addresses
+                to publish. Can be :class:`ipaddress.IPv4Address` or any type
+                that can be parsed by :func:`ipaddress.ip_address`
+            properties (dict, optional): Custom properties for the service
+            ttl (int, optional): The TTL value to publish.
+                Defaults to :const:`PUBLISH_TTL`
+
+        """
         hostname = await self.get_local_hostname()
         if name is None:
             name = '.'.join([hostname, type_])
@@ -218,6 +328,20 @@ class Listener(Dispatcher):
             msg = PublishMessage(info, ttl)
             asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
     async def unpublish_service(self, type_, port, name=None, addresses=None, properties=None):
+        """Removes a service published through :meth:`publish_service`
+
+        Arguments:
+            type_ (str): Fully qualified service type
+            port (int): The service port
+            name (str, optional): Fully qualified service name. If not provided,
+                this will be generated from the ``type_`` and the hostname
+                detected by :meth:`get_local_hostname`
+            addresses (optional): If provided, an ``iterable`` of IP addresses
+                to unpublish. Can be :class:`ipaddress.IPv4Address` or any type
+                that can be parsed by :func:`ipaddress.ip_address`
+            properties (dict, optional): Custom properties for the service
+
+        """
         hostname = await self.get_local_hostname()
         if name is None:
             name = '.'.join([hostname, type_])
@@ -245,6 +369,20 @@ class Listener(Dispatcher):
             asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
 
 class BMDDiscovery(Listener):
+    """Zeroconf listener for Blackmagic devices
+
+    Attributes:
+        vidhubs (dict): Contains discovered Videohub devices.
+            This :class:`~pydispatch.properties.DictProperty` can be used to
+            subscribe to changes.
+        smart_views (dict): Contains discovered SmartView devices.
+            This :class:`~pydispatch.properties.DictProperty` can be used to
+            subscribe to changes.
+        smart_scopes (dict): Contains discovered SmartScope devices.
+            This :class:`~pydispatch.properties.DictProperty` can be used to
+            subscribe to changes.
+
+    """
     vidhubs = DictProperty()
     smart_views = DictProperty()
     smart_scopes = DictProperty()

@@ -31,11 +31,14 @@ addons:
             - xclip
 install:
     - ./tools/install-deps.sh
+    - pip install -r doc/requirements.txt
     - pip install -e .
 script:
+    - travis-sphinx build --source=doc/source --nowarn
     - ./runtests.sh
 after_success:
     - coveralls
+    - travis-sphinx deploy
 deploy:
     provider: pypi
     distributions: "sdist bdist_wheel"

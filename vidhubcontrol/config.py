@@ -35,6 +35,61 @@ class ConfigBase(Dispatcher):
         return d
 
 class Config(ConfigBase):
+    """Config store for devices
+
+    Handles storage of device connection information and any user-defined values
+    for the backends defined in the :doc:`backends module <backends>`. Data is stored
+    in JSON format.
+
+    During :meth:`start`, all previously stored devices will be loaded and begin
+    communication. Devices are also discovered using `Zeroconf`_ through the
+    :doc:`discovery module <discovery>`.
+
+    Since each device has a unique id, network address changes (due to DHCP, etc)
+    are handled appropriately.
+
+    The configuration data is stored when:
+
+    * A device is added or removed
+    * A change is detected for a device's network address
+    * Any user-defined device value changes (device name, presets, etc)
+
+    The recommended method to start ``Config`` is through the :meth:`load_async`
+    method.
+
+    Example:
+        .. code-block:: python
+
+            import asyncio
+            from vidhubcontrol.config import Config
+
+            loop = asyncio.get_event_loop()
+            conf = loop.run_until_complete(Config.load_async(loop=loop))
+
+    Keyword Arguments:
+        filename (:obj:`str`, optional): Filename to load/save config data to.
+            If not given, defaults to :attr:`DEFAULT_FILENAME`
+        loop: The :class:`EventLoop <asyncio.BaseEventLoop>` to use. If not
+            given, the value from :func:`asyncio.get_event_loop` will be used.
+        auto_start (bool): If ``True`` (default), the :meth:`start` method will
+            be added to the asyncio event loop on initialization.
+
+    Attributes:
+        vidhubs (dict): A :class:`~pydispatch.properties.DictProperty` of
+            :class:`VidhubConfig` instances using
+            :attr:`~DeviceConfigBase.device_id` as keys
+        smartviews (dict): A :class:`~pydispatch.properties.DictProperty` of
+            :class:`SmartViewConfig` instances using
+            :attr:`~DeviceConfigBase.device_id` as keys
+        smartscopes (dict): A :class:`~pydispatch.properties.DictProperty` of
+            :class:`SmartScopeConfig` instances using
+            :attr:`~DeviceConfigBase.device_id` as keys
+
+    .. autoattribute:: DEFAULT_FILENAME
+
+    .. _Zeroconf: https://en.wikipedia.org/wiki/Zero-configuration_networking
+
+    """
     DEFAULT_FILENAME = '~/vidhubcontrol.json'
     USE_DISCOVERY = True
     vidhubs = DictProperty()
@@ -82,6 +137,21 @@ class Config(ConfigBase):
             return device.device_id
         return str(id(device))
     async def _initialize_backends(self, **kwargs):
+        """Creates and initializes device backends
+
+        Keyword Arguments:
+            vidhubs (dict): A ``dict`` containing the necessary data (as values)
+                to create an instance of :class:`VidhubConfig`
+            smartviews (dict): A ``dict`` containing the necessary data (as values)
+                to create an instance of :class:`SmartViewConfig`
+            smartscopes (dict): A ``dict`` containing the necessary data (as values)
+                to create an instance of :class:`SmartScopeConfig`
+
+        Note:
+            All config object instances are created using the
+            :meth:`DeviceConfigBase.create` classmethod.
+
+        """
         for key, d in self._device_type_map.items():
             items = kwargs.get(d['prop'], {})
             prop = getattr(self, d['prop'])
@@ -98,6 +168,13 @@ class Config(ConfigBase):
                     trigger_save=self.on_device_trigger_save,
                 )
     async def start(self, **kwargs):
+        """Starts the device backends and discovery routines
+
+        Keyword arguments passed to the initialization will be used here,
+        but can be overridden in this method. They will also be passed to
+        :meth:`_initialize_backends`.
+
+        """
         if self.starting.is_set():
             await self.running.wait()
             return
@@ -124,6 +201,8 @@ class Config(ConfigBase):
         self.starting.clear()
         self.running.set()
     async def stop(self):
+        """Stops all device backends and discovery routines
+        """
         self.running.clear()
         if self.discovery_listener is None:
             return
@@ -138,6 +217,26 @@ class Config(ConfigBase):
         self.stopped.set()
         Config.loop = None
     async def build_backend(self, device_type, backend_name, **kwargs):
+        """Creates a "backend" instance
+
+        The supplied keyword arguments are used to create the instance object
+        which will be created using its
+        :meth:`~vidhubcontrol.backends.base.BackendBase.create` classmethod.
+
+        The appropriate subclass of :class:`DeviceConfigBase` will be created
+        and stored to the config using :meth:`add_device`.
+
+        Arguments:
+            device_type (str): Device type to create. Choices are "vidhub",
+                "smartview", "smartscope"
+            backend_name (str): The class name of the backend as found in
+                :doc:`backends`
+
+        Returns:
+            An instance of a :class:`vidhubcontrol.backends.base.BackendBase`
+            subclass
+
+        """
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         for obj in prop.values():
             if obj.backend_name != backend_name:
@@ -158,6 +257,23 @@ class Config(ConfigBase):
     async def add_smartscope(self, backend):
         return await self.add_device(backend)
     async def add_device(self, backend):
+        """Adds a "backend" instance to the config
+
+        A subclass of :class:`DeviceConfigBase` will be either created or updated
+        from the given backend instance.
+
+        If the ``device_id`` exists in the config, the
+        :attr:`DeviceConfigBase.backend` value of the matching
+        :class:`DeviceConfigBase` instance will be set to the given ``backend``.
+        Otherwise, a new :class:`DeviceConfigBase` instance will be created using
+        the :meth:`DeviceConfigBase.from_existing` classmethod.
+
+        Arguments:
+            backend: An instance of one of the subclasses of
+                :class:`vidhubcontrol.backends.base.BackendBase` found in
+                :doc:`backends`
+
+        """
         device_type = backend.device_type
         cls = self._device_type_map[device_type]['cls']
         prop = getattr(self, self._device_type_map[device_type]['prop'])
@@ -228,6 +344,17 @@ class Config(ConfigBase):
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
+        """Saves the config data to the given filename
+
+        Arguments:
+            filename (:obj:`str`, optional): The filename to write config data to.
+                If not supplied, the current :attr:`filename` is used.
+
+        Notes:
+            If the ``filename`` argument is provided, it will replace the
+            existing :attr:`filename` value.
+
+        """
         if filename is not None:
             self.filename = filename
         else:
@@ -252,10 +379,33 @@ class Config(ConfigBase):
         return kwargs
     @classmethod
     def load(cls, filename=None, **kwargs):
+        """Creates a Config instance, loading data from the given filename
+
+        Arguments:
+            filename (:obj:`str`, optional): The filename to read config data
+                from, defaults to :const:`Config.DEFAULT_FILENAME`
+
+        Returns:
+            A :class:`Config` instance
+
+        """
         kwargs = cls._prepare_load_params(filename, **kwargs)
         return cls(**kwargs)
     @classmethod
     async def load_async(cls, filename=None, **kwargs):
+        """Creates a Config instance, loading data from the given filename
+
+        This coroutine method creates the ``Config`` instance and will ``await``
+        all start-up coroutines and futures before returning.
+
+        Arguments:
+            filename (:obj:`str`, optional): The filename to read config data
+                from, defaults to :attr:`DEFAULT_FILENAME`
+
+        Returns:
+            A :class:`Config` instance
+
+        """
         kwargs = cls._prepare_load_params(filename, **kwargs)
         kwargs['auto_start'] = False
         config = cls(**kwargs)
@@ -265,6 +415,22 @@ class Config(ConfigBase):
 
 
 class DeviceConfigBase(ConfigBase):
+    """Base class for device config storage
+
+    Attributes:
+        config: A reference to the parent :class:`Config` instance
+        backend: An instance of :class:`vidhubcontrol.backends.base.BackendBase`
+        backend_name (str): The class name of the backend, used when loading
+            from saved config data
+        hostaddr (str): The IPv4 address of the device
+        hostport (int): The port address of the device
+        device_name (str): User-defined name to store with the device, defaults
+            to the :attr:`device_id` value
+        device_id (str): The unique id as reported by the device
+        backend_unavailable (bool): ``True`` if communication with the device
+            could not be established
+
+    """
     config = Property()
     backend = Property()
     backend_name = Property()
@@ -286,6 +452,22 @@ class DeviceConfigBase(ConfigBase):
         self.loop = kwargs.get('event_loop', Config.loop)
     @classmethod
     async def create(cls, **kwargs):
+        """Creates device config and backend instances asynchronously
+
+        Keyword arguments passed to this classmethod are passed to the init
+        method and will be used to set its attributes.
+
+        If a "backend" keyword argument is supplied, it should be a running
+        instance of :class:`vidhubcontrol.backends.base.BackendBase`. It will
+        then be used to collect config values from.
+
+        If "backend" is not present, the appropriate one will be created using
+        :meth:`build_backend`.
+
+        Returns:
+            An instance of :class:`DeviceConfigBase`
+
+        """
         self = cls(**kwargs)
         for attr in self._conf_attrs:
             setattr(self, attr, kwargs.get(attr))
@@ -295,6 +477,17 @@ class DeviceConfigBase(ConfigBase):
         return self
     @classmethod
     async def from_existing(cls, backend, **kwargs):
+        """Creates a device config object from an existing backend
+
+        Keyword arguments will be passed to the :meth:`create` method
+
+        Arguments:
+            backend: An instance of :class:`vidhubcontrol.backends.base.BackendBase`
+
+        Returns:
+            An instance of :class:`DeviceConfigBase`
+
+        """
         d = dict(
             backend=backend,
             backend_name=backend.__class__.__name__,
@@ -318,6 +511,21 @@ class DeviceConfigBase(ConfigBase):
         await self.backend.connect()
         self.emit('trigger_save')
     async def build_backend(self, cls=None, **kwargs):
+        """Creates a backend instance asynchronously
+
+        Keyword arguments will be passed to the
+        :meth:`vidhubcontrol.backends.base.BackendBase.create_async` method.
+
+        Arguments:
+            cls (optional): A subclass of
+                :class:`~vidhubcontrol.backends.base.BackendBase`. If not present,
+                the class will be determined from existing values of
+                :attr:`device_type` and :attr:`backend_name`
+
+        Returns:
+            An instance of :class:`vidhubcontrol.backends.base.BackendBase`
+
+        """
         kwargs.setdefault('event_loop', self.loop)
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
@@ -373,6 +581,14 @@ class DeviceConfigBase(ConfigBase):
 
 
 class VidhubConfig(DeviceConfigBase):
+    """Config container for VideoHub devices
+
+    Attributes:
+        presets (list): Preset data collected from the device
+            :class:`presets <vidhubcontrol.backends.base.Preset>`. Will be used
+            on initialization to populate the preset data to the device
+
+    """
     presets = ListProperty()
     _conf_attrs = DeviceConfigBase._conf_attrs + [
         'presets',
@@ -428,9 +644,13 @@ class VidhubConfig(DeviceConfigBase):
         return d
 
 class SmartViewConfig(DeviceConfigBase):
+    """Config container for SmartView devices
+    """
     device_type = 'smartview'
 
 class SmartScopeConfig(DeviceConfigBase):
+    """Config container for SmartScope devices
+    """
     device_type = 'smartscope'
 
 Config._device_type_map['vidhub']['cls'] = VidhubConfig
