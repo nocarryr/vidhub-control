@@ -6,7 +6,16 @@ import asyncio
 import argparse
 import logging
 
-from pid import PidFile
+try:
+    from pid import PidFile
+except ImportError:
+    class PidFile:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            pass
+        def __exit__(self, *args):
+            pass
 
 logging.basicConfig(
     level=logging.INFO,
