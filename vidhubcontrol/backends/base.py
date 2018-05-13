@@ -329,6 +329,8 @@ class SmartViewMonitor(Dispatcher):
 
 class SmartScopeMonitor(SmartViewMonitor):
     scope_mode = Property()
+    store_scope_mode_presets = Property(True)
+    scope_mode_presets = DictProperty()
     class PropertyChoices(SmartViewMonitor.PropertyChoices):
         scope_mode = {
             'audio_dbfs':'AudioDbfs',
@@ -344,7 +346,108 @@ class SmartScopeMonitor(SmartViewMonitor):
         _bind_properties = SmartViewMonitor.PropertyChoices._bind_properties + [
             'scope_mode',
         ]
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.store_scope_mode_presets = kwargs.get('store_scope_mode_presets', True)
+        self.scope_mode_presets = kwargs.get('scope_mode_presets', {})
+        self.bind(scope_mode=self.on_scope_mode)
+    def create_preset(self, **kwargs):
+        if kwargs.get('is_scope_mode_preset'):
+            scope_mode = kwargs.get('name')
+            if scope_mode is not None:
+                i = list(self.PropertyChoices.scope_mode.keys()).index(scope_mode)
+                kwargs.setdefault('index', i)
+        kwargs['monitor'] = self
+        preset = SmartViewImagePreset(**kwargs)
+        if preset.is_scope_mode_preset:
+            self.scope_mode_presets[preset.name] = preset
+        else:
+            pass
+        return preset
+    async def handle_scope_mode_change(self, old_value, new_value):
+        preset = self.scope_mode_presets.get(old_value)
+        if preset is None:
+            preset = self.create_preset(name=old_value, is_scope_mode_preset=True)
+        await preset.store()
 
+        preset = self.scope_mode_presets.get(new_value)
+        if preset is None:
+            preset = self.create_preset(name=new_value, is_scope_mode_preset=True)
+            await preset.store()
+        else:
+            await preset.recall()
+
+    def on_scope_mode(self, instance, value, **kwargs):
+        if not self.store_scope_mode_presets:
+            return
+        old = kwargs.get('old')
+        asyncio.ensure_future(
+            self.handle_scope_mode_change(old, value), loop=self.event_loop)
+        )
+
+
+class SmartViewImagePreset(Dispatcher):
+    name = Property()
+    index = Property()
+    active = Property(False)
+    brightness = Property()
+    contrast = Property()
+    saturation = Property()
+    border = Property()
+    audio_channel = Property()
+    is_scope_mode_preset = Property(False)
+    _events_ = ['on_preset_stored']
+    _all_preset_attrs = [
+        'brightness', 'contrast', 'saturation', 'border', 'audio_channel',
+    ]
+    def __init__(self, **kwargs):
+        self._preset_attrs = kwargs.get('_preset_attrs', self._all_preset_attrs.copy())
+        self.monitor = kwargs.get('monitor')
+        self.backend = self.monitor.parent
+        self.index = kwargs.get('index')
+        self.is_scope_mode_preset = kwargs.get('is_scope_mode_preset', False)
+        name = kwargs.get('name')
+        if name is None:
+            name = 'Preset {}'.format(self.index + 1)
+        self.name = name
+        for attr in self._preset_attrs:
+            setattr(self, attr, kwargs.get(attr))
+        if self.backend.connected and self.backend.prelude_parsed:
+            self.check_active()
+        else:
+            self.backend.bind(prelude_parsed=self.on_backend_ready)
+        self.monitor.bind({attr:self.on_monitor_prop_change for attr in self._preset_attrs})
+        self.bind({attr:self.on_own_prop_change for attr in self._preset_attrs})
+    async def store(self, properties_to_store=None):
+        if properties_to_store is None:
+            properties_to_store = self._preset_attrs
+        else:
+            self._preset_attrs = list(properties_to_store)
+        for attr in properties_to_store:
+            val = getattr(self.monitor, attr)
+            setattr(self, attr, val)
+        self.active = True
+        self.emit('on_preset_stored', preset=self)
+    async def recall(self):
+        tasks = []
+        for attr in self._preset_attrs:
+            value = getattr(self, attr)
+            fut = asyncio.ensure_future(self.monitor.set_property(attr, value))
+            tasks.append(fut)
+        await asyncio.wait(tasks)
+    def check_active(self, *args, **kwargs):
+        active = True
+        for attr in self._preset_attrs:
+            if getattr(self, attr) is None:
+                continue
+            if getattr(self.monitor, attr) != getattr(self, attr):
+                active = False
+                break
+        self.active = active
+    def on_monitor_prop_change(self, instance, value, **kwargs):
+        self.check_active()
+    def on_own_prop_change(self, instance, value, **kwargs):
+        self.check_active()
 
 class Preset(Dispatcher):
     name = Property()
