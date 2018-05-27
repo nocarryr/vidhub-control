@@ -338,7 +338,7 @@ class Config(ConfigBase):
         prop = getattr(self, self._device_type_map[device_type]['prop'])
         if device_id in prop:
             obj = prop[device_id]
-            if not obj.backend_unavailable:
+            if obj.backend is not None and obj.backend.connected:
                 return
         asyncio.run_coroutine_threadsafe(self.add_discovered_device(device_type, info, device_id), loop=self.loop)
     def on_device_trigger_save(self, *args, **kwargs):
