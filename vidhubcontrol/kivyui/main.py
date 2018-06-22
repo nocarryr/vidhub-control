@@ -1,7 +1,9 @@
+import os
 import json
 import threading
 import asyncio
 
+from kivy.resources import resource_add_path
 from kivy.logger import Logger
 from kivy.clock import Clock, mainthread
 from kivy.app import App
@@ -23,6 +25,9 @@ from vidhubcontrol.kivyui.vidhubview import VidhubWidget
 from vidhubcontrol.kivyui.vidhubedit import VidhubEditView
 from vidhubcontrol.kivyui.smartview import SmartViewWidget
 from vidhubcontrol.kivyui.newdevice import NewDevicePopup
+
+APP_PATH = os.path.dirname(os.path.abspath(__file__))
+resource_add_path(APP_PATH)
 
 APP_SETTINGS = [
     {
@@ -210,6 +215,9 @@ class VidhubControlApp(App):
     popup_widget = ObjectProperty(None, allownone=True)
     aio_loop = ObjectProperty(None)
     async_server_loop = ObjectProperty(None)
+    def __init__(self, **kwargs):
+        kwargs['kv_directory'] = APP_PATH
+        super(VidhubControlApp, self).__init__(**kwargs)
     def build_config(self, config):
         for section_name, section in APP_SETTINGS_DEFAULTS.items():
             config.setdefaults(section_name, section)
