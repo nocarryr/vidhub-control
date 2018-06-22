@@ -152,21 +152,27 @@ class Config(ConfigBase):
             :meth:`DeviceConfigBase.create` classmethod.
 
         """
+        async def _init_backend(prop, cls, **okwargs):
+            okwargs['config'] = self
+            obj = await cls.create(**okwargs)
+            device_id = obj.device_id
+            if device_id is None:
+                device_id = self.id_for_device(obj)
+            prop[device_id] = obj
+            obj.bind(
+                device_id=self.on_backend_device_id,
+                trigger_save=self.on_device_trigger_save,
+            )
+        tasks = []
         for key, d in self._device_type_map.items():
             items = kwargs.get(d['prop'], {})
             prop = getattr(self, d['prop'])
             for item_data in items.values():
                 okwargs = item_data.copy()
-                okwargs['config'] = self
-                obj = await d['cls'].create(**okwargs)
-                device_id = obj.device_id
-                if device_id is None:
-                    device_id = self.id_for_device(obj)
-                prop[device_id] = obj
-                obj.bind(
-                    device_id=self.on_backend_device_id,
-                    trigger_save=self.on_device_trigger_save,
-                )
+                task = _init_backend(prop, d['cls'], **okwargs)
+                tasks.append(task)
+        if len(tasks):
+            await asyncio.wait(tasks)
     async def start(self, **kwargs):
         """Starts the device backends and discovery routines
 
