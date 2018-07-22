@@ -374,7 +374,7 @@ class SmartViewTelnetBackendBase(TelnetBackendBase):
         r = await self.wait_for_ack_or_nak()
         if r:
             await monitor.set_property_from_backend(name, value)
-    def _on_monitors(self, *args, **kwargs):
+    async def _on_monitors(self, *args, **kwargs):
         return
 
 class SmartViewTelnetBackend(SmartViewTelnetBackendBase, SmartViewBackendBase):

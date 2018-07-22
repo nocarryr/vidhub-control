@@ -159,7 +159,7 @@ class Config(ConfigBase):
             if device_id is None:
                 device_id = self.id_for_device(obj)
             prop[device_id] = obj
-            obj.bind(
+            obj.bind_async(self.loop,
                 device_id=self.on_backend_device_id,
                 trigger_save=self.on_device_trigger_save,
             )
@@ -200,7 +200,7 @@ class Config(ConfigBase):
            await self.running.wait()
            return
         self.discovery_listener = BMDDiscovery(self.loop)
-        self.discovery_listener.bind(
+        self.discovery_listener.bind_async(self.loop,
             service_added=self.on_discovery_service_added,
         )
         await self.discovery_listener.start()
@@ -291,12 +291,12 @@ class Config(ConfigBase):
         if obj.device_id is None:
             obj.device_id = self.id_for_device(obj)
         prop[obj.device_id] = obj
-        obj.bind(
+        obj.bind_async(self.loop,
             trigger_save=self.on_device_trigger_save,
             device_id=self.on_backend_device_id,
         )
         self.save()
-    def on_backend_device_id(self, backend, value, **kwargs):
+    async def on_backend_device_id(self, backend, value, **kwargs):
         if value is None:
             return
         old = kwargs.get('old')
@@ -334,7 +334,7 @@ class Config(ConfigBase):
                 await backend.disconnect()
                 return
             await self.add_device(backend)
-    def on_discovery_service_added(self, info, **kwargs):
+    async def on_discovery_service_added(self, info, **kwargs):
         if kwargs.get('class') not in ['Videohub', 'SmartView']:
             return
         device_type = kwargs.get('device_type')
@@ -346,8 +346,8 @@ class Config(ConfigBase):
             obj = prop[device_id]
             if obj.backend is not None and obj.backend.connected:
                 return
-        asyncio.run_coroutine_threadsafe(self.add_discovered_device(device_type, info, device_id), loop=self.loop)
-    def on_device_trigger_save(self, *args, **kwargs):
+        await self.add_discovered_device(device_type, info, device_id)
+    async def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
         """Saves the config data to the given filename
@@ -454,8 +454,8 @@ class DeviceConfigBase(ConfigBase):
     ]
     def __init__(self, **kwargs):
         self.config = kwargs.get('config')
-        self.bind(backend=self.on_backend_set)
         self.loop = kwargs.get('event_loop', Config.loop)
+        self.bind_async(self.loop, backend=self.on_backend_set)
     @classmethod
     async def create(cls, **kwargs):
         """Creates device config and backend instances asynchronously
@@ -540,7 +540,7 @@ class DeviceConfigBase(ConfigBase):
             if backend.connection_unavailable:
                 self.backend_unavailable = True
         return backend
-    def on_backend_prop_change(self, instance, value, **kwargs):
+    async def on_backend_prop_change(self, instance, value, **kwargs):
         if instance is not self.backend:
             return
         if not instance.connected:
@@ -548,7 +548,7 @@ class DeviceConfigBase(ConfigBase):
         prop = kwargs.get('property')
         setattr(self, prop.name, value)
         self.emit('trigger_save')
-    def on_backend_set(self, instance, backend, **kwargs):
+    async def on_backend_set(self, instance, backend, **kwargs):
         old = kwargs.get('old')
         if old is not None:
             old.unbind(self)
@@ -562,7 +562,7 @@ class DeviceConfigBase(ConfigBase):
                 self.device_id = self.config.id_for_device(self)
         elif backend.connected:
             self.device_id = backend.device_id
-        backend.bind(
+        backend.bind_async(self.loop,
             device_name=self.on_backend_prop_change,
             device_id=self._on_backend_device_id,
         )
@@ -570,11 +570,11 @@ class DeviceConfigBase(ConfigBase):
             if backend.connected:
                 self.hostaddr = backend.hostaddr
                 self.hostport = backend.hostport
-            backend.bind(
+            backend.bind_async(self.loop,
                 hostaddr=self.on_backend_prop_change,
                 hostport=self.on_backend_prop_change,
             )
-    def _on_backend_device_id(self, backend, value, **kwargs):
+    async def _on_backend_device_id(self, backend, value, **kwargs):
         if backend is not self.backend:
             return
         if not backend.connected:
@@ -618,15 +618,15 @@ class VidhubConfig(DeviceConfigBase):
     async def build_backend(self, cls=None, **kwargs):
         kwargs['presets'] = kwargs['presets'][:]
         return await super().build_backend(cls, **kwargs)
-    def on_backend_set(self, instance, backend, **kwargs):
-        super().on_backend_set(instance, backend, **kwargs)
+    async def on_backend_set(self, instance, backend, **kwargs):
+        await super().on_backend_set(instance, backend, **kwargs)
         if self.backend is None:
             return
         pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
         for preset in self.backend.presets:
-            preset.bind(**pkwargs)
-        self.backend.bind(on_preset_added=self.on_preset_added)
-    def on_preset_added(self, *args, **kwargs):
+            preset.bind_async(self.loop, **pkwargs)
+        self.backend.bind_async(self.loop, on_preset_added=self.on_preset_added)
+    async def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         self.presets.append(dict(
             name=preset.name,
@@ -635,8 +635,8 @@ class VidhubConfig(DeviceConfigBase):
         ))
         bkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
         self.emit('trigger_save')
-        preset.bind(**bkwargs)
-    def on_preset_update(self, instance, value, **kwargs):
+        preset.bind_async(self.loop, **bkwargs)
+    async def on_preset_update(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         if prop.name == 'crosspoints':
             value = value.copy()

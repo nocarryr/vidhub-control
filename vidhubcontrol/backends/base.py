@@ -39,7 +39,7 @@ class BackendBase(Dispatcher):
         self.device_name = kwargs.get('device_name')
         self.client = None
         self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
-        self.bind(device_id=self.on_device_id)
+        self.bind_async(self.event_loop, device_id=self.on_device_id)
         if self.device_id is None:
             self.device_id = kwargs.get('device_id')
     @classmethod
@@ -78,7 +78,7 @@ class BackendBase(Dispatcher):
         raise NotImplementedError()
     async def get_status(self):
         raise NotImplementedError()
-    def on_device_id(self, instance, value, **kwargs):
+    async def on_device_id(self, instance, value, **kwargs):
         if value is None:
             return
         if self.device_name is None:
@@ -139,7 +139,7 @@ class VidhubBackendBase(BackendBase):
     _events_ = ['on_preset_added', 'on_preset_stored', 'on_preset_active']
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(
+        self.bind_async(self.event_loop,
             num_outputs=self.on_num_outputs,
             num_inputs=self.on_num_inputs,
             output_labels=self.on_prop_feedback,
@@ -154,7 +154,7 @@ class VidhubBackendBase(BackendBase):
             pst_data['backend'] = self
             preset = Preset(**pst_data)
             self.presets.append(preset)
-            preset.bind(
+            preset.bind_async(self.event_loop,
                 on_preset_stored=self.on_preset_stored,
                 active=self.on_preset_active,
             )
@@ -283,31 +283,31 @@ class VidhubBackendBase(BackendBase):
             preset.name = name
         await preset.store(outputs_to_store, clear_current)
         return preset
-    def on_preset_stored(self, *args, **kwargs):
+    async def on_preset_stored(self, *args, **kwargs):
         kwargs['backend'] = self
         self.emit('on_preset_stored', *args, **kwargs)
-    def on_preset_active(self, instance, value, **kwargs):
+    async def on_preset_active(self, instance, value, **kwargs):
         self.emit('on_preset_active', backend=self, preset=instance, value=value)
-    def on_num_outputs(self, instance, value, **kwargs):
+    async def on_num_outputs(self, instance, value, **kwargs):
         if value == len(self.output_labels):
             return
         if value != len(self.crosspoints):
             self.crosspoints = [0] * value
         self.output_labels = [''] * value
-    def on_num_inputs(self, instance, value, **kwargs):
+    async def on_num_inputs(self, instance, value, **kwargs):
         if value == len(self.input_labels):
             return
         if value != len(self.crosspoints):
             self.crosspoints = [0] * value
         self.input_labels = [''] * value
-    def on_prop_feedback(self, instance, value, **kwargs):
+    async def on_prop_feedback(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         if prop.name not in self.feedback_prop_map:
             return
         elock = self.emission_lock(prop.name)
         control_prop = self.feedback_prop_map[prop.name]
         setattr(self, control_prop, value[:])
-    def on_prop_control(self, instance, value, **kwargs):
+    async def on_prop_control(self, instance, value, **kwargs):
         if not self.connected:
             return
         if not self.prelude_parsed:
@@ -325,7 +325,7 @@ class VidhubBackendBase(BackendBase):
         coro_name = '_'.join(['set', feedback_prop])
         coro = getattr(self, coro_name)
         args = [(key, value[key]) for key in keys]
-        tx_fut = asyncio.run_coroutine_threadsafe(coro(*args), loop=self.event_loop)
+        await coro(*args)
 
 class SmartViewBackendBase(BackendBase):
     """Base class for SmartView devices
@@ -353,7 +353,7 @@ class SmartViewBackendBase(BackendBase):
     device_type = 'smartview'
     _events_ = ['on_monitor_property_change']
     def __init__(self, **kwargs):
-        self.bind(monitors=self._on_monitors)
+        self.bind_async(self.event_loop, monitors=self._on_monitors)
         super().__init__(**kwargs)
         self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def set_monitor_property(self, monitor, name, value):
@@ -381,10 +381,10 @@ class SmartViewBackendBase(BackendBase):
         monitor.bind(on_property_change=self.on_monitor_prop)
         self.monitors.append(monitor)
         return monitor
-    def on_monitor_prop(self, instance, name, value, **kwargs):
+    async def on_monitor_prop(self, instance, name, value, **kwargs):
         kwargs['monitor'] = instance
         self.emit('on_monitor_property_change', self, name, value, **kwargs)
-    def _on_monitors(self, *args, **kwargs):
+    async def _on_monitors(self, *args, **kwargs):
         self.num_monitors = len(self.monitors)
 
 class SmartScopeBackendBase(SmartViewBackendBase):
@@ -466,7 +466,7 @@ class SmartViewMonitor(Dispatcher):
             value = kwargs.get(prop)
             value = self.get_property_for_choice(prop, value)
             setattr(self, prop, value)
-        self.bind(**{prop:self.on_prop_control for prop in props})
+        self.bind_async(self.event_loop, **{prop:self.on_prop_control for prop in props})
     def _get_property_lock(self, name):
         lock = self._property_locks.get(name)
         if lock is None:
@@ -505,14 +505,13 @@ class SmartViewMonitor(Dispatcher):
             else:
                 value = value.lower() == 'true'
         return value
-    def on_prop_control(self, instance, value, **kwargs):
+    async def on_prop_control(self, instance, value, **kwargs):
         prop = kwargs.get('property')
         lock = self._get_property_lock(prop.name)
         if lock.locked():
             return
         value = self.get_choice_for_property(prop.name, value)
-        fut = self.set_property(prop.name, value)
-        asyncio.run_coroutine_threadsafe(fut, loop=self.event_loop)
+        await self.set_property(prop.name, value)
 
 
 class SmartScopeMonitor(SmartViewMonitor):
@@ -568,6 +567,7 @@ class Preset(Dispatcher):
     def __init__(self, **kwargs):
         self.backend = kwargs.get('backend')
         self.index = kwargs.get('index')
+        self.event_loop = self.backend.event_loop
         name = kwargs.get('name')
         if name is None:
             name = 'Preset {}'.format(self.index + 1)
@@ -576,9 +576,9 @@ class Preset(Dispatcher):
         if self.backend.connected and self.backend.prelude_parsed:
             self.check_active()
         else:
-            self.backend.bind(prelude_parsed=self.on_backend_ready)
-        self.backend.bind(crosspoints=self.on_backend_crosspoints)
-        self.bind(crosspoints=self.on_preset_crosspoints)
+            self.backend.bind_async(self.event_loop, prelude_parsed=self.on_backend_ready)
+        self.backend.bind_async(self.event_loop, crosspoints=self.on_backend_crosspoints)
+        self.bind_async(self.event_loop, crosspoints=self.on_preset_crosspoints)
     async def store(self, outputs_to_store=None, clear_current=True):
         if outputs_to_store is None:
             outputs_to_store = range(self.backend.num_outputs)
@@ -604,16 +604,16 @@ class Preset(Dispatcher):
                 self.active = False
                 return
         self.active = True
-    def on_backend_ready(self, instance, value, **kwargs):
+    async def on_backend_ready(self, instance, value, **kwargs):
         if not value:
             return
         self.backend.unbind(self.on_backend_ready)
         self.check_active()
-    def on_backend_crosspoints(self, instance, value, **kwargs):
+    async def on_backend_crosspoints(self, instance, value, **kwargs):
         if not self.backend.prelude_parsed:
             return
         self.check_active()
-    def on_preset_crosspoints(self, instance, value, **kwargs):
+    async def on_preset_crosspoints(self, instance, value, **kwargs):
         if not len(self.crosspoints) or not self.backend.prelude_parsed:
             return
         self.check_active()

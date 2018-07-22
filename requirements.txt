@@ -1,4 +1,4 @@
-python-dispatch>=0.0.8
+python-dispatch>=0.1.0
 json-object-factory
 zeroconf
 python-osc
