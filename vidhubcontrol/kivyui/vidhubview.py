@@ -1,3 +1,4 @@
+import logging
 from kivy.clock import Clock, mainthread
 from kivy.properties import (
     ObjectProperty,
@@ -12,6 +13,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+
+logger = logging.getLogger(__name__)
 
 class VidhubWidget(BoxLayout):
     app = ObjectProperty(None)
@@ -279,7 +282,7 @@ class PresetButtonGrid(ButtonGrid):
             preset.unbind(self)
     @mainthread
     def on_preset_added(self, *args, **kwargs):
-        print('on_preset_added: ', args, kwargs)
+        logger.info('on_preset_added: {}, {}'.format(args, kwargs))
         preset = kwargs.get('preset')
         while len(self.button_labels) < len(self.vidhub.presets):
             self.button_labels.append('')
@@ -298,7 +301,7 @@ class PresetButtonGrid(ButtonGrid):
     def on_preset_active(self, *args, **kwargs):
         instance = kwargs['preset']
         value = kwargs['value']
-        print('on_preset_active: ', instance.index, value)
+        logger.info('on_preset_active: {}, {}'.format(instance.index, value))
         if value:
             if instance.index not in self.selected_buttons:
                 self.selected_buttons.append(instance.index)
@@ -311,7 +314,7 @@ class PresetButtonGrid(ButtonGrid):
             preset = self.vidhub.presets[button.index]
         except IndexError:
             preset = None
-        print('preset button: ', button.index, preset)
+        logger.info('preset button: {}, {}'.format(button.index, preset))
         if self.record_enable:
             if preset is None:
                 name = 'Preset {}'.format(button.index + 1)

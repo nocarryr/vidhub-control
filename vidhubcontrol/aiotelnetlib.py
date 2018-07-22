@@ -9,7 +9,6 @@ class ReaderProtocol(asyncio.streams.StreamReaderProtocol):
         self.read_ready_event = asyncio.Event()
     def data_received(self, data):
         super().data_received(data)
-        print('data_received')
         self.read_ready_event.set()
 
 async def open_connection(host=None, port=None, *,

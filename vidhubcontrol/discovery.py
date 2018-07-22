@@ -1,8 +1,11 @@
 import asyncio
 import ipaddress
+import logging
 
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
+
+logger = logging.getLogger(__name__)
 
 try:
     import zeroconf
@@ -423,16 +426,16 @@ def main():
     loop.set_debug(True)
     listener = BMDDiscovery(loop)
     def on_service_added(info, **kwargs):
-        print('Added: {}'.format(info))
+        logger.info('Added: {}'.format(info))
     def on_service_removed(info, **kwargs):
-        print('Removed: {}'.format(info))
+        logger.info('Removed: {}'.format(info))
 
     listener.bind(service_added=on_service_added, service_removed=on_service_removed)
 
     async def run():
         await listener.start()
         await asyncio.sleep(5)
-        print(listener.services)
+        logger.info(str(listener.services))
         await listener.stop()
 
     loop.run_until_complete(run())
