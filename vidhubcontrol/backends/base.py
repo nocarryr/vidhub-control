@@ -318,7 +318,12 @@ class VidhubBackendBase(BackendBase):
             keys = range(len(value))
         feedback_prop = '{}s'.format(prop.name.split('_control')[0])
         elock = self.emission_lock(feedback_prop)
-        if elock.held or elock.aio_lock.locked():
+        if elock.held:
+            return
+        ## TODO:    This is an internal implementation in python-dispatch and
+        ##          is subject to future changes.
+        aio_lock = elock.aio_locks.get(id(self.event_loop))
+        if aio_lock is not None and aio_lock.locked():
             return
         if value == getattr(self, feedback_prop):
             return
