@@ -1,3 +1,5 @@
+#:include utils.kv
+
 <SmartViewWidget>:
     app: app
     monitor_widget_container: monitor_widget_container
@@ -60,15 +62,15 @@
                     values: root.scope_mode_labels
                     value: root.scope_mode
                     on_value: root.monitor.scope_mode = root.monitor.get_property_for_choice('scope_mode', self.value)
-                SliderSetting:
+                NumericSetting:
                     label_text: 'Brightness'
                     value: root.brightness
                     on_value: root.monitor.brightness = self.value
-                SliderSetting:
+                NumericSetting:
                     label_text: 'Contrast'
                     value: root.contrast
                     on_value: root.monitor.contrast = self.value
-                SliderSetting:
+                NumericSetting:
                     label_text: 'Saturation'
                     value: root.saturation
                     on_value: root.monitor.saturation = self.value
@@ -93,7 +95,7 @@
 
 
 
-<SettingBase@BoxLayout>:
+<SettingBase>:
     orientation: 'horizontal'
     label_text: ''
     size_hint_y: None
@@ -108,9 +110,7 @@
         Line:
             points: [self.center_x, self.y, self.center_x, self.height]
 
-<SliderSetting@SettingBase>:
-    value_range: [0, 255]
-    value: 0
+<SliderSetting@NumericSettingBase>:
     Label:
         text: root.label_text
         halign: 'right'
@@ -123,9 +123,42 @@
             range: root.value_range
             step: 1
             value: root.value
-            on_value: root.value = int(self.value)
+            on_value: root.set_value(self.value)
         Label:
-            text: str(slider.value)
+            text: str(root.value)
+
+<NumericSetting@NumericSettingBase>:
+    Label:
+        text: root.label_text
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.size
+    FloatLayout:
+        orientation: 'vertical'
+        id: flt_layout
+        RepeatButton:
+            id: dec_btn
+            text: '-'
+            size_hint: (.2, 1)
+            pos_hint: {'x':0, 'top':1}
+            on_press: root.set_value(root.value - 1)
+            on_repeat: root.set_value(root.value - 1)
+        ProgressBar:
+            max: root.value_range[1]
+            value: root.value
+            size_hint: (.6, .5)
+            pos_hint: {'center_x':.5, 'top':1}
+        RepeatButton:
+            id: inc_btn
+            size_hint: (.2, 1)
+            pos_hint: {'right': 1, 'top':1}
+            text: '+'
+            on_press: root.set_value(root.value + 1)
+            on_repeat: root.set_value(root.value + 1)
+        Label:
+            text: str(root.value)
+            size_hint: (.6, .2)
+            pos_hint: {'center_x':.5, 'top':.5}
 
 <OptionSetting@SettingBase>:
     value: ''

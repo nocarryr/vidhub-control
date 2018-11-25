@@ -189,3 +189,22 @@ class MonitorWidget(BoxLayout):
         if prop.name in self._prop_keys:
             value = self._monitor_value_to_self(prop.name, value)
             setattr(self, prop.name, value)
+
+class SettingBase(BoxLayout):
+    pass
+
+class NumericSettingBase(SettingBase):
+    value = NumericProperty(0)
+    value_range = ListProperty([0, 255])
+    def set_value(self, value):
+        if isinstance(value, str):
+            if not value.isdigit():
+                return False
+            value = int(value)
+        if not isinstance(value, (int, float)):
+            return False
+        value = int(value)
+        if self.value_range[0] <= value <= self.value_range[1]:
+            self.value = value
+            return True
+        return False
