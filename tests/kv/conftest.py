@@ -129,8 +129,10 @@ async def kivy_app(tmpdir, monkeypatch):
 def KvEventWaiter():
     from kivy.clock import mainthread
     class KvEventWaiter_(object):
-        def __init__(self):
+        def __init__(self, use_queue=False):
+            self.use_queue = use_queue
             self._loop = asyncio.get_event_loop()
+            self.queue = asyncio.Queue()
             self.aio_event = asyncio.Event()
         def bind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
@@ -138,17 +140,37 @@ def KvEventWaiter():
         def unbind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
             obj.unbind(**kwargs)
+        def clear_queue(self):
+            while self.queue.qsize():
+                try:
+                    item = self.queue.get_nowait()
+                    self.queue.task_done()
+                except asyncio.QueueEmpty:
+                    break
         async def wait(self):
+            if self.use_queue:
+                item = await self.queue.get()
+                self.queue.task_done()
+                return item
             await self.aio_event.wait()
             self.aio_event.clear()
+        async def wait_for_all(self):
+            assert self.use_queue is True
+
+            while self.queue.qsize():
+                item = await self.queue.get()
+                self.queue.task_done()
         async def bind_and_wait(self, obj, *events):
             self.aio_event.clear()
             self.bind(obj, *events)
-            await self.wait()
+            return await self.wait()
         @mainthread
         def kivy_callback(self, *args, **kwargs):
             async def do_set():
-                self.aio_event.set()
+                if self.use_queue:
+                    await self.queue.put((args, kwargs))
+                else:
+                    self.aio_event.set()
             asyncio.run_coroutine_threadsafe(do_set(), loop=self._loop)
 
     return KvEventWaiter_
