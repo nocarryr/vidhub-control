@@ -97,7 +97,7 @@ async def test_numeric_widget(kivy_app, KvEventWaiter):
 
     await queue_waiter.wait_for_all()
     print('expected_value={}, widget.value={}'.format(expected_value, widget.value))
-    assert abs(expected_value - widget.value) <= 1
+    assert abs(expected_value - widget.value) <= 3
 
 
     current_value = widget.value
@@ -111,7 +111,7 @@ async def test_numeric_widget(kivy_app, KvEventWaiter):
 
     await queue_waiter.wait_for_all()
     print('expected_value={}, widget.value={}'.format(expected_value, widget.value))
-    assert abs(expected_value - widget.value) <= 1
+    assert abs(expected_value - widget.value) <= 3
 
     queue_waiter.unbind(monitor_widget, prop)
 
