@@ -138,6 +138,8 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
                 clsname = 'Spinner'
             elif w.__class__.__name__ == 'BooleanSetting':
                 clsname = 'Switch'
+            elif w.__class__.__name__ == 'NumericSetting':
+                return w
             for _w in w.walk():
                 if _w.__class__.__name__ == clsname:
                     return _w
@@ -146,8 +148,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         async def set_monitor_prop_from_ui(monitor, monitor_widget, prop, value):
             widget = find_widget(monitor_widget, prop)
 
-            if prop in ['brightness', 'contrast', 'saturation']:
+            if widget.__class__.__name__ == 'Slider':
                 widget.value = value
+            elif widget.__class__.__name__ == 'NumericSetting':
+                widget.set_value(value)
             elif prop == 'border':
                 widget.text = str(value).title()
             elif prop == 'identify':
