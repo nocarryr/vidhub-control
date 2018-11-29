@@ -1,0 +1,613 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>discovery module &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="backends package" href="backends.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="reference.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="config.html">config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backends.html">backends package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">discovery module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="reference.html">Reference</a> &raquo;</li>
+        
+      <li>discovery module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/discovery.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-vidhubcontrol.discovery">
+<span id="discovery-module"></span><h1>discovery module<a class="headerlink" href="#module-vidhubcontrol.discovery" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="vidhubcontrol.discovery.AddedMessage">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">AddedMessage</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#AddedMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.AddedMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.discovery.Message</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.BMDDiscovery">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">BMDDiscovery</code><span class="sig-paren">(</span><em>mainloop</em>, <em>service_type='_blackmagic._tcp.local.'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#BMDDiscovery"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.BMDDiscovery" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.discovery.Listener" title="vidhubcontrol.discovery.Listener"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.discovery.Listener</span></code></a></p>
+<p>Zeroconf listener for Blackmagic devices</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.BMDDiscovery.vidhubs">
+<code class="descname">vidhubs</code><a class="headerlink" href="#vidhubcontrol.discovery.BMDDiscovery.vidhubs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains discovered Videohub devices.
+This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> can be used to
+subscribe to changes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.BMDDiscovery.smart_views">
+<code class="descname">smart_views</code><a class="headerlink" href="#vidhubcontrol.discovery.BMDDiscovery.smart_views" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains discovered SmartView devices.
+This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> can be used to
+subscribe to changes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.BMDDiscovery.smart_scopes">
+<code class="descname">smart_scopes</code><a class="headerlink" href="#vidhubcontrol.discovery.BMDDiscovery.smart_scopes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains discovered SmartScope devices.
+This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> can be used to
+subscribe to changes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.Listener">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">Listener</code><span class="sig-paren">(</span><em>mainloop</em>, <em>service_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Dispatcher" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.dispatch.Dispatcher</span></code></a></p>
+<p>An async zeroconf service listener</p>
+<p>Allows async communication with <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code> through
+<a class="reference external" href="https://docs.python.org/3.5/library/asyncio-eventloop.html#asyncio.AbstractEventLoop.run_in_executor" title="(in Python v3.5)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">asyncio.AbstractEventLoop.run_in_executor()</span></code></a> calls.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>mainloop</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/asyncio-eventloop.html#asyncio.BaseEventLoop" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.BaseEventLoop</span></code></a>) – asyncio event loop instance</li>
+<li><strong>service_type</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The fully qualified service type name to subscribe to</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.Listener.services">
+<code class="descname">services</code><a class="headerlink" href="#vidhubcontrol.discovery.Listener.services" title="Permalink to this definition">¶</a></dt>
+<dd><p>All services currently discovered as instances of
+<a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo" title="vidhubcontrol.discovery.ServiceInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServiceInfo</span></code></a>. Stored using <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo.id" title="vidhubcontrol.discovery.ServiceInfo.id"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ServiceInfo.id</span></code></a> as keys</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.Listener.message_queue">
+<code class="descname">message_queue</code><a class="headerlink" href="#vidhubcontrol.discovery.Listener.message_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used to communicate actions and
+events with instances of <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/asyncio-queue.html#asyncio.Queue" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.Queue</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.Listener.published_services">
+<code class="descname">published_services</code><a class="headerlink" href="#vidhubcontrol.discovery.Listener.published_services" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores services that have been published
+using <a class="reference internal" href="#vidhubcontrol.discovery.Listener.publish_service" title="vidhubcontrol.discovery.Listener.publish_service"><code class="xref py py-meth docutils literal notranslate"><span class="pre">publish_service()</span></code></a> as <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo" title="vidhubcontrol.discovery.ServiceInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServiceInfo</span></code></a> instances.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.add_message">
+<em class="property">coroutine </em><code class="descname">add_message</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.add_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.add_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a message to the <a class="reference internal" href="#vidhubcontrol.discovery.Listener.message_queue" title="vidhubcontrol.discovery.Listener.message_queue"><code class="xref py py-attr docutils literal notranslate"><span class="pre">message_queue</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>msg</strong> (<a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>) – Message to send</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.publish_service">
+<em class="property">coroutine </em><code class="descname">publish_service</code><span class="sig-paren">(</span><em>type_</em>, <em>port</em>, <em>name=None</em>, <em>addresses=None</em>, <em>properties=None</em>, <em>ttl=60</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.publish_service"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.publish_service" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishes a service on the network</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>type</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Fully qualified service type</li>
+<li><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The service port</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a><em>, </em><em>optional</em>) – Fully qualified service name. If not provided,
+this will be generated from the <code class="docutils literal notranslate"><span class="pre">type_</span></code> and the hostname
+detected by <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_local_hostname()</span></code></li>
+<li><strong>addresses</strong> (<em>optional</em>) – If provided, an <code class="docutils literal notranslate"><span class="pre">iterable</span></code> of IP addresses
+to publish. Can be <a class="reference external" href="https://docs.python.org/3.5/library/ipaddress.html#ipaddress.IPv4Address" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ipaddress.IPv4Address</span></code></a> or any type
+that can be parsed by <a class="reference external" href="https://docs.python.org/3.5/library/ipaddress.html#ipaddress.ip_address" title="(in Python v3.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">ipaddress.ip_address()</span></code></a></li>
+<li><strong>properties</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)"><em>dict</em></a><em>, </em><em>optional</em>) – Custom properties for the service</li>
+<li><strong>ttl</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a><em>, </em><em>optional</em>) – The TTL value to publish.
+Defaults to <code class="xref py py-const docutils literal notranslate"><span class="pre">PUBLISH_TTL</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.run">
+<em class="property">coroutine </em><code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main loop for communicating with <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code></p>
+<p>Waits for messages on the <a class="reference internal" href="#vidhubcontrol.discovery.Listener.message_queue" title="vidhubcontrol.discovery.Listener.message_queue"><code class="xref py py-attr docutils literal notranslate"><span class="pre">message_queue</span></code></a> and processes them.
+The loop will exit if an object placed on the queue is not an instance
+of <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>.</p>
+<p>When the loop exits, the <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code> instance will be
+closed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.run_zeroconf">
+<code class="descname">run_zeroconf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.run_zeroconf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.run_zeroconf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.ServiceBrowser</span></code> instances</p>
+<p>This is meant to be called inside of an <a class="reference external" href="https://docs.python.org/3.5/library/concurrent.futures.html#concurrent.futures.Executor" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.Executor</span></code></a>
+and not used directly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.start">
+<em class="property">coroutine </em><code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts the service listener</p>
+<p>Runs <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code> in an <a class="reference external" href="https://docs.python.org/3.5/library/concurrent.futures.html#concurrent.futures.Executor" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Executor</span></code></a>
+instance through <cite>asyncio.AbstractEventLoop.run_in_executor</cite>
+(see <a class="reference internal" href="#vidhubcontrol.discovery.Listener.run_zeroconf" title="vidhubcontrol.discovery.Listener.run_zeroconf"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_zeroconf()</span></code></a>).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.stop">
+<em class="property">coroutine </em><code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops the loop in <a class="reference internal" href="#vidhubcontrol.discovery.Listener.run" title="vidhubcontrol.discovery.Listener.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.stop_zeroconf">
+<code class="descname">stop_zeroconf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.stop_zeroconf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.stop_zeroconf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.Zeroconf</span></code> instance</p>
+<p>This is meant to be called inside of an <a class="reference external" href="https://docs.python.org/3.5/library/concurrent.futures.html#concurrent.futures.Executor" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.Executor</span></code></a>
+and not used directly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.Listener.unpublish_service">
+<em class="property">coroutine </em><code class="descname">unpublish_service</code><span class="sig-paren">(</span><em>type_</em>, <em>port</em>, <em>name=None</em>, <em>addresses=None</em>, <em>properties=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Listener.unpublish_service"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Listener.unpublish_service" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes a service published through <a class="reference internal" href="#vidhubcontrol.discovery.Listener.publish_service" title="vidhubcontrol.discovery.Listener.publish_service"><code class="xref py py-meth docutils literal notranslate"><span class="pre">publish_service()</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>type</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Fully qualified service type</li>
+<li><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The service port</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a><em>, </em><em>optional</em>) – Fully qualified service name. If not provided,
+this will be generated from the <code class="docutils literal notranslate"><span class="pre">type_</span></code> and the hostname
+detected by <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_local_hostname()</span></code></li>
+<li><strong>addresses</strong> (<em>optional</em>) – If provided, an <code class="docutils literal notranslate"><span class="pre">iterable</span></code> of IP addresses
+to unpublish. Can be <a class="reference external" href="https://docs.python.org/3.5/library/ipaddress.html#ipaddress.IPv4Address" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ipaddress.IPv4Address</span></code></a> or any type
+that can be parsed by <a class="reference external" href="https://docs.python.org/3.5/library/ipaddress.html#ipaddress.ip_address" title="(in Python v3.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">ipaddress.ip_address()</span></code></a></li>
+<li><strong>properties</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)"><em>dict</em></a><em>, </em><em>optional</em>) – Custom properties for the service</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.Message">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">Message</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#Message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.Message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.5/library/functions.html#object" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A message to communicate actions to and from <a class="reference internal" href="#vidhubcontrol.discovery.Listener" title="vidhubcontrol.discovery.Listener"><code class="xref py py-class docutils literal notranslate"><span class="pre">Listener</span></code></a></p>
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.Message.info">
+<code class="descname">info</code><a class="headerlink" href="#vidhubcontrol.discovery.Message.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo" title="vidhubcontrol.discovery.ServiceInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServiceInfo</span></code></a> related to the message</p>
+</dd></dl>
+
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This class and its subclasses are not meant to be used directly. They
+are used internally in <a class="reference internal" href="#vidhubcontrol.discovery.Listener" title="vidhubcontrol.discovery.Listener"><code class="xref py py-class docutils literal notranslate"><span class="pre">Listener</span></code></a> methods.</p>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.PublishMessage">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">PublishMessage</code><span class="sig-paren">(</span><em>info</em>, <em>ttl=60</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#PublishMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.PublishMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.discovery.Message</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.RemovedMessage">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">RemovedMessage</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#RemovedMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.RemovedMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.discovery.Message</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.ServiceInfo">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">ServiceInfo</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#ServiceInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Dispatcher" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.dispatch.Dispatcher</span></code></a></p>
+<p>Container for Zeroconf service information</p>
+<p>Closely related to <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.ServiceInfo</span></code></p>
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.type">
+<code class="descname">type</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fully qualified service type</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.name">
+<code class="descname">name</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fully qualified service name</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.server">
+<code class="descname">server</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.server" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fully qualified name for service host
+(defaults to <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo.name" title="vidhubcontrol.discovery.ServiceInfo.name"><code class="xref py py-attr docutils literal notranslate"><span class="pre">name</span></code></a>)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.address">
+<code class="descname">address</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.address" title="Permalink to this definition">¶</a></dt>
+<dd><p>The service ip address</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/ipaddress.html#ipaddress.IPv4Address" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ipaddress.IPv4Address</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.port">
+<code class="descname">port</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.port" title="Permalink to this definition">¶</a></dt>
+<dd><p>The service port</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.properties">
+<code class="descname">properties</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Custom properties for the service</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="vidhubcontrol.discovery.ServiceInfo.from_zc_info">
+<em class="property">classmethod </em><code class="descname">from_zc_info</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#ServiceInfo.from_zc_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.from_zc_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an instance from a <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.ServiceInfo</span></code> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>info</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.ServiceInfo</span></code>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo" title="vidhubcontrol.discovery.ServiceInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServiceInfo</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.discovery.ServiceInfo.id">
+<code class="descname">id</code><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unique id for the service as a <code class="docutils literal notranslate"><span class="pre">tuple</span></code> of (<a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo.type" title="vidhubcontrol.discovery.ServiceInfo.type"><code class="xref py py-attr docutils literal notranslate"><span class="pre">type</span></code></a>, <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo.name" title="vidhubcontrol.discovery.ServiceInfo.name"><code class="xref py py-attr docutils literal notranslate"><span class="pre">name</span></code></a>)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.ServiceInfo.to_zc_info">
+<code class="descname">to_zc_info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#ServiceInfo.to_zc_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.to_zc_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a copy as an instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">zeroconf.ServiceInfo</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.discovery.ServiceInfo.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#ServiceInfo.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.ServiceInfo.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo.properties" title="vidhubcontrol.discovery.ServiceInfo.properties"><code class="xref py py-attr docutils literal notranslate"><span class="pre">properties</span></code></a> from another <a class="reference internal" href="#vidhubcontrol.discovery.ServiceInfo" title="vidhubcontrol.discovery.ServiceInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServiceInfo</span></code></a> instance</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.discovery.UnPublishMessage">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.discovery.</code><code class="descname">UnPublishMessage</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/discovery.html#UnPublishMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.discovery.UnPublishMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.discovery.Message" title="vidhubcontrol.discovery.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.discovery.Message</span></code></a></p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="backends.html" class="btn btn-neutral" title="backends package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

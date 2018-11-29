@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Overview &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reference" href="reference.html" />
+    <link rel="prev" title="Welcome to vidhub-control’s documentation!" href="index.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#vidhub-control">vidhub-control</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#links">Links</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#download">Download</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#create-virtual-environment-optional-but-recommended">Create virtual environment (optional, but recommended)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#install-vidhub-control">Install vidhub-control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#install-kivy">Install Kivy</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#note-for-windows">Note for Windows</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Overview</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="https://travis-ci.org/nocarryr/vidhub-control"><img alt="Build Status" src="https://travis-ci.org/nocarryr/vidhub-control.svg?branch=master" /></a>
+<a class="reference external image-reference" href="https://coveralls.io/github/nocarryr/vidhub-control?branch=master"><img alt="Coverage Status" src="https://coveralls.io/repos/github/nocarryr/vidhub-control/badge.svg?branch=master" /></a>
+<div class="section" id="vidhub-control">
+<h2>vidhub-control<a class="headerlink" href="#vidhub-control" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>Overview<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>Interface with Videohub SDI Matrix Switchers and SmartView Monitors by
+<a class="reference external" href="https://www.blackmagicdesign.com/">Blackmagic Design</a>.</p>
+<p>The primary purpose is for use as a library in other applications, but a GUI
+application is included (requires installation of the <a class="reference external" href="#install-kivy">Kivy framework</a>)</p>
+<p>Since neither the devices nor the software for them support presets or macros,
+a need arose for instantaneous multiple routing changes.  This, as well as
+setting the names for inputs and outputs within a single application can be
+accomplished using this project.</p>
+</div>
+<div class="section" id="links">
+<h3>Links<a class="headerlink" href="#links" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>Releases:</dt>
+<dd><a class="reference external" href="https://pypi.org/project/vidhub-control/">https://pypi.org/project/vidhub-control/</a></dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Source code:</dt>
+<dd><a class="reference external" href="https://github.com/nocarryr/vidhub-control">https://github.com/nocarryr/vidhub-control</a></dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Documentation:</dt>
+<dd><a class="reference external" href="https://nocarryr.github.io/vidhub-control/">https://nocarryr.github.io/vidhub-control/</a></dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h3>
+<p>This project relies heavily on <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> and other features available in
+<strong>Python v3.5</strong> or later.</p>
+<ul class="simple">
+<li>Core<ul>
+<li><a class="reference external" href="https://pypi.org/project/python-dispatch/">python-dispatch</a></li>
+<li><a class="reference external" href="https://pypi.org/project/json-object-factory/">json-object-factory</a></li>
+<li><a class="reference external" href="https://pypi.org/project/zeroconf/">zeroconf</a></li>
+<li><a class="reference external" href="https://pypi.org/project/python-osc/">python-osc</a></li>
+<li><a class="reference external" href="https://pypi.org/project/pid/">pid</a></li>
+</ul>
+</li>
+<li>User interface (optional)<ul>
+<li><a class="reference external" href="http://kivy.org/">Kivy</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="download">
+<h4>Download<a class="headerlink" href="#download" title="Permalink to this headline">¶</a></h4>
+<p>For basic installation, clone or download the source code:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/nocarryr/vidhub-control
+<span class="nb">cd</span> vidhub-control
+</pre></div>
+</div>
+</div>
+<div class="section" id="create-virtual-environment-optional-but-recommended">
+<h4>Create virtual environment (optional, but recommended)<a class="headerlink" href="#create-virtual-environment-optional-but-recommended" title="Permalink to this headline">¶</a></h4>
+<div class="section" id="linux-macos">
+<h5>Linux/MacOS<a class="headerlink" href="#linux-macos" title="Permalink to this headline">¶</a></h5>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>virtualenv --python<span class="o">=</span>python3 venv
+<span class="nb">source</span> venv/bin/activate
+</pre></div>
+</div>
+</div>
+<div class="section" id="windows">
+<h5>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h5>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>virtualenv --python<span class="o">=</span>python3 venv
+venv/Scripts/activate
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="install-vidhub-control">
+<h4>Install vidhub-control<a class="headerlink" href="#install-vidhub-control" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python setup.py install
+</pre></div>
+</div>
+</div>
+<div class="section" id="install-kivy">
+<h4>Install Kivy<a class="headerlink" href="#install-kivy" title="Permalink to this headline">¶</a></h4>
+<p><em>optional</em></p>
+<p>Ensure all dependencies are met for your platform. Instructions can be found
+on the <a class="reference external" href="https://kivy.org/#download">kivy download page</a></p>
+<div class="section" id="linux-ubuntu">
+<h5>Linux (Ubuntu)<a class="headerlink" href="#linux-ubuntu" title="Permalink to this headline">¶</a></h5>
+<p>Follow the instructions for <a class="reference external" href="https://kivy.org/docs/installation/installation-linux.html#installation-in-a-virtual-environment">“Installation in a Virtual Environment”</a>.</p>
+</div>
+<div class="section" id="id2">
+<h5>Windows<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h5>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install docutils pygments pypiwin32 kivy.deps.sdl2 kivy.deps.glew
+pip install kivy.deps.sdl2
+pip install kivy
+</pre></div>
+</div>
+</div>
+<div class="section" id="macos">
+<h5>MacOS<a class="headerlink" href="#macos" title="Permalink to this headline">¶</a></h5>
+<p>Follow the instructions for <a class="reference external" href="https://kivy.org/docs/installation/installation-osx.html#using-homebrew-with-pip">homebrew</a> or <a class="reference external" href="https://kivy.org/docs/installation/installation-osx.html#using-macports-with-pip">MacPorts</a>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h3>
+<p>To launch the user interface (Kivy required):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>vidhubcontrol-ui
+</pre></div>
+</div>
+<div class="section" id="note-for-windows">
+<h4>Note for Windows<a class="headerlink" href="#note-for-windows" title="Permalink to this headline">¶</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">vidhubcontrol-ui</span></code> script may not work. If this is the case, it can be
+launched by:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python vidhubcontrol/kivyui/main.py
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="reference.html" class="btn btn-neutral float-right" title="Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to vidhub-control’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

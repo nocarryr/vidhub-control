@@ -1,0 +1,872 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>vidhubcontrol.config &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>vidhubcontrol.config</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for vidhubcontrol.config</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="kn">import</span> <span class="nn">jsonfactory</span>
+<span class="kn">from</span> <span class="nn">pydispatch</span> <span class="k">import</span> <span class="n">Dispatcher</span><span class="p">,</span> <span class="n">Property</span>
+<span class="kn">from</span> <span class="nn">pydispatch.properties</span> <span class="k">import</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">DictProperty</span>
+
+<span class="kn">from</span> <span class="nn">vidhubcontrol.discovery</span> <span class="k">import</span> <span class="n">BMDDiscovery</span>
+<span class="kn">from</span> <span class="nn">vidhubcontrol.backends</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DummyBackend</span><span class="p">,</span>
+    <span class="n">SmartViewDummyBackend</span><span class="p">,</span>
+    <span class="n">SmartScopeDummyBackend</span><span class="p">,</span>
+    <span class="n">TelnetBackend</span><span class="p">,</span>
+    <span class="n">SmartViewTelnetBackend</span><span class="p">,</span>
+    <span class="n">SmartScopeTelnetBackend</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">BACKENDS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;vidhub&#39;</span><span class="p">:{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span><span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">[</span><span class="n">DummyBackend</span><span class="p">,</span> <span class="n">TelnetBackend</span><span class="p">]},</span>
+    <span class="s1">&#39;smartview&#39;</span><span class="p">:{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span><span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SmartViewDummyBackend</span><span class="p">,</span> <span class="n">SmartViewTelnetBackend</span><span class="p">]},</span>
+    <span class="s1">&#39;smartscope&#39;</span><span class="p">:{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span><span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SmartScopeDummyBackend</span><span class="p">,</span> <span class="n">SmartScopeTelnetBackend</span><span class="p">]},</span>
+<span class="p">}</span>
+
+<span class="k">class</span> <span class="nc">ConfigBase</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="n">_conf_attrs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;trigger_save&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">_get_conf_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conf_attrs</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">ConfigBase</span><span class="p">):</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">_get_conf_data</span><span class="p">()</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+<div class="viewcode-block" id="Config"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config">[docs]</a><span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="n">ConfigBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Config store for devices</span>
+
+<span class="sd">    Handles storage of device connection information and any user-defined values</span>
+<span class="sd">    for the backends defined in the :doc:`backends module &lt;backends&gt;`. Data is stored</span>
+<span class="sd">    in JSON format.</span>
+
+<span class="sd">    During :meth:`start`, all previously stored devices will be loaded and begin</span>
+<span class="sd">    communication. Devices are also discovered using `Zeroconf`_ through the</span>
+<span class="sd">    :doc:`discovery module &lt;discovery&gt;`.</span>
+
+<span class="sd">    Since each device has a unique id, network address changes (due to DHCP, etc)</span>
+<span class="sd">    are handled appropriately.</span>
+
+<span class="sd">    The configuration data is stored when:</span>
+
+<span class="sd">    * A device is added or removed</span>
+<span class="sd">    * A change is detected for a device&#39;s network address</span>
+<span class="sd">    * Any user-defined device value changes (device name, presets, etc)</span>
+
+<span class="sd">    The recommended method to start ``Config`` is through the :meth:`load_async`</span>
+<span class="sd">    method.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import asyncio</span>
+<span class="sd">            from vidhubcontrol.config import Config</span>
+
+<span class="sd">            loop = asyncio.get_event_loop()</span>
+<span class="sd">            conf = loop.run_until_complete(Config.load_async(loop=loop))</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        filename (:obj:`str`, optional): Filename to load/save config data to.</span>
+<span class="sd">            If not given, defaults to :attr:`DEFAULT_FILENAME`</span>
+<span class="sd">        loop: The :class:`EventLoop &lt;asyncio.BaseEventLoop&gt;` to use. If not</span>
+<span class="sd">            given, the value from :func:`asyncio.get_event_loop` will be used.</span>
+<span class="sd">        auto_start (bool): If ``True`` (default), the :meth:`start` method will</span>
+<span class="sd">            be added to the asyncio event loop on initialization.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        vidhubs (dict): A :class:`~pydispatch.properties.DictProperty` of</span>
+<span class="sd">            :class:`VidhubConfig` instances using</span>
+<span class="sd">            :attr:`~DeviceConfigBase.device_id` as keys</span>
+<span class="sd">        smartviews (dict): A :class:`~pydispatch.properties.DictProperty` of</span>
+<span class="sd">            :class:`SmartViewConfig` instances using</span>
+<span class="sd">            :attr:`~DeviceConfigBase.device_id` as keys</span>
+<span class="sd">        smartscopes (dict): A :class:`~pydispatch.properties.DictProperty` of</span>
+<span class="sd">            :class:`SmartScopeConfig` instances using</span>
+<span class="sd">            :attr:`~DeviceConfigBase.device_id` as keys</span>
+
+<span class="sd">    .. autoattribute:: DEFAULT_FILENAME</span>
+
+<span class="sd">    .. _Zeroconf: https://en.wikipedia.org/wiki/Zero-configuration_networking</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DEFAULT_FILENAME</span> <span class="o">=</span> <span class="s1">&#39;~/vidhubcontrol.json&#39;</span>
+    <span class="n">USE_DISCOVERY</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">vidhubs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">smartviews</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">smartscopes</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">_conf_attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;vidhubs&#39;</span><span class="p">,</span> <span class="s1">&#39;smartscopes&#39;</span><span class="p">,</span> <span class="s1">&#39;smartviews&#39;</span><span class="p">]</span>
+    <span class="n">_device_type_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;vidhub&#39;</span><span class="p">:{</span><span class="s1">&#39;prop&#39;</span><span class="p">:</span><span class="s1">&#39;vidhubs&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;smartview&#39;</span><span class="p">:{</span><span class="s1">&#39;prop&#39;</span><span class="p">:</span><span class="s1">&#39;smartviews&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;smartscope&#39;</span><span class="p">:{</span><span class="s1">&#39;prop&#39;</span><span class="p">:</span><span class="s1">&#39;smartscopes&#39;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">auto_start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;auto_start&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;filename&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_FILENAME</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;loop&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">Config</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;loop&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">Config</span><span class="o">.</span><span class="n">loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Config</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discovery_lock</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">auto_start</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">def</span> <span class="nf">_start_fut</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+                <span class="k">await</span> <span class="n">config</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="n">_start_fut</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">id_for_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">DeviceConfigBase</span><span class="p">):</span>
+            <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">_obj</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">_obj</span><span class="o">.</span><span class="n">backend</span> <span class="ow">is</span> <span class="n">device</span><span class="p">:</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="n">_obj</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Could not find device </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">device</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">device</span><span class="o">.</span><span class="n">device_id</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_initialize_backends</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and initializes device backends</span>
+
+<span class="sd">        Keyword Arguments:</span>
+<span class="sd">            vidhubs (dict): A ``dict`` containing the necessary data (as values)</span>
+<span class="sd">                to create an instance of :class:`VidhubConfig`</span>
+<span class="sd">            smartviews (dict): A ``dict`` containing the necessary data (as values)</span>
+<span class="sd">                to create an instance of :class:`SmartViewConfig`</span>
+<span class="sd">            smartscopes (dict): A ``dict`` containing the necessary data (as values)</span>
+<span class="sd">                to create an instance of :class:`SmartScopeConfig`</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            All config object instances are created using the</span>
+<span class="sd">            :meth:`DeviceConfigBase.create` classmethod.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">def</span> <span class="nf">_init_backend</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">okwargs</span><span class="p">):</span>
+            <span class="n">okwargs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">okwargs</span><span class="p">)</span>
+            <span class="n">device_id</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">device_id</span>
+            <span class="k">if</span> <span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">device_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_for_device</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="n">prop</span><span class="p">[</span><span class="n">device_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">device_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_device_id</span><span class="p">,</span>
+                <span class="n">trigger_save</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_device_trigger_save</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;prop&#39;</span><span class="p">],</span> <span class="p">{})</span>
+            <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">item_data</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">okwargs</span> <span class="o">=</span> <span class="n">item_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">task</span> <span class="o">=</span> <span class="n">_init_backend</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">okwargs</span><span class="p">)</span>
+                <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+<div class="viewcode-block" id="Config.start"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.start">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Starts the device backends and discovery routines</span>
+
+<span class="sd">        Keyword arguments passed to the initialization will be used here,</span>
+<span class="sd">        but can be overridden in this method. They will also be passed to</span>
+<span class="sd">        :meth:`_initialize_backends`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">starting</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_kwargs</span>
+
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_backends</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">USE_DISCOVERY</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">starting</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+           <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+           <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span> <span class="o">=</span> <span class="n">BMDDiscovery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">service_added</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_discovery_service_added</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Config.stop"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.stop">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops all device backends and discovery routines</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discovery_listener</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">vidhub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vidhubs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">await</span> <span class="n">vidhub</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">smartview</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">smartviews</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">await</span> <span class="n">smartview</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">smartscope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">smartscopes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">await</span> <span class="n">smartscope</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="n">Config</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="kc">None</span></div>
+<div class="viewcode-block" id="Config.build_backend"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.build_backend">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">build_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">backend_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a &quot;backend&quot; instance</span>
+
+<span class="sd">        The supplied keyword arguments are used to create the instance object</span>
+<span class="sd">        which will be created using its</span>
+<span class="sd">        :meth:`~vidhubcontrol.backends.base.BackendBase.create` classmethod.</span>
+
+<span class="sd">        The appropriate subclass of :class:`DeviceConfigBase` will be created</span>
+<span class="sd">        and stored to the config using :meth:`add_device`.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            device_type (str): Device type to create. Choices are &quot;vidhub&quot;,</span>
+<span class="sd">                &quot;smartview&quot;, &quot;smartscope&quot;</span>
+<span class="sd">            backend_name (str): The class name of the backend as found in</span>
+<span class="sd">                :doc:`backends`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of a :class:`vidhubcontrol.backends.base.BackendBase`</span>
+<span class="sd">            subclass</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">backend_name</span> <span class="o">!=</span> <span class="n">backend_name</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;device_id&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;device_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">obj</span><span class="o">.</span><span class="n">device_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">backend</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hostaddr&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;hostaddr&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">obj</span><span class="o">.</span><span class="n">hostaddr</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">backend</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">BACKENDS</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="n">backend_name</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;event_loop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_async</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_device</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">backend</span></div>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_vidhub</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_device</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_smartview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_device</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_smartscope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_device</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+<div class="viewcode-block" id="Config.add_device"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.add_device">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a &quot;backend&quot; instance to the config</span>
+
+<span class="sd">        A subclass of :class:`DeviceConfigBase` will be either created or updated</span>
+<span class="sd">        from the given backend instance.</span>
+
+<span class="sd">        If the ``device_id`` exists in the config, the</span>
+<span class="sd">        :attr:`DeviceConfigBase.backend` value of the matching</span>
+<span class="sd">        :class:`DeviceConfigBase` instance will be set to the given ``backend``.</span>
+<span class="sd">        Otherwise, a new :class:`DeviceConfigBase` instance will be created using</span>
+<span class="sd">        the :meth:`DeviceConfigBase.from_existing` classmethod.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            backend: An instance of one of the subclasses of</span>
+<span class="sd">                :class:`vidhubcontrol.backends.base.BackendBase` found in</span>
+<span class="sd">                :doc:`backends`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">device_type</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_type</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="n">backend</span><span class="o">.</span><span class="n">device_id</span><span class="p">]</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_existing</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_for_device</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="n">prop</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">device_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">trigger_save</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_device_trigger_save</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_device_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">on_backend_device_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">backend</span><span class="o">.</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">old</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">prop</span><span class="p">[</span><span class="n">old</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">return</span>
+        <span class="n">prop</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">backend</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_discovered_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">discovery_lock</span><span class="p">:</span>
+            <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_cls</span> <span class="ow">in</span> <span class="n">BACKENDS</span><span class="p">[</span><span class="n">device_type</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="s1">&#39;Telnet&#39;</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+                    <span class="bp">cls</span> <span class="o">=</span> <span class="n">_cls</span>
+                    <span class="k">break</span>
+            <span class="n">hostaddr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+            <span class="n">hostport</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">device_id</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="n">device_id</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">hostaddr</span> <span class="o">!=</span> <span class="n">hostaddr</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="n">hostport</span> <span class="o">!=</span> <span class="n">hostport</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">obj</span><span class="o">.</span><span class="n">reset_hostaddr</span><span class="p">(</span><span class="n">hostaddr</span><span class="p">,</span> <span class="n">hostport</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="n">backend</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_async</span><span class="p">(</span>
+                <span class="n">hostaddr</span><span class="o">=</span><span class="n">hostaddr</span><span class="p">,</span>
+                <span class="n">hostport</span><span class="o">=</span><span class="n">hostport</span><span class="p">,</span>
+                <span class="n">event_loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span> <span class="o">!=</span> <span class="n">device_id</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">backend</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_device</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_discovery_service_added</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Videohub&#39;</span><span class="p">,</span> <span class="s1">&#39;SmartView&#39;</span><span class="p">]:</span>
+            <span class="k">return</span>
+        <span class="n">device_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;device_type&#39;</span><span class="p">)</span>
+        <span class="n">device_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">][</span><span class="s1">&#39;prop&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">device_id</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="n">device_id</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_discovered_device</span><span class="p">(</span><span class="n">device_type</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">device_id</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_device_trigger_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+<div class="viewcode-block" id="Config.save"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Saves the config data to the given filename</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            filename (:obj:`str`, optional): The filename to write config data to.</span>
+<span class="sd">                If not supplied, the current :attr:`filename` is used.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            If the ``filename`` argument is provided, it will replace the</span>
+<span class="sd">            existing :attr:`filename` value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_conf_data</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">jsonfactory</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_prepare_load_params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">DEFAULT_FILENAME</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">jsonfactory</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">kwargs</span>
+<div class="viewcode-block" id="Config.load"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a Config instance, loading data from the given filename</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            filename (:obj:`str`, optional): The filename to read config data</span>
+<span class="sd">                from, defaults to :const:`Config.DEFAULT_FILENAME`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`Config` instance</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_prepare_load_params</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Config.load_async"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.Config.load_async">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">load_async</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a Config instance, loading data from the given filename</span>
+
+<span class="sd">        This coroutine method creates the ``Config`` instance and will ``await``</span>
+<span class="sd">        all start-up coroutines and futures before returning.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            filename (:obj:`str`, optional): The filename to read config data</span>
+<span class="sd">                from, defaults to :attr:`DEFAULT_FILENAME`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`Config` instance</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_prepare_load_params</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;auto_start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">config</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">config</span><span class="o">.</span><span class="n">_start_fut</span>
+        <span class="k">return</span> <span class="n">config</span></div></div>
+
+
+<div class="viewcode-block" id="DeviceConfigBase"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.DeviceConfigBase">[docs]</a><span class="k">class</span> <span class="nc">DeviceConfigBase</span><span class="p">(</span><span class="n">ConfigBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for device config storage</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        config: A reference to the parent :class:`Config` instance</span>
+<span class="sd">        backend: An instance of :class:`vidhubcontrol.backends.base.BackendBase`</span>
+<span class="sd">        backend_name (str): The class name of the backend, used when loading</span>
+<span class="sd">            from saved config data</span>
+<span class="sd">        hostaddr (str): The IPv4 address of the device</span>
+<span class="sd">        hostport (int): The port address of the device</span>
+<span class="sd">        device_name (str): User-defined name to store with the device, defaults</span>
+<span class="sd">            to the :attr:`device_id` value</span>
+<span class="sd">        device_id (str): The unique id as reported by the device</span>
+<span class="sd">        backend_unavailable (bool): ``True`` if communication with the device</span>
+<span class="sd">            could not be established</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">backend</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">backend_name</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">hostaddr</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">hostport</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="mi">9990</span><span class="p">)</span>
+    <span class="n">device_name</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">device_id</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">backend_unavailable</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">_conf_attrs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;backend_name&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hostaddr&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hostport&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;device_name&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;device_id&#39;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_set</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;event_loop&#39;</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+<div class="viewcode-block" id="DeviceConfigBase.create"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.DeviceConfigBase.create">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates device config and backend instances asynchronously</span>
+
+<span class="sd">        Keyword arguments passed to this classmethod are passed to the init</span>
+<span class="sd">        method and will be used to set its attributes.</span>
+
+<span class="sd">        If a &quot;backend&quot; keyword argument is supplied, it should be a running</span>
+<span class="sd">        instance of :class:`vidhubcontrol.backends.base.BackendBase`. It will</span>
+<span class="sd">        then be used to collect config values from.</span>
+
+<span class="sd">        If &quot;backend&quot; is not present, the appropriate one will be created using</span>
+<span class="sd">        :meth:`build_backend`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of :class:`DeviceConfigBase`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conf_attrs</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;backend&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_backend</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_conf_data</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+<div class="viewcode-block" id="DeviceConfigBase.from_existing"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.DeviceConfigBase.from_existing">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">from_existing</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a device config object from an existing backend</span>
+
+<span class="sd">        Keyword arguments will be passed to the :meth:`create` method</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            backend: An instance of :class:`vidhubcontrol.backends.base.BackendBase`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of :class:`DeviceConfigBase`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+            <span class="n">backend_name</span><span class="o">=</span><span class="n">backend</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="n">hostaddr</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="s1">&#39;hostaddr&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">hostport</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="s1">&#39;hostport&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="n">backend</span><span class="o">.</span><span class="n">device_name</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="n">backend</span><span class="o">.</span><span class="n">device_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;event_loop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">event_loop</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">reset_hostaddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hostaddr</span><span class="p">,</span> <span class="n">hostport</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">hostport</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hostport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hostport</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hostaddr</span> <span class="o">=</span> <span class="n">hostaddr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hostport</span> <span class="o">=</span> <span class="n">hostport</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">hostaddr</span> <span class="o">=</span> <span class="n">hostaddr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">hostport</span> <span class="o">=</span> <span class="n">hostport</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;trigger_save&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="DeviceConfigBase.build_backend"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.DeviceConfigBase.build_backend">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">build_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a backend instance asynchronously</span>
+
+<span class="sd">        Keyword arguments will be passed to the</span>
+<span class="sd">        :meth:`vidhubcontrol.backends.base.BackendBase.create_async` method.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            cls (optional): A subclass of</span>
+<span class="sd">                :class:`~vidhubcontrol.backends.base.BackendBase`. If not present,</span>
+<span class="sd">                the class will be determined from existing values of</span>
+<span class="sd">                :attr:`device_type` and :attr:`backend_name`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of :class:`vidhubcontrol.backends.base.BackendBase`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;event_loop&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">BACKENDS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">backend_name</span><span class="p">]</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_async</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">connection_unavailable</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">backend_unavailable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">backend</span></div>
+    <span class="k">def</span> <span class="nf">on_backend_prop_change</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">instance</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;property&#39;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;trigger_save&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_backend_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">old</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">old</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">device_name</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_name</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">device_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">device_name</span>
+        <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">id_for_device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">backend</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span>
+        <span class="n">backend</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_prop_change</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_backend_device_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="s1">&#39;hostport&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hostaddr</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">hostaddr</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hostport</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">hostport</span>
+            <span class="n">backend</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">hostaddr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_prop_change</span><span class="p">,</span>
+                <span class="n">hostport</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_prop_change</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_on_backend_device_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">backend</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">id_for_device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">device_id</span></div>
+
+
+<div class="viewcode-block" id="VidhubConfig"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.VidhubConfig">[docs]</a><span class="k">class</span> <span class="nc">VidhubConfig</span><span class="p">(</span><span class="n">DeviceConfigBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Config container for VideoHub devices</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        presets (list): Preset data collected from the device</span>
+<span class="sd">            :class:`presets &lt;vidhubcontrol.backends.base.Preset&gt;`. Will be used</span>
+<span class="sd">            on initialization to populate the preset data to the device</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">presets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">_conf_attrs</span> <span class="o">=</span> <span class="n">DeviceConfigBase</span><span class="o">.</span><span class="n">_conf_attrs</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="s1">&#39;presets&#39;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;vidhub&#39;</span>
+<div class="viewcode-block" id="VidhubConfig.create"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.VidhubConfig.create">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;presets&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+<div class="viewcode-block" id="VidhubConfig.from_existing"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.VidhubConfig.from_existing">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">from_existing</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;presets&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">preset</span> <span class="ow">in</span> <span class="n">backend</span><span class="o">.</span><span class="n">presets</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;presets&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                <span class="n">crosspoints</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">crosspoints</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="p">))</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_existing</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+<div class="viewcode-block" id="VidhubConfig.build_backend"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.VidhubConfig.build_backend">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">build_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;presets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;presets&#39;</span><span class="p">][:]</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build_backend</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">on_backend_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_backend_set</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">pkwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_update</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;crosspoints&#39;</span><span class="p">]}</span>
+        <span class="k">for</span> <span class="n">preset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">presets</span><span class="p">:</span>
+            <span class="n">preset</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">pkwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_preset_added</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_added</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_preset_added</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">preset</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;preset&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">crosspoints</span><span class="o">=</span><span class="n">preset</span><span class="o">.</span><span class="n">crosspoints</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="p">))</span>
+        <span class="n">bkwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_update</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;crosspoints&#39;</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;trigger_save&#39;</span><span class="p">)</span>
+        <span class="n">preset</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">bkwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_preset_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;property&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;crosspoints&#39;</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="p">[</span><span class="n">instance</span><span class="o">.</span><span class="n">index</span><span class="p">][</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;trigger_save&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_get_conf_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_conf_data</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">pdata</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;presets&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s1">&#39;backend&#39;</span> <span class="ow">in</span> <span class="n">pdata</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">pdata</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+<div class="viewcode-block" id="SmartViewConfig"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.SmartViewConfig">[docs]</a><span class="k">class</span> <span class="nc">SmartViewConfig</span><span class="p">(</span><span class="n">DeviceConfigBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Config container for SmartView devices</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;smartview&#39;</span></div>
+
+<div class="viewcode-block" id="SmartScopeConfig"><a class="viewcode-back" href="../../config.html#vidhubcontrol.config.SmartScopeConfig">[docs]</a><span class="k">class</span> <span class="nc">SmartScopeConfig</span><span class="p">(</span><span class="n">DeviceConfigBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Config container for SmartScope devices</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;smartscope&#39;</span></div>
+
+<span class="n">Config</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="s1">&#39;vidhub&#39;</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VidhubConfig</span>
+<span class="n">Config</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="s1">&#39;smartview&#39;</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SmartViewConfig</span>
+<span class="n">Config</span><span class="o">.</span><span class="n">_device_type_map</span><span class="p">[</span><span class="s1">&#39;smartscope&#39;</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SmartScopeConfig</span>
+
+<span class="nd">@jsonfactory</span><span class="o">.</span><span class="n">register</span>
+<span class="k">class</span> <span class="nc">JsonHandler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">ConfigBase</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">_get_conf_data</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">d</span>
+    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">):</span><span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">d</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

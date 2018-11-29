@@ -1,0 +1,641 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>vidhubcontrol.discovery &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>vidhubcontrol.discovery</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for vidhubcontrol.discovery</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">ipaddress</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">pydispatch</span> <span class="k">import</span> <span class="n">Dispatcher</span><span class="p">,</span> <span class="n">Property</span>
+<span class="kn">from</span> <span class="nn">pydispatch.properties</span> <span class="k">import</span> <span class="n">DictProperty</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">zeroconf</span>
+    <span class="n">ZEROCONF_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span> <span class="c1"># pragma: no cover</span>
+    <span class="n">zeroconf</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ZEROCONF_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">from</span> <span class="nn">vidhubcontrol.utils</span> <span class="k">import</span> <span class="n">find_ip_addresses</span>
+
+<span class="n">PUBLISH_TTL</span> <span class="o">=</span> <span class="mi">60</span>
+
+<span class="k">def</span> <span class="nf">convert_bytes_dict</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;UTF-8&#39;</span><span class="p">):</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s1">&#39;UTF-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+
+<span class="k">def</span> <span class="nf">convert_dict_bytes</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="nb">bytes</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;UTF-8&#39;</span><span class="p">):</span><span class="nb">bytes</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s1">&#39;UTF-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+
+<div class="viewcode-block" id="ServiceInfo"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.ServiceInfo">[docs]</a><span class="k">class</span> <span class="nc">ServiceInfo</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Container for Zeroconf service information</span>
+
+<span class="sd">    Closely related to :class:`zeroconf.ServiceInfo`</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        type (str): Fully qualified service type</span>
+<span class="sd">        name (str): Fully qualified service name</span>
+<span class="sd">        server (str): Fully qualified name for service host</span>
+<span class="sd">            (defaults to :attr:`name`)</span>
+<span class="sd">        address (:class:`ipaddress.IPv4Address`): The service ip address</span>
+<span class="sd">        port (int): The service port</span>
+<span class="sd">        properties (dict): Custom properties for the service</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">properties</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">_attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;server&#39;</span><span class="p">,</span> <span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="s1">&#39;port&#39;</span><span class="p">,</span> <span class="s1">&#39;properties&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attrs</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+<div class="viewcode-block" id="ServiceInfo.from_zc_info"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.ServiceInfo.from_zc_info">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_zc_info</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates an instance from a :class:`zeroconf.ServiceInfo` object</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            info (:class:`zeroconf.ServiceInfo`):</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of :class:`ServiceInfo`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_attrs</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;properties&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">convert_bytes_dict</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;address&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">ip_address</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unique id for the service as a ``tuple`` of (:attr:`type`, :attr:`name`)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="c1">#, self.address, self.port)</span>
+<div class="viewcode-block" id="ServiceInfo.to_zc_info"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.ServiceInfo.to_zc_info">[docs]</a>    <span class="k">def</span> <span class="nf">to_zc_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a copy as an instance of :class:`zeroconf.ServiceInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attrs</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;properties&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">convert_dict_bytes</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;address&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Interface</span><span class="p">):</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">ip</span><span class="o">.</span><span class="n">packed</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">):</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">packed</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">ip_address</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">packed</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="n">type_</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">zeroconf</span><span class="o">.</span><span class="n">ServiceInfo</span><span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ServiceInfo.update"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.ServiceInfo.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the :attr:`properties` from another :class:`ServiceInfo` instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">{self.__class__.__name__}</span><span class="s1">&gt; </span><span class="si">{self}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{self.name}</span><span class="s1">: </span><span class="si">{self.type}</span><span class="s1"> (</span><span class="si">{self.address}</span><span class="s1">:</span><span class="si">{self.port}</span><span class="s1">), properties=</span><span class="si">{self.properties}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Message"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Message">[docs]</a><span class="k">class</span> <span class="nc">Message</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A message to communicate actions to and from :class:`Listener`</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        info: The :class:`ServiceInfo` related to the message</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This class and its subclasses are not meant to be used directly. They</span>
+<span class="sd">        are used internally in :class:`Listener` methods.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">info</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{self.__class__.__name__}</span><span class="s1">: </span><span class="si">{self.info}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AddedMessage"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.AddedMessage">[docs]</a><span class="k">class</span> <span class="nc">AddedMessage</span><span class="p">(</span><span class="n">Message</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RemovedMessage"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.RemovedMessage">[docs]</a><span class="k">class</span> <span class="nc">RemovedMessage</span><span class="p">(</span><span class="n">Message</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PublishMessage"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.PublishMessage">[docs]</a><span class="k">class</span> <span class="nc">PublishMessage</span><span class="p">(</span><span class="n">Message</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="n">PUBLISH_TTL</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ttl</span> <span class="o">=</span> <span class="n">ttl</span></div>
+
+<div class="viewcode-block" id="UnPublishMessage"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.UnPublishMessage">[docs]</a><span class="k">class</span> <span class="nc">UnPublishMessage</span><span class="p">(</span><span class="n">Message</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Listener"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener">[docs]</a><span class="k">class</span> <span class="nc">Listener</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An async zeroconf service listener</span>
+
+<span class="sd">    Allows async communication with :class:`zeroconf.Zeroconf` through</span>
+<span class="sd">    :meth:`asyncio.AbstractEventLoop.run_in_executor` calls.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        mainloop (:class:`asyncio.BaseEventLoop`): asyncio event loop instance</span>
+<span class="sd">        service_type (str): The fully qualified service type name to subscribe to</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        services (dict): All services currently discovered as instances of</span>
+<span class="sd">            :class:`ServiceInfo`. Stored using :attr:`ServiceInfo.id` as keys</span>
+<span class="sd">        message_queue (:class:`asyncio.Queue`): Used to communicate actions and</span>
+<span class="sd">            events with instances of :class:`Message`</span>
+<span class="sd">        published_services (dict): Stores services that have been published</span>
+<span class="sd">            using :meth:`publish_service` as :class:`ServiceInfo` instances.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;service_added&#39;</span><span class="p">,</span> <span class="s1">&#39;service_removed&#39;</span><span class="p">]</span>
+    <span class="n">services</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mainloop</span><span class="p">,</span> <span class="n">service_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span> <span class="o">=</span> <span class="n">mainloop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">service_type</span> <span class="o">=</span> <span class="n">service_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_queue</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="Listener.start"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.start">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Starts the service listener</span>
+
+<span class="sd">        Runs :class:`zeroconf.Zeroconf` in an :class:`~concurrent.futures.Executor`</span>
+<span class="sd">        instance through `asyncio.AbstractEventLoop.run_in_executor`</span>
+<span class="sd">        (see :meth:`run_zeroconf`).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_zeroconf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_future</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Listener.run"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.run">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Main loop for communicating with :class:`zeroconf.Zeroconf`</span>
+
+<span class="sd">        Waits for messages on the :attr:`message_queue` and processes them.</span>
+<span class="sd">        The loop will exit if an object placed on the queue is not an instance</span>
+<span class="sd">        of :class:`Message`.</span>
+
+<span class="sd">        When the loop exits, the :class:`zeroconf.Zeroconf` instance will be</span>
+<span class="sd">        closed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">message_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">message_queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">Message</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">AddedMessage</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">services</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">services</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_service_info</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">RemovedMessage</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">services</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_service_info</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">PublishMessage</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ZEROCONF_AVAILABLE</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">zc_info</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">to_zc_info</span><span class="p">()</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                    <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span><span class="o">.</span><span class="n">register_service</span><span class="p">,</span>
+                    <span class="n">zc_info</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">UnPublishMessage</span><span class="p">):</span>
+                <span class="n">zc_info</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">to_zc_info</span><span class="p">()</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                    <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span><span class="o">.</span><span class="n">unregister_service</span><span class="p">,</span> <span class="n">zc_info</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_zeroconf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Listener.stop"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.stop">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops the loop in :meth:`run`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Listener.run_zeroconf"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.run_zeroconf">[docs]</a>    <span class="k">def</span> <span class="nf">run_zeroconf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Starts :class:`zeroconf.Zeroconf` and :class:`zeroconf.ServiceBrowser` instances</span>
+
+<span class="sd">        This is meant to be called inside of an :class:`concurrent.futures.Executor`</span>
+<span class="sd">        and not used directly.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ZEROCONF_AVAILABLE</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span> <span class="o">=</span> <span class="n">zeroconf</span><span class="o">.</span><span class="n">Zeroconf</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span><span class="o">.</span><span class="n">listener</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">browser</span> <span class="o">=</span> <span class="n">zeroconf</span><span class="o">.</span><span class="n">ServiceBrowser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_type</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Listener.stop_zeroconf"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.stop_zeroconf">[docs]</a>    <span class="k">def</span> <span class="nf">stop_zeroconf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Closes the :class:`zeroconf.Zeroconf` instance</span>
+
+<span class="sd">        This is meant to be called inside of an :class:`concurrent.futures.Executor`</span>
+<span class="sd">        and not used directly.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeroconf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Listener.add_message"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.add_message">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a message to the :attr:`message_queue`</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            msg (:class:`Message`): Message to send</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">message_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_service_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;service_added&#39;</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">remove_service_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;service_removed&#39;</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">remove_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zc</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">ServiceInfo</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">type_</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">RemovedMessage</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="n">msg</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">add_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zc</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">zc</span><span class="o">.</span><span class="n">get_service_info</span><span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">ServiceInfo</span><span class="o">.</span><span class="n">from_zc_info</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">AddedMessage</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="n">msg</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_local_ifaces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">ifaces</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_local_ifaces&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ifaces</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">refresh</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ifaces</span>
+        <span class="n">ifaces</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_ifaces</span> <span class="o">=</span> <span class="p">[</span><span class="n">iface</span> <span class="k">for</span> <span class="n">iface_name</span><span class="p">,</span> <span class="n">iface</span> <span class="ow">in</span> <span class="n">find_ip_addresses</span><span class="p">()]</span>
+        <span class="k">return</span> <span class="n">ifaces</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_local_hostname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_local_hostname&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">iface</span> <span class="ow">in</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_ifaces</span><span class="p">():</span>
+            <span class="n">_name</span><span class="p">,</span> <span class="n">srv</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="o">.</span><span class="n">getnameinfo</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">iface</span><span class="o">.</span><span class="n">ip</span><span class="p">),</span> <span class="mi">80</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_name</span> <span class="o">!=</span> <span class="s1">&#39;localhost&#39;</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">_name</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_local_hostname</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="n">name</span>
+<div class="viewcode-block" id="Listener.publish_service"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.publish_service">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">publish_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">addresses</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="n">PUBLISH_TTL</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Publishes a service on the network</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            type_ (str): Fully qualified service type</span>
+<span class="sd">            port (int): The service port</span>
+<span class="sd">            name (str, optional): Fully qualified service name. If not provided,</span>
+<span class="sd">                this will be generated from the ``type_`` and the hostname</span>
+<span class="sd">                detected by :meth:`get_local_hostname`</span>
+<span class="sd">            addresses (optional): If provided, an ``iterable`` of IP addresses</span>
+<span class="sd">                to publish. Can be :class:`ipaddress.IPv4Address` or any type</span>
+<span class="sd">                that can be parsed by :func:`ipaddress.ip_address`</span>
+<span class="sd">            properties (dict, optional): Custom properties for the service</span>
+<span class="sd">            ttl (int, optional): The TTL value to publish.</span>
+<span class="sd">                Defaults to :const:`PUBLISH_TTL`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_hostname</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">hostname</span><span class="p">,</span> <span class="n">type_</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">addresses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_ifaces</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">properties</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span><span class="n">type_</span><span class="p">,</span>
+            <span class="s1">&#39;port&#39;</span><span class="p">:</span><span class="n">port</span><span class="p">,</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;properties&#39;</span><span class="p">:</span><span class="n">properties</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">):</span>
+                <span class="n">addr</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+            <span class="n">info_kwargs</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">addr</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">ServiceInfo</span><span class="p">(</span><span class="o">**</span><span class="n">info_kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">address</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">][</span><span class="n">info</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">PublishMessage</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">ttl</span><span class="p">)</span>
+            <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="n">msg</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Listener.unpublish_service"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.Listener.unpublish_service">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">unpublish_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">addresses</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Removes a service published through :meth:`publish_service`</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            type_ (str): Fully qualified service type</span>
+<span class="sd">            port (int): The service port</span>
+<span class="sd">            name (str, optional): Fully qualified service name. If not provided,</span>
+<span class="sd">                this will be generated from the ``type_`` and the hostname</span>
+<span class="sd">                detected by :meth:`get_local_hostname`</span>
+<span class="sd">            addresses (optional): If provided, an ``iterable`` of IP addresses</span>
+<span class="sd">                to unpublish. Can be :class:`ipaddress.IPv4Address` or any type</span>
+<span class="sd">                that can be parsed by :func:`ipaddress.ip_address`</span>
+<span class="sd">            properties (dict, optional): Custom properties for the service</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_hostname</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">hostname</span><span class="p">,</span> <span class="n">type_</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">addresses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_ifaces</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">properties</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span><span class="n">type_</span><span class="p">,</span>
+            <span class="s1">&#39;port&#39;</span><span class="p">:</span><span class="n">port</span><span class="p">,</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;properties&#39;</span><span class="p">:</span><span class="n">properties</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">):</span>
+                <span class="n">addr</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+            <span class="n">info_kwargs</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">addr</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">ServiceInfo</span><span class="p">(</span><span class="o">**</span><span class="n">info_kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">address</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">published_services</span><span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">id</span><span class="p">][</span><span class="n">info</span><span class="o">.</span><span class="n">address</span><span class="p">]</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">PublishMessage</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+            <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="n">msg</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainloop</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="BMDDiscovery"><a class="viewcode-back" href="../../discovery.html#vidhubcontrol.discovery.BMDDiscovery">[docs]</a><span class="k">class</span> <span class="nc">BMDDiscovery</span><span class="p">(</span><span class="n">Listener</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Zeroconf listener for Blackmagic devices</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        vidhubs (dict): Contains discovered Videohub devices.</span>
+<span class="sd">            This :class:`~pydispatch.properties.DictProperty` can be used to</span>
+<span class="sd">            subscribe to changes.</span>
+<span class="sd">        smart_views (dict): Contains discovered SmartView devices.</span>
+<span class="sd">            This :class:`~pydispatch.properties.DictProperty` can be used to</span>
+<span class="sd">            subscribe to changes.</span>
+<span class="sd">        smart_scopes (dict): Contains discovered SmartScope devices.</span>
+<span class="sd">            This :class:`~pydispatch.properties.DictProperty` can be used to</span>
+<span class="sd">            subscribe to changes.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vidhubs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">smart_views</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">smart_scopes</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mainloop</span><span class="p">,</span> <span class="n">service_type</span><span class="o">=</span><span class="s1">&#39;_blackmagic._tcp.local.&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mainloop</span><span class="p">,</span> <span class="n">service_type</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_service_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">device_cls</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">)</span>
+        <span class="n">bmd_id</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;unique id&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">device_cls</span> <span class="o">==</span> <span class="s1">&#39;Videohub&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vidhubs</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="n">device_cls</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="n">bmd_id</span><span class="p">,</span> <span class="s1">&#39;device_type&#39;</span><span class="p">:</span><span class="s1">&#39;vidhub&#39;</span><span class="p">})</span>
+        <span class="k">elif</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;SmartView&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;SmartScope&#39;</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">smart_scopes</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;device_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;smartscope&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">smart_views</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;device_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;smartview&#39;</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="n">device_cls</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="n">bmd_id</span><span class="p">})</span>
+        <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_service_info</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">remove_service_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">device_cls</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">)</span>
+        <span class="n">bmd_id</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;unique id&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">bmd_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vidhubs</span> <span class="ow">and</span> <span class="n">device_cls</span> <span class="o">==</span> <span class="s1">&#39;Videohub&#39;</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">vidhubs</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="n">device_cls</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="n">bmd_id</span><span class="p">,</span> <span class="s1">&#39;device_type&#39;</span><span class="p">:</span><span class="s1">&#39;vidhub&#39;</span><span class="p">})</span>
+        <span class="k">elif</span> <span class="n">bmd_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">smart_views</span> <span class="ow">and</span> <span class="n">device_cls</span> <span class="o">==</span> <span class="s1">&#39;SmartView&#39;</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">smart_views</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="n">device_cls</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="n">bmd_id</span><span class="p">,</span> <span class="s1">&#39;device_type&#39;</span><span class="p">:</span><span class="s1">&#39;smartview&#39;</span><span class="p">})</span>
+        <span class="k">elif</span> <span class="n">bmd_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">smart_scopes</span> <span class="ow">and</span> <span class="n">device_cls</span> <span class="o">==</span> <span class="s1">&#39;SmartView&#39;</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">smart_scopes</span><span class="p">[</span><span class="n">bmd_id</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="n">device_cls</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="n">bmd_id</span><span class="p">,</span> <span class="s1">&#39;device_type&#39;</span><span class="p">:</span><span class="s1">&#39;smartscope&#39;</span><span class="p">})</span>
+        <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove_service_info</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">set_debug</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">listener</span> <span class="o">=</span> <span class="n">BMDDiscovery</span><span class="p">(</span><span class="n">loop</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_service_added</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">info</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">on_service_removed</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Removed: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">info</span><span class="p">))</span>
+
+    <span class="n">listener</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">service_added</span><span class="o">=</span><span class="n">on_service_added</span><span class="p">,</span> <span class="n">service_removed</span><span class="o">=</span><span class="n">on_service_removed</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+        <span class="k">await</span> <span class="n">listener</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">listener</span><span class="o">.</span><span class="n">services</span><span class="p">))</span>
+        <span class="k">await</span> <span class="n">listener</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+    <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">run</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">listener</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

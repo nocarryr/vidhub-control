@@ -1,0 +1,1128 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>backends package &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="discovery module" href="discovery.html" />
+    <link rel="prev" title="config module" href="config.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="reference.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="config.html">config module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">backends package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-vidhubcontrol.backends.base">vidhubcontrol.backends.base module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-vidhubcontrol.backends.telnet">vidhubcontrol.backends.telnet module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="discovery.html">discovery module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="reference.html">Reference</a> &raquo;</li>
+        
+      <li>backends package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/backends.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="backends-package">
+<h1>backends package<a class="headerlink" href="#backends-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-vidhubcontrol.backends.base">
+<span id="vidhubcontrol-backends-base-module"></span><h2>vidhubcontrol.backends.base module<a class="headerlink" href="#module-vidhubcontrol.backends.base" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.BackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">BackendBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#BackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.BackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Dispatcher" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.dispatch.Dispatcher</span></code></a></p>
+<p>Base class for communicating with devices</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.BackendBase.device_id">
+<code class="descname">device_id</code><a class="headerlink" href="#vidhubcontrol.backends.base.BackendBase.device_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The unique id as reported by the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.BackendBase.device_version">
+<code class="descname">device_version</code><a class="headerlink" href="#vidhubcontrol.backends.base.BackendBase.device_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>The firmware version as reported by the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.BackendBase.device_model">
+<code class="descname">device_model</code><a class="headerlink" href="#vidhubcontrol.backends.base.BackendBase.device_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>The model name as reported by the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.BackendBase.connected">
+<code class="descname">connected</code><a class="headerlink" href="#vidhubcontrol.backends.base.BackendBase.connected" title="Permalink to this definition">¶</a></dt>
+<dd><p>A flag indicating the connection status.
+<a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.Property" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.Property</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="docutils">
+<dt>Events:</dt>
+<dd><dl class="first last docutils">
+<dt>on_preset_added: This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Event" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> is emitted</dt>
+<dd>when a new <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a> has been added.</dd>
+<dt>on_preset_stored: This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Event" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> is emitted</dt>
+<dd>when an existing <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a> has been recorded (updated).</dd>
+<dt>on_preset_active: This <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Event" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a> is emitted</dt>
+<dd>when an existing <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a> has determined that its stored
+routing information is currently active on the switcher.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.Preset">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">Preset</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#Preset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.Preset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Dispatcher" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.dispatch.Dispatcher</span></code></a></p>
+<p>Stores and recalls routing information</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.Preset.name">
+<code class="descname">name</code><a class="headerlink" href="#vidhubcontrol.backends.base.Preset.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the preset.
+This is a <code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.Property</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.Preset.index">
+<code class="descname">index</code><a class="headerlink" href="#vidhubcontrol.backends.base.Preset.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>The index of the preset as it is stored in the
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">presets</span></code> container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.Preset.crosspoints">
+<code class="descname">crosspoints</code><a class="headerlink" href="#vidhubcontrol.backends.base.Preset.crosspoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>The crosspoints that this preset has stored.
+This is a <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.Preset.active">
+<code class="descname">active</code><a class="headerlink" href="#vidhubcontrol.backends.base.Preset.active" title="Permalink to this definition">¶</a></dt>
+<dd><p>A flag indicating whether all of the crosspoints stored
+in this preset are currently active on the switcher.
+This is a <code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.Property</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="docutils">
+<dt>Events:</dt>
+<dd>on_preset_stored: Dispatched after the preset stores its state.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.SmartScopeBackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">SmartScopeBackendBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#SmartScopeBackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.SmartScopeBackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewBackendBase" title="vidhubcontrol.backends.base.SmartViewBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.SmartViewBackendBase</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.SmartScopeMonitor">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">SmartScopeMonitor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#SmartScopeMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.SmartScopeMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="vidhubcontrol.backends.base.SmartViewMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.SmartViewMonitor</span></code></a></p>
+<p>A single instance of a monitor within a SmartScope device</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartScopeMonitor.scope_mode">
+<code class="descname">scope_mode</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartScopeMonitor.scope_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>The type of scope to display.  Choices are:
+‘audio_dbfs’, ‘audio_dbvu’, ‘histogram’, ‘parade_rgb’, ‘parade_yuv’,
+‘video’, ‘vector_100’, ‘vector_75’, ‘waveform’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">SmartViewBackendBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#SmartViewBackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></p>
+<p>Base class for SmartView devices</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase.num_monitors">
+<code class="descname">num_monitors</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase.num_monitors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of physical monitors as reported by the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase.inverted">
+<code class="descname">inverted</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase.inverted" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the device has been mounted in an inverted
+configuration (to optimize viewing angle).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase.monitors">
+<code class="descname">monitors</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase.monitors" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">list</span></code> containing instances of <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="vidhubcontrol.backends.base.SmartViewMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartViewMonitor</span></code></a>
+or <a class="reference internal" href="#vidhubcontrol.backends.base.SmartScopeMonitor" title="vidhubcontrol.backends.base.SmartScopeMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartScopeMonitor</span></code></a>, depending on device type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase.Events">
+<code class="descname">Events</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase.Events" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>on_monitor_property_change: Dispatched when any</dt>
+<dd><a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.Property" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Property</span></code></a> value changes. The event
+signature for callbacks is
+<code class="docutils literal notranslate"><span class="pre">(smartview_device,</span> <span class="pre">property_name,</span> <span class="pre">value,</span> <span class="pre">**kwargs)</span></code> containing
+a keyword argument “monitor” containing the <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="vidhubcontrol.backends.base.SmartViewMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartViewMonitor</span></code></a>
+instance.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.SmartViewBackendBase.set_monitor_property">
+<em class="property">coroutine </em><code class="descname">set_monitor_property</code><span class="sig-paren">(</span><em>monitor</em>, <em>name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#SmartViewBackendBase.set_monitor_property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewBackendBase.set_monitor_property" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a property value for the given <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="vidhubcontrol.backends.base.SmartViewMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartViewMonitor</span></code></a> instance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>monitor</strong> – The <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="vidhubcontrol.backends.base.SmartViewMonitor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartViewMonitor</span></code></a> instance to set</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Property name</li>
+<li><strong>value</strong> – The new value to set</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This method is a coroutine.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">SmartViewMonitor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#SmartViewMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/dispatch.html#pydispatch.dispatch.Dispatcher" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.dispatch.Dispatcher</span></code></a></p>
+<p>A single instance of a monitor within a SmartView device</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.index">
+<code class="descname">index</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of the monitor (zero-based)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.name">
+<code class="descname">name</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the monitor (can be user-defined)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.brightness">
+<code class="descname">brightness</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.brightness" title="Permalink to this definition">¶</a></dt>
+<dd><p>The brightness value of the monitor (0-255)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.contrast">
+<code class="descname">contrast</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.contrast" title="Permalink to this definition">¶</a></dt>
+<dd><p>The contrast value of the monitor (0-255)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.saturation">
+<code class="descname">saturation</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.saturation" title="Permalink to this definition">¶</a></dt>
+<dd><p>The saturation value of the monitor (0-255)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.widescreen_sd">
+<code class="descname">widescreen_sd</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.widescreen_sd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aspect ratio setting for SD format. Choices can be:
+<code class="docutils literal notranslate"><span class="pre">True</span></code> (stretching enabled), <code class="docutils literal notranslate"><span class="pre">False</span></code> (pillar-box), or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (auto-detect).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.identify">
+<code class="descname">identify</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.identify" title="Permalink to this definition">¶</a></dt>
+<dd><p>If set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the monitor’s border will be white
+for a brief duration to physically locate the device.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.border">
+<code class="descname">border</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.border" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the border of the monitor to the given color. Choices
+are: ‘red’, ‘green’, ‘blue’, ‘white’, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.SmartViewMonitor.audio_channel">
+<code class="descname">audio_channel</code><a class="headerlink" href="#vidhubcontrol.backends.base.SmartViewMonitor.audio_channel" title="Permalink to this definition">¶</a></dt>
+<dd><p>The audio channel pair (Embedded in the SDI input)
+used when <code class="xref py py-attr docutils literal notranslate"><span class="pre">scope_mode</span></code> is set to audio monitoring.
+Values are from 0 to 7 (0 == Channels 1&amp;2, etc).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.base.</code><code class="descname">VidhubBackendBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></p>
+<p>Base class for Videohub devices</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.num_outputs">
+<code class="descname">num_outputs</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.num_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of outputs as reported by the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.num_inputs">
+<code class="descname">num_inputs</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.num_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of inputs as reported by the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.crosspoints">
+<code class="descname">crosspoints</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.crosspoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>This represents the currently active routing of the
+switcher. Each element in the <code class="docutils literal notranslate"><span class="pre">list</span></code> represents an output (the
+zero-based index of the <code class="docutils literal notranslate"><span class="pre">list</span></code>) with its selected index as the
+value (also zero-based).
+This is a <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a> and can be
+observed using the <code class="xref py py-meth docutils literal notranslate"><span class="pre">bind()</span></code> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.output_labels">
+<code class="descname">output_labels</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.output_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">list</span></code> containing the names of each output
+as reported by the switcher
+This is a <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a> and can be
+observed using the <code class="xref py py-meth docutils literal notranslate"><span class="pre">bind()</span></code> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.input_labels">
+<code class="descname">input_labels</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.input_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">list</span></code> containing the names of each input
+as reported by the switcher
+This is a <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a> and can be
+observed using the <code class="xref py py-meth docutils literal notranslate"><span class="pre">bind()</span></code> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.crosspoint_control">
+<code class="descname">crosspoint_control</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.crosspoint_control" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is similar to <a class="reference internal" href="#vidhubcontrol.backends.base.VidhubBackendBase.crosspoints" title="vidhubcontrol.backends.base.VidhubBackendBase.crosspoints"><code class="xref py py-attr docutils literal notranslate"><span class="pre">crosspoints</span></code></a>
+but if modified from outside code, the crosspoint changes will be
+set on the device (no method calls required).
+<a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.output_label_control">
+<code class="descname">output_label_control</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.output_label_control" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is similar to :attr:~VidhubBackendBase.output_labels`
+but if modified from outside code, the label changes will be written
+to the device (no method calls required).
+<a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.input_label_control">
+<code class="descname">input_label_control</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.input_label_control" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is similar to :attr:~VidhubBackendBase.input_labels`
+but if modified from outside code, the label changes will be written
+to the device (no method calls required).
+<a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.presets">
+<code class="descname">presets</code><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.presets" title="Permalink to this definition">¶</a></dt>
+<dd><p>The currently available (stored) <code class="docutils literal notranslate"><span class="pre">list</span></code> of <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a>
+instances
+<a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.ListProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydispatch.properties.ListProperty</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.add_preset">
+<em class="property">coroutine </em><code class="descname">add_preset</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.add_preset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.add_preset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a> instance</p>
+<p>This method is used internally and should not normally be called outside
+of this module. Instead, see <code class="xref py py-meth docutils literal notranslate"><span class="pre">store_preset()</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoint">
+<em class="property">coroutine </em><code class="descname">set_crosspoint</code><span class="sig-paren">(</span><em>out_idx</em>, <em>in_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_crosspoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a single crosspoint on the switcher</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The output to be set (zero-based)</li>
+<li><strong>in_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The input to switch the output (out_idx) to (zero-based)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoints">
+<em class="property">coroutine </em><code class="descname">set_crosspoints</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_crosspoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple crosspoints in one method call</p>
+<p>This is useful for setting many routing changes as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of output/input pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(out_idx,</span> <span class="pre">in_idx)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_crosspoint()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_input_label">
+<em class="property">coroutine </em><code class="descname">set_input_label</code><span class="sig-paren">(</span><em>in_idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_input_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_input_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the label (name) of an input</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>in_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The input to be set (zero-based)</li>
+<li><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The label for the input</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_input_labels">
+<em class="property">coroutine </em><code class="descname">set_input_labels</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_input_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_input_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple input labels in one method call</p>
+<p>This is useful for setting many labels as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of input/label pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(in_idx,</span> <span class="pre">label)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_input_label()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_output_label">
+<em class="property">coroutine </em><code class="descname">set_output_label</code><span class="sig-paren">(</span><em>out_idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_output_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_output_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the label (name) of an output</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The output to be set (zero-based)</li>
+<li><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The label for the output</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.set_output_labels">
+<em class="property">coroutine </em><code class="descname">set_output_labels</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.set_output_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.set_output_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple output labels in one method call</p>
+<p>This is useful for setting many labels as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of output/label pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(out_idx,</span> <span class="pre">label)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_output_label()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.base.VidhubBackendBase.store_preset">
+<em class="property">coroutine </em><code class="descname">store_preset</code><span class="sig-paren">(</span><em>outputs_to_store=None</em>, <em>name=None</em>, <em>index=None</em>, <em>clear_current=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/base.html#VidhubBackendBase.store_preset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.base.VidhubBackendBase.store_preset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store the current switcher state to a <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>outputs_to_store</strong> (<em>optional</em>) – An iterable of the output numbers
+(zero-based) that should be saved in the preset. If given, only
+these outputs will be recorded and when recalled, any output
+not in this argument will be unchanged. If not given or <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+all outputs will be recorded.</li>
+<li><strong>name</strong> (<em>optional</em>) – The name to be given to the preset. If not provided
+or <code class="docutils literal notranslate"><span class="pre">None</span></code> the preset will be given a name based off of its index.</li>
+<li><strong>index</strong> (<em>optional</em>) – The index for the preset. If given and the preset
+exists in the <code class="xref py py-attr docutils literal notranslate"><span class="pre">presets</span></code> list, that preset
+will be updated. If there is no preset found with the index,
+a new one will be created. If not given or <code class="docutils literal notranslate"><span class="pre">None</span></code>, the next
+available index will be used and a new preset will be created.</li>
+<li><strong>clear_current</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, any previously existing data will
+be removed from the preset (if it exists). If <code class="docutils literal notranslate"><span class="pre">False</span></code>, the
+data (if existing) will be merged with the current switcher state.
+Default is <code class="docutils literal notranslate"><span class="pre">True</span></code></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The <a class="reference internal" href="#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Preset</span></code></a> instance that was created or updated</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This method is a <code class="docutils literal notranslate"><span class="pre">coroutine</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-vidhubcontrol.backends.telnet">
+<span id="vidhubcontrol-backends-telnet-module"></span><h2>vidhubcontrol.backends.telnet module<a class="headerlink" href="#module-vidhubcontrol.backends.telnet" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vidhubcontrol.backends.telnet.SmartScopeTelnetBackend">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.telnet.</code><code class="descname">SmartScopeTelnetBackend</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#SmartScopeTelnetBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.SmartScopeTelnetBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase" title="vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase</span></code></a>, <a class="reference internal" href="#vidhubcontrol.backends.base.SmartScopeBackendBase" title="vidhubcontrol.backends.base.SmartScopeBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.SmartScopeBackendBase</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.telnet.SmartViewTelnetBackend">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.telnet.</code><code class="descname">SmartViewTelnetBackend</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#SmartViewTelnetBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.SmartViewTelnetBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase" title="vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase</span></code></a>, <a class="reference internal" href="#vidhubcontrol.backends.base.SmartViewBackendBase" title="vidhubcontrol.backends.base.SmartViewBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.SmartViewBackendBase</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.telnet.</code><code class="descname">SmartViewTelnetBackendBase</code><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#SmartViewTelnetBackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.SmartViewTelnetBackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.telnet.TelnetBackendBase" title="vidhubcontrol.backends.telnet.TelnetBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.telnet.TelnetBackendBase</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.telnet.</code><code class="descname">TelnetBackend</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.backends.telnet.TelnetBackendBase" title="vidhubcontrol.backends.telnet.TelnetBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.telnet.TelnetBackendBase</span></code></a>, <a class="reference internal" href="#vidhubcontrol.backends.base.VidhubBackendBase" title="vidhubcontrol.backends.base.VidhubBackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.VidhubBackendBase</span></code></a></p>
+<p>Base class for backends implementing telnet</p>
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_crosspoint">
+<em class="property">coroutine </em><code class="descname">set_crosspoint</code><span class="sig-paren">(</span><em>out_idx</em>, <em>in_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_crosspoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_crosspoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a single crosspoint on the switcher</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The output to be set (zero-based)</li>
+<li><strong>in_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The input to switch the output (out_idx) to (zero-based)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_crosspoints">
+<em class="property">coroutine </em><code class="descname">set_crosspoints</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_crosspoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_crosspoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple crosspoints in one method call</p>
+<p>This is useful for setting many routing changes as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of output/input pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(out_idx,</span> <span class="pre">in_idx)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_crosspoint()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_input_label">
+<em class="property">coroutine </em><code class="descname">set_input_label</code><span class="sig-paren">(</span><em>in_idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_input_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_input_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the label (name) of an input</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>in_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The input to be set (zero-based)</li>
+<li><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The label for the input</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_input_labels">
+<em class="property">coroutine </em><code class="descname">set_input_labels</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_input_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_input_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple input labels in one method call</p>
+<p>This is useful for setting many labels as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of input/label pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(in_idx,</span> <span class="pre">label)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_input_label()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_output_label">
+<em class="property">coroutine </em><code class="descname">set_output_label</code><span class="sig-paren">(</span><em>out_idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_output_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_output_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the label (name) of an output</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_idx</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)"><em>int</em></a>) – The output to be set (zero-based)</li>
+<li><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The label for the output</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackend.set_output_labels">
+<em class="property">coroutine </em><code class="descname">set_output_labels</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackend.set_output_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackend.set_output_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set multiple output labels in one method call</p>
+<p>This is useful for setting many labels as it reduces the number
+of commands sent to the switcher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – Any number of output/label pairs to set. These should be given
+as <code class="docutils literal notranslate"><span class="pre">tuples</span></code> of <code class="docutils literal notranslate"><span class="pre">(out_idx,</span> <span class="pre">label)</span></code> as defined in
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_output_label()</span></code>. They can be discontinuous
+and unordered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.backends.telnet.</code><code class="descname">TelnetBackendBase</code><a class="reference internal" href="_modules/vidhubcontrol/backends/telnet.html#TelnetBackendBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.5/library/functions.html#object" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Mix-in class for backends implementing telnet</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase.hostaddr">
+<code class="descname">hostaddr</code><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase.hostaddr" title="Permalink to this definition">¶</a></dt>
+<dd><p>IPv4 address of the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase.hostport">
+<code class="descname">hostport</code><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase.hostport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Port address of the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase.read_enabled">
+<code class="descname">read_enabled</code><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase.read_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal flag to keep the <code class="xref py py-meth docutils literal notranslate"><span class="pre">read_loop()</span></code> running</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase.rx_bfr">
+<code class="descname">rx_bfr</code><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase.rx_bfr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data received from the device to be parsed</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bytes" title="(in Python v3.5)">bytes</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.backends.telnet.TelnetBackendBase.client">
+<code class="descname">client</code><a class="headerlink" href="#vidhubcontrol.backends.telnet.TelnetBackendBase.client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.aiotelnetlib._Telnet</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="discovery.html" class="btn btn-neutral float-right" title="discovery module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="config.html" class="btn btn-neutral" title="config module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

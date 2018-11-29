@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>config module &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="backends package" href="backends.html" />
+    <link rel="prev" title="Reference" href="reference.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="reference.html">Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backends.html">backends package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="discovery.html">discovery module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="reference.html">Reference</a> &raquo;</li>
+        
+      <li>config module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/config.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-vidhubcontrol.config">
+<span id="config-module"></span><h1>config module<a class="headerlink" href="#module-vidhubcontrol.config" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="vidhubcontrol.config.Config">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.config.</code><code class="descname">Config</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.config.ConfigBase</span></code></p>
+<p>Config store for devices</p>
+<p>Handles storage of device connection information and any user-defined values
+for the backends defined in the <a class="reference internal" href="backends.html"><span class="doc">backends module</span></a>. Data is stored
+in JSON format.</p>
+<p>During <a class="reference internal" href="#vidhubcontrol.config.Config.start" title="vidhubcontrol.config.Config.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a>, all previously stored devices will be loaded and begin
+communication. Devices are also discovered using <a class="reference external" href="https://en.wikipedia.org/wiki/Zero-configuration_networking">Zeroconf</a> through the
+<a class="reference internal" href="discovery.html"><span class="doc">discovery module</span></a>.</p>
+<p>Since each device has a unique id, network address changes (due to DHCP, etc)
+are handled appropriately.</p>
+<p>The configuration data is stored when:</p>
+<ul class="simple">
+<li>A device is added or removed</li>
+<li>A change is detected for a device’s network address</li>
+<li>Any user-defined device value changes (device name, presets, etc)</li>
+</ul>
+<p>The recommended method to start <code class="docutils literal notranslate"><span class="pre">Config</span></code> is through the <a class="reference internal" href="#vidhubcontrol.config.Config.load_async" title="vidhubcontrol.config.Config.load_async"><code class="xref py py-meth docutils literal notranslate"><span class="pre">load_async()</span></code></a>
+method.</p>
+<p class="rubric">Example</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">from</span> <span class="nn">vidhubcontrol.config</span> <span class="kn">import</span> <span class="n">Config</span>
+
+<span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+<span class="n">conf</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">load_async</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">))</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Filename to load/save config data to.
+If not given, defaults to <a class="reference internal" href="#vidhubcontrol.config.Config.DEFAULT_FILENAME" title="vidhubcontrol.config.Config.DEFAULT_FILENAME"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DEFAULT_FILENAME</span></code></a></li>
+<li><strong>loop</strong> – The <a class="reference external" href="https://docs.python.org/3.5/library/asyncio-eventloop.html#asyncio.BaseEventLoop" title="(in Python v3.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventLoop</span></code></a> to use. If not
+given, the value from <a class="reference external" href="https://docs.python.org/3.5/library/asyncio-eventloops.html#asyncio.get_event_loop" title="(in Python v3.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.get_event_loop()</span></code></a> will be used.</li>
+<li><strong>auto_start</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code> (default), the <a class="reference internal" href="#vidhubcontrol.config.Config.start" title="vidhubcontrol.config.Config.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> method will
+be added to the asyncio event loop on initialization.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="vidhubcontrol.config.Config.vidhubs">
+<code class="descname">vidhubs</code><a class="headerlink" href="#vidhubcontrol.config.Config.vidhubs" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> of
+<a class="reference internal" href="#vidhubcontrol.config.VidhubConfig" title="vidhubcontrol.config.VidhubConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">VidhubConfig</span></code></a> instances using
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.device_id" title="vidhubcontrol.config.DeviceConfigBase.device_id"><code class="xref py py-attr docutils literal notranslate"><span class="pre">device_id</span></code></a> as keys</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.Config.smartviews">
+<code class="descname">smartviews</code><a class="headerlink" href="#vidhubcontrol.config.Config.smartviews" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> of
+<a class="reference internal" href="#vidhubcontrol.config.SmartViewConfig" title="vidhubcontrol.config.SmartViewConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartViewConfig</span></code></a> instances using
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.device_id" title="vidhubcontrol.config.DeviceConfigBase.device_id"><code class="xref py py-attr docutils literal notranslate"><span class="pre">device_id</span></code></a> as keys</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.Config.smartscopes">
+<code class="descname">smartscopes</code><a class="headerlink" href="#vidhubcontrol.config.Config.smartscopes" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference external" href="https://nocarryr.github.io/python-dispatch/reference/properties.html#pydispatch.properties.DictProperty" title="(in python-dispatch v0.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DictProperty</span></code></a> of
+<a class="reference internal" href="#vidhubcontrol.config.SmartScopeConfig" title="vidhubcontrol.config.SmartScopeConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmartScopeConfig</span></code></a> instances using
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.device_id" title="vidhubcontrol.config.DeviceConfigBase.device_id"><code class="xref py py-attr docutils literal notranslate"><span class="pre">device_id</span></code></a> as keys</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#dict" title="(in Python v3.5)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.Config.DEFAULT_FILENAME">
+<code class="descname">DEFAULT_FILENAME</code><em class="property"> = '~/vidhubcontrol.json'</em><a class="headerlink" href="#vidhubcontrol.config.Config.DEFAULT_FILENAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.add_device">
+<em class="property">coroutine </em><code class="descname">add_device</code><span class="sig-paren">(</span><em>backend</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.add_device"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.add_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a “backend” instance to the config</p>
+<p>A subclass of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a> will be either created or updated
+from the given backend instance.</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">device_id</span></code> exists in the config, the
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.backend" title="vidhubcontrol.config.DeviceConfigBase.backend"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DeviceConfigBase.backend</span></code></a> value of the matching
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a> instance will be set to the given <code class="docutils literal notranslate"><span class="pre">backend</span></code>.
+Otherwise, a new <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a> instance will be created using
+the <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.from_existing" title="vidhubcontrol.config.DeviceConfigBase.from_existing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DeviceConfigBase.from_existing()</span></code></a> classmethod.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>backend</strong> – An instance of one of the subclasses of
+<a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a> found in
+<a class="reference internal" href="backends.html"><span class="doc">backends package</span></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.build_backend">
+<em class="property">coroutine </em><code class="descname">build_backend</code><span class="sig-paren">(</span><em>device_type</em>, <em>backend_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.build_backend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.build_backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a “backend” instance</p>
+<p>The supplied keyword arguments are used to create the instance object
+which will be created using its
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">create()</span></code> classmethod.</p>
+<p>The appropriate subclass of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a> will be created
+and stored to the config using <a class="reference internal" href="#vidhubcontrol.config.Config.add_device" title="vidhubcontrol.config.Config.add_device"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_device()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>device_type</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – Device type to create. Choices are “vidhub”,
+“smartview”, “smartscope”</li>
+<li><strong>backend_name</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><em>str</em></a>) – The class name of the backend as found in
+<a class="reference internal" href="backends.html"><span class="doc">backends package</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An instance of a <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a>
+subclass</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="vidhubcontrol.config.Config.load">
+<em class="property">classmethod </em><code class="descname">load</code><span class="sig-paren">(</span><em>filename=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Config instance, loading data from the given filename</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – The filename to read config data
+from, defaults to <a class="reference internal" href="#vidhubcontrol.config.Config.DEFAULT_FILENAME" title="vidhubcontrol.config.Config.DEFAULT_FILENAME"><code class="xref py py-const docutils literal notranslate"><span class="pre">Config.DEFAULT_FILENAME</span></code></a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#vidhubcontrol.config.Config" title="vidhubcontrol.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a> instance</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.load_async">
+<em class="property">coroutine </em><code class="descname">load_async</code><span class="sig-paren">(</span><em>filename=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.load_async"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.load_async" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Config instance, loading data from the given filename</p>
+<p>This coroutine method creates the <code class="docutils literal notranslate"><span class="pre">Config</span></code> instance and will <code class="docutils literal notranslate"><span class="pre">await</span></code>
+all start-up coroutines and futures before returning.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – The filename to read config data
+from, defaults to <a class="reference internal" href="#vidhubcontrol.config.Config.DEFAULT_FILENAME" title="vidhubcontrol.config.Config.DEFAULT_FILENAME"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DEFAULT_FILENAME</span></code></a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#vidhubcontrol.config.Config" title="vidhubcontrol.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a> instance</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the config data to the given filename</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – The filename to write config data to.
+If not supplied, the current <code class="xref py py-attr docutils literal notranslate"><span class="pre">filename</span></code> is used.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">filename</span></code> argument is provided, it will replace the
+existing <code class="xref py py-attr docutils literal notranslate"><span class="pre">filename</span></code> value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.start">
+<em class="property">coroutine </em><code class="descname">start</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts the device backends and discovery routines</p>
+<p>Keyword arguments passed to the initialization will be used here,
+but can be overridden in this method. They will also be passed to
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_initialize_backends()</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.Config.stop">
+<em class="property">coroutine </em><code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#Config.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.Config.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops all device backends and discovery routines</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.config.DeviceConfigBase">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.config.</code><code class="descname">DeviceConfigBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#DeviceConfigBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.config.ConfigBase</span></code></p>
+<p>Base class for device config storage</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.config">
+<code class="descname">config</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>A reference to the parent <a class="reference internal" href="#vidhubcontrol.config.Config" title="vidhubcontrol.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a> instance</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.backend">
+<code class="descname">backend</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>An instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.backend_name">
+<code class="descname">backend_name</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.backend_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class name of the backend, used when loading
+from saved config data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.hostaddr">
+<code class="descname">hostaddr</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.hostaddr" title="Permalink to this definition">¶</a></dt>
+<dd><p>The IPv4 address of the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.hostport">
+<code class="descname">hostport</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.hostport" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port address of the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#int" title="(in Python v3.5)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.device_name">
+<code class="descname">device_name</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.device_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>User-defined name to store with the device, defaults
+to the <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.device_id" title="vidhubcontrol.config.DeviceConfigBase.device_id"><code class="xref py py-attr docutils literal notranslate"><span class="pre">device_id</span></code></a> value</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.device_id">
+<code class="descname">device_id</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.device_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The unique id as reported by the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#str" title="(in Python v3.5)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vidhubcontrol.config.DeviceConfigBase.backend_unavailable">
+<code class="descname">backend_unavailable</code><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.backend_unavailable" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if communication with the device
+could not be established</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/functions.html#bool" title="(in Python v3.5)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.DeviceConfigBase.build_backend">
+<em class="property">coroutine </em><code class="descname">build_backend</code><span class="sig-paren">(</span><em>cls=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#DeviceConfigBase.build_backend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.build_backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a backend instance asynchronously</p>
+<p>Keyword arguments will be passed to the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase.create_async()</span></code> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cls</strong> (<em>optional</em>) – A subclass of
+<a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackendBase</span></code></a>. If not present,
+the class will be determined from existing values of
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">device_type</span></code> and <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.backend_name" title="vidhubcontrol.config.DeviceConfigBase.backend_name"><code class="xref py py-attr docutils literal notranslate"><span class="pre">backend_name</span></code></a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.DeviceConfigBase.create">
+<em class="property">coroutine </em><code class="descname">create</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#DeviceConfigBase.create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates device config and backend instances asynchronously</p>
+<p>Keyword arguments passed to this classmethod are passed to the init
+method and will be used to set its attributes.</p>
+<p>If a “backend” keyword argument is supplied, it should be a running
+instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a>. It will
+then be used to collect config values from.</p>
+<p>If “backend” is not present, the appropriate one will be created using
+<a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.build_backend" title="vidhubcontrol.config.DeviceConfigBase.build_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_backend()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.DeviceConfigBase.from_existing">
+<em class="property">coroutine </em><code class="descname">from_existing</code><span class="sig-paren">(</span><em>backend</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#DeviceConfigBase.from_existing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.DeviceConfigBase.from_existing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a device config object from an existing backend</p>
+<p>Keyword arguments will be passed to the <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase.create" title="vidhubcontrol.config.DeviceConfigBase.create"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create()</span></code></a> method</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>backend</strong> – An instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.config.VidhubConfig">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.config.</code><code class="descname">VidhubConfig</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#VidhubConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.VidhubConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.config.DeviceConfigBase</span></code></a></p>
+<p>Config container for VideoHub devices</p>
+<dl class="attribute">
+<dt id="vidhubcontrol.config.VidhubConfig.presets">
+<code class="descname">presets</code><a class="headerlink" href="#vidhubcontrol.config.VidhubConfig.presets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preset data collected from the device
+<a class="reference internal" href="backends.html#vidhubcontrol.backends.base.Preset" title="vidhubcontrol.backends.base.Preset"><code class="xref py py-class docutils literal notranslate"><span class="pre">presets</span></code></a>. Will be used
+on initialization to populate the preset data to the device</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3.5/library/stdtypes.html#list" title="(in Python v3.5)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.VidhubConfig.build_backend">
+<em class="property">coroutine </em><code class="descname">build_backend</code><span class="sig-paren">(</span><em>cls=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#VidhubConfig.build_backend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.VidhubConfig.build_backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a backend instance asynchronously</p>
+<p>Keyword arguments will be passed to the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase.create_async()</span></code> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cls</strong> (<em>optional</em>) – A subclass of
+<a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackendBase</span></code></a>. If not present,
+the class will be determined from existing values of
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">device_type</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">backend_name</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.VidhubConfig.create">
+<em class="property">coroutine </em><code class="descname">create</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#VidhubConfig.create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.VidhubConfig.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates device config and backend instances asynchronously</p>
+<p>Keyword arguments passed to this classmethod are passed to the init
+method and will be used to set its attributes.</p>
+<p>If a “backend” keyword argument is supplied, it should be a running
+instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a>. It will
+then be used to collect config values from.</p>
+<p>If “backend” is not present, the appropriate one will be created using
+<a class="reference internal" href="#vidhubcontrol.config.VidhubConfig.build_backend" title="vidhubcontrol.config.VidhubConfig.build_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_backend()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="vidhubcontrol.config.VidhubConfig.from_existing">
+<em class="property">coroutine </em><code class="descname">from_existing</code><span class="sig-paren">(</span><em>backend</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#VidhubConfig.from_existing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.VidhubConfig.from_existing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a device config object from an existing backend</p>
+<p>Keyword arguments will be passed to the <a class="reference internal" href="#vidhubcontrol.config.VidhubConfig.create" title="vidhubcontrol.config.VidhubConfig.create"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create()</span></code></a> method</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>backend</strong> – An instance of <a class="reference internal" href="backends.html#vidhubcontrol.backends.base.BackendBase" title="vidhubcontrol.backends.base.BackendBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.backends.base.BackendBase</span></code></a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeviceConfigBase</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.config.SmartViewConfig">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.config.</code><code class="descname">SmartViewConfig</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#SmartViewConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.SmartViewConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.config.DeviceConfigBase</span></code></a></p>
+<p>Config container for SmartView devices</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vidhubcontrol.config.SmartScopeConfig">
+<em class="property">class </em><code class="descclassname">vidhubcontrol.config.</code><code class="descname">SmartScopeConfig</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vidhubcontrol/config.html#SmartScopeConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vidhubcontrol.config.SmartScopeConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vidhubcontrol.config.DeviceConfigBase" title="vidhubcontrol.config.DeviceConfigBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">vidhubcontrol.config.DeviceConfigBase</span></code></a></p>
+<p>Config container for SmartScope devices</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="backends.html" class="btn btn-neutral float-right" title="backends package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="reference.html" class="btn btn-neutral" title="Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

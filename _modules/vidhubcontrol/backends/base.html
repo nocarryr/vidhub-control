@@ -1,0 +1,820 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>vidhubcontrol.backends.base &mdash; vidhub-control 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> vidhub-control
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">vidhub-control</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>vidhubcontrol.backends.base</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for vidhubcontrol.backends.base</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+<span class="kn">from</span> <span class="nn">pydispatch</span> <span class="k">import</span> <span class="n">Dispatcher</span><span class="p">,</span> <span class="n">Property</span>
+<span class="kn">from</span> <span class="nn">pydispatch.properties</span> <span class="k">import</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">DictProperty</span>
+
+
+<div class="viewcode-block" id="BackendBase"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.BackendBase">[docs]</a><span class="k">class</span> <span class="nc">BackendBase</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for communicating with devices</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        device_id (str): The unique id as reported by the switcher.</span>
+<span class="sd">        device_version (str): The firmware version as reported by the switcher.</span>
+<span class="sd">        device_model (str): The model name as reported by the switcher.</span>
+<span class="sd">        connected (bool): A flag indicating the connection status.</span>
+<span class="sd">            :class:`pydispatch.properties.Property`</span>
+
+<span class="sd">    Events:</span>
+<span class="sd">        on_preset_added: This :class:`~pydispatch.dispatch.Event` is emitted</span>
+<span class="sd">            when a new :class:`Preset` has been added.</span>
+<span class="sd">        on_preset_stored: This :class:`~pydispatch.dispatch.Event` is emitted</span>
+<span class="sd">            when an existing :class:`Preset` has been recorded (updated).</span>
+<span class="sd">        on_preset_active: This :class:`~pydispatch.dispatch.Event` is emitted</span>
+<span class="sd">            when an existing :class:`Preset` has determined that its stored</span>
+<span class="sd">            routing information is currently active on the switcher.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device_name</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">device_model</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">device_id</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">device_version</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">connected</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">connection_error</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">exception_type</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">exception_info</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">connection_unavailable</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">running</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">prelude_parsed</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;device_name&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;event_loop&#39;</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">device_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_device_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;device_id&#39;</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">create_async</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">obj</span><span class="o">.</span><span class="n">connect_fut</span>
+        <span class="k">return</span> <span class="n">obj</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_connect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection_error</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="k">return</span> <span class="n">r</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_disconnect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">def</span> <span class="nf">_catch_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exception_type</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exception_info</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exception_info</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection_error</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">do_connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">do_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">on_device_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_name</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_device_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="VidhubBackendBase"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase">[docs]</a><span class="k">class</span> <span class="nc">VidhubBackendBase</span><span class="p">(</span><span class="n">BackendBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for Videohub devices</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        num_outputs (int): The number of outputs as reported by the switcher.</span>
+<span class="sd">        num_inputs (int): The number of inputs as reported by the switcher.</span>
+<span class="sd">        crosspoints (list): This represents the currently active routing of the</span>
+<span class="sd">            switcher. Each element in the ``list`` represents an output (the</span>
+<span class="sd">            zero-based index of the ``list``) with its selected index as the</span>
+<span class="sd">            value (also zero-based).</span>
+<span class="sd">            This is a :class:`pydispatch.properties.ListProperty` and can be</span>
+<span class="sd">            observed using the :meth:`~pydispatch.Dispatcher.bind` method.</span>
+<span class="sd">        output_labels (list): A ``list`` containing the names of each output</span>
+<span class="sd">            as reported by the switcher</span>
+<span class="sd">            This is a :class:`pydispatch.properties.ListProperty` and can be</span>
+<span class="sd">            observed using the :meth:`~pydispatch.Dispatcher.bind` method.</span>
+<span class="sd">        input_labels (list): A ``list`` containing the names of each input</span>
+<span class="sd">            as reported by the switcher</span>
+<span class="sd">            This is a :class:`pydispatch.properties.ListProperty` and can be</span>
+<span class="sd">            observed using the :meth:`~pydispatch.Dispatcher.bind` method.</span>
+<span class="sd">        crosspoint_control (list): This is similar to :attr:`~VidhubBackendBase.crosspoints`</span>
+<span class="sd">            but if modified from outside code, the crosspoint changes will be</span>
+<span class="sd">            set on the device (no method calls required).</span>
+<span class="sd">            :class:`pydispatch.properties.ListProperty`</span>
+<span class="sd">        output_label_control (list): This is similar to :attr:~VidhubBackendBase.output_labels`</span>
+<span class="sd">            but if modified from outside code, the label changes will be written</span>
+<span class="sd">            to the device (no method calls required).</span>
+<span class="sd">            :class:`pydispatch.properties.ListProperty`</span>
+<span class="sd">        input_label_control (list): This is similar to :attr:~VidhubBackendBase.input_labels`</span>
+<span class="sd">            but if modified from outside code, the label changes will be written</span>
+<span class="sd">            to the device (no method calls required).</span>
+<span class="sd">            :class:`pydispatch.properties.ListProperty`</span>
+<span class="sd">        presets (list): The currently available (stored) ``list`` of :class:`Preset`</span>
+<span class="sd">            instances</span>
+<span class="sd">            :class:`pydispatch.properties.ListProperty`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">crosspoints</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">output_labels</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">input_labels</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">crosspoint_control</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">output_label_control</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">input_label_control</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">presets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">num_outputs</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">num_inputs</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;vidhub&#39;</span>
+    <span class="n">feedback_prop_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;crosspoints&#39;</span><span class="p">:</span><span class="s1">&#39;crosspoint_control&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;input_labels&#39;</span><span class="p">:</span><span class="s1">&#39;input_label_control&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;output_labels&#39;</span><span class="p">:</span><span class="s1">&#39;output_label_control&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;on_preset_added&#39;</span><span class="p">,</span> <span class="s1">&#39;on_preset_stored&#39;</span><span class="p">,</span> <span class="s1">&#39;on_preset_active&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">num_outputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_num_outputs</span><span class="p">,</span>
+            <span class="n">num_inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_num_inputs</span><span class="p">,</span>
+            <span class="n">output_labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_feedback</span><span class="p">,</span>
+            <span class="n">input_labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_feedback</span><span class="p">,</span>
+            <span class="n">crosspoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_feedback</span><span class="p">,</span>
+            <span class="n">output_label_control</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_control</span><span class="p">,</span>
+            <span class="n">input_label_control</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_control</span><span class="p">,</span>
+            <span class="n">crosspoint_control</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_control</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">presets</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;presets&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">pst_data</span> <span class="ow">in</span> <span class="n">presets</span><span class="p">:</span>
+            <span class="n">pst_data</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="n">preset</span> <span class="o">=</span> <span class="n">Preset</span><span class="p">(</span><span class="o">**</span><span class="n">pst_data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">preset</span><span class="p">)</span>
+            <span class="n">preset</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">on_preset_stored</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_stored</span><span class="p">,</span>
+                <span class="n">active</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_active</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect_fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span><span class="p">)</span>
+<div class="viewcode-block" id="VidhubBackendBase.set_crosspoint"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoint">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_crosspoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_idx</span><span class="p">,</span> <span class="n">in_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a single crosspoint on the switcher</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            out_idx (int): The output to be set (zero-based)</span>
+<span class="sd">            in_idx (int): The input to switch the output (out_idx) to (zero-based)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.set_crosspoints"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_crosspoints">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_crosspoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set multiple crosspoints in one method call</span>
+
+<span class="sd">        This is useful for setting many routing changes as it reduces the number</span>
+<span class="sd">        of commands sent to the switcher.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            *args: Any number of output/input pairs to set. These should be given</span>
+<span class="sd">                as ``tuples`` of ``(out_idx, in_idx)`` as defined in</span>
+<span class="sd">                :meth:`~BackendBase.set_crosspoint`. They can be discontinuous</span>
+<span class="sd">                and unordered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.set_output_label"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_output_label">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_output_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_idx</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the label (name) of an output</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            out_idx (int): The output to be set (zero-based)</span>
+<span class="sd">            label (str): The label for the output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.set_output_labels"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_output_labels">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_output_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set multiple output labels in one method call</span>
+
+<span class="sd">        This is useful for setting many labels as it reduces the number</span>
+<span class="sd">        of commands sent to the switcher.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            *args: Any number of output/label pairs to set. These should be given</span>
+<span class="sd">                as ``tuples`` of ``(out_idx, label)`` as defined in</span>
+<span class="sd">                :meth:`~BackendBase.set_output_label`. They can be discontinuous</span>
+<span class="sd">                and unordered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.set_input_label"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_input_label">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_input_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_idx</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the label (name) of an input</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            in_idx (int): The input to be set (zero-based)</span>
+<span class="sd">            label (str): The label for the input</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.set_input_labels"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.set_input_labels">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_input_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set multiple input labels in one method call</span>
+
+<span class="sd">        This is useful for setting many labels as it reduces the number</span>
+<span class="sd">        of commands sent to the switcher.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            *args: Any number of input/label pairs to set. These should be given</span>
+<span class="sd">                as ``tuples`` of ``(in_idx, label)`` as defined in</span>
+<span class="sd">                :meth:`~BackendBase.set_input_label`. They can be discontinuous</span>
+<span class="sd">                and unordered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.add_preset"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.add_preset">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_preset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a new :class:`Preset` instance</span>
+
+<span class="sd">        This method is used internally and should not normally be called outside</span>
+<span class="sd">        of this module. Instead, see :meth:`~BackendBase.store_preset`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="p">)</span>
+        <span class="n">preset</span> <span class="o">=</span> <span class="n">Preset</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">preset</span><span class="p">)</span>
+        <span class="n">preset</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_preset_stored</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_stored</span><span class="p">,</span>
+            <span class="n">active</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_active</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_preset_added&#39;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">preset</span><span class="o">=</span><span class="n">preset</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">preset</span></div>
+<div class="viewcode-block" id="VidhubBackendBase.store_preset"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.VidhubBackendBase.store_preset">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">store_preset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs_to_store</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clear_current</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Store the current switcher state to a :class:`Preset`</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            outputs_to_store (optional): An iterable of the output numbers</span>
+<span class="sd">                (zero-based) that should be saved in the preset. If given, only</span>
+<span class="sd">                these outputs will be recorded and when recalled, any output</span>
+<span class="sd">                not in this argument will be unchanged. If not given or ``None``,</span>
+<span class="sd">                all outputs will be recorded.</span>
+<span class="sd">            name (optional): The name to be given to the preset. If not provided</span>
+<span class="sd">                or ``None`` the preset will be given a name based off of its index.</span>
+<span class="sd">            index (optional): The index for the preset. If given and the preset</span>
+<span class="sd">                exists in the :attr:`~BackendBase.presets` list, that preset</span>
+<span class="sd">                will be updated. If there is no preset found with the index,</span>
+<span class="sd">                a new one will be created. If not given or ``None``, the next</span>
+<span class="sd">                available index will be used and a new preset will be created.</span>
+<span class="sd">            clear_current (bool): If ``True``, any previously existing data will</span>
+<span class="sd">                be removed from the preset (if it exists). If ``False``, the</span>
+<span class="sd">                data (if existing) will be merged with the current switcher state.</span>
+<span class="sd">                Default is ``True``</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The :class:`Preset` instance that was created or updated</span>
+
+<span class="sd">        This method is a ``coroutine``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">preset</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_preset</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">preset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">presets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="n">preset</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">preset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">preset</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_preset</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">preset</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">await</span> <span class="n">preset</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">outputs_to_store</span><span class="p">,</span> <span class="n">clear_current</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">preset</span></div>
+    <span class="k">def</span> <span class="nf">on_preset_stored</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_preset_stored&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_preset_active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_preset_active&#39;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">preset</span><span class="o">=</span><span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_num_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_labels</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">on_num_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_labels</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">on_prop_feedback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;property&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">feedback_prop_map</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">elock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_lock</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">control_prop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feedback_prop_map</span><span class="p">[</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control_prop</span><span class="p">,</span> <span class="n">value</span><span class="p">[:])</span>
+    <span class="k">def</span> <span class="nf">on_prop_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prelude_parsed</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;property&#39;</span><span class="p">)</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;keys&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="n">feedback_prop</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_control&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">elock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_lock</span><span class="p">(</span><span class="n">feedback_prop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">elock</span><span class="o">.</span><span class="n">held</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="c1">## TODO:    This is an internal implementation in python-dispatch and</span>
+        <span class="c1">##          is subject to future changes.</span>
+        <span class="n">aio_lock</span> <span class="o">=</span> <span class="n">elock</span><span class="o">.</span><span class="n">aio_locks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">aio_lock</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">aio_lock</span><span class="o">.</span><span class="n">locked</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feedback_prop</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">coro_name</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;set&#39;</span><span class="p">,</span> <span class="n">feedback_prop</span><span class="p">])</span>
+        <span class="n">coro</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coro_name</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+        <span class="n">tx_fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="n">coro</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SmartViewBackendBase"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.SmartViewBackendBase">[docs]</a><span class="k">class</span> <span class="nc">SmartViewBackendBase</span><span class="p">(</span><span class="n">BackendBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for SmartView devices</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        num_monitors (int): Number of physical monitors as reported by the device</span>
+<span class="sd">        inverted (bool): ``True`` if the device has been mounted in an inverted</span>
+<span class="sd">            configuration (to optimize viewing angle).</span>
+<span class="sd">        monitors (list): A ``list`` containing instances of :class:`SmartViewMonitor`</span>
+<span class="sd">            or :class:`SmartScopeMonitor`, depending on device type.</span>
+
+<span class="sd">        Events:</span>
+<span class="sd">            on_monitor_property_change: Dispatched when any</span>
+<span class="sd">                :class:`~pydispatch.properties.Property` value changes. The event</span>
+<span class="sd">                signature for callbacks is</span>
+<span class="sd">                ``(smartview_device, property_name, value, **kwargs)`` containing</span>
+<span class="sd">                a keyword argument &quot;monitor&quot; containing the :class:`SmartViewMonitor`</span>
+<span class="sd">                instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_monitors</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">inverted</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">monitors</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">monitor_cls</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;smartview&#39;</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;on_monitor_property_change&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">monitors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_monitors</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect_fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(),</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span><span class="p">)</span>
+<div class="viewcode-block" id="SmartViewBackendBase.set_monitor_property"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.SmartViewBackendBase.set_monitor_property">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_monitor_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monitor</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a property value for the given :class:`SmartViewMonitor` instance</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            monitor: The :class:`SmartViewMonitor` instance to set</span>
+<span class="sd">            name (str): Property name</span>
+<span class="sd">            value: The new value to set</span>
+
+<span class="sd">        This method is a coroutine.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">get_monitor_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor_cls</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">SmartViewMonitor</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_monitor_cls</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;parent&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">monitors</span><span class="p">))</span>
+        <span class="n">monitor</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">monitor</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_property_change</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_monitor_prop</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">monitor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">monitor</span>
+    <span class="k">def</span> <span class="nf">on_monitor_prop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;monitor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_monitor_property_change&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_on_monitors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_monitors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">monitors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SmartScopeBackendBase"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.SmartScopeBackendBase">[docs]</a><span class="k">class</span> <span class="nc">SmartScopeBackendBase</span><span class="p">(</span><span class="n">SmartViewBackendBase</span><span class="p">):</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;smartscope&#39;</span>
+    <span class="k">def</span> <span class="nf">get_monitor_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor_cls</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">SmartScopeMonitor</span>
+        <span class="k">return</span> <span class="bp">cls</span></div>
+
+<span class="n">MONITOR_PROPERTY_MAP</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="n">k</span><span class="o">.</span><span class="n">title</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="s1">&#39;brightness&#39;</span><span class="p">,</span> <span class="s1">&#39;contrast&#39;</span><span class="p">,</span> <span class="s1">&#39;saturation&#39;</span><span class="p">,</span> <span class="s1">&#39;identify&#39;</span><span class="p">,</span> <span class="s1">&#39;border&#39;</span><span class="p">]}</span>
+<span class="n">MONITOR_PROPERTY_MAP</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s1">&#39;widescreen_sd&#39;</span><span class="p">:</span><span class="s1">&#39;WidescreenSD&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;audio_channel&#39;</span><span class="p">:</span><span class="s1">&#39;AudioChannel&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;scope_mode&#39;</span><span class="p">:</span><span class="s1">&#39;ScopeMode&#39;</span><span class="p">,</span>
+<span class="p">})</span>
+
+<div class="viewcode-block" id="SmartViewMonitor"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.SmartViewMonitor">[docs]</a><span class="k">class</span> <span class="nc">SmartViewMonitor</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A single instance of a monitor within a SmartView device</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        index (int): Index of the monitor (zero-based)</span>
+<span class="sd">        name (str): The name of the monitor (can be user-defined)</span>
+<span class="sd">        brightness (int): The brightness value of the monitor (0-255)</span>
+<span class="sd">        contrast (int): The contrast value of the monitor (0-255)</span>
+<span class="sd">        saturation (int): The saturation value of the monitor (0-255)</span>
+<span class="sd">        widescreen_sd: Aspect ratio setting for SD format. Choices can be:</span>
+<span class="sd">            ``True`` (stretching enabled), ``False`` (pillar-box), or</span>
+<span class="sd">            ``None`` (auto-detect).</span>
+<span class="sd">        identify (bool): If set to ``True``, the monitor&#39;s border will be white</span>
+<span class="sd">            for a brief duration to physically locate the device.</span>
+<span class="sd">        border (str): Sets the border of the monitor to the given color. Choices</span>
+<span class="sd">            are: &#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;white&#39;, or ``None``.</span>
+<span class="sd">        audio_channel (int): The audio channel pair (Embedded in the SDI input)</span>
+<span class="sd">            used when :attr:`scope_mode` is set to audio monitoring.</span>
+<span class="sd">            Values are from 0 to 7 (0 == Channels 1&amp;2, etc).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">brightness</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">contrast</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">saturation</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">widescreen_sd</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">identify</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">border</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">audio_channel</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="k">class</span> <span class="nc">PropertyChoices</span><span class="p">():</span>
+        <span class="n">widescreen_sd</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="kc">True</span><span class="p">:</span><span class="s1">&#39;ON&#39;</span><span class="p">,</span>
+            <span class="kc">False</span><span class="p">:</span><span class="s1">&#39;OFF&#39;</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">:</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">border</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;red&#39;</span><span class="p">:</span><span class="s1">&#39;red&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;green&#39;</span><span class="p">:</span><span class="s1">&#39;green&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;blue&#39;</span><span class="p">:</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;white&#39;</span><span class="p">:</span><span class="s1">&#39;white&#39;</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">:</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">identify</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="kc">True</span><span class="p">:</span><span class="s1">&#39;true&#39;</span><span class="p">,</span>
+            <span class="kc">False</span><span class="p">:</span><span class="s1">&#39;false&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">_bind_properties</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;brightness&#39;</span><span class="p">,</span> <span class="s1">&#39;contrast&#39;</span><span class="p">,</span> <span class="s1">&#39;saturation&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;widescreen_sd&#39;</span><span class="p">,</span> <span class="s1">&#39;identify&#39;</span><span class="p">,</span> <span class="s1">&#39;border&#39;</span><span class="p">,</span> <span class="s1">&#39;audio_channel&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;on_property_change&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_property_locks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parent&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">event_loop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PropertyChoices</span><span class="o">.</span><span class="n">_bind_properties</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property_for_choice</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">prop</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prop_control</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props</span><span class="p">})</span>
+    <span class="k">def</span> <span class="nf">_get_property_lock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">lock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_property_locks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lock</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lock</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_property_locks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">lock</span>
+        <span class="k">return</span> <span class="n">lock</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_property_from_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property_for_choice</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">lock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_property_lock</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">lock</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_property_change&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">set_monitor_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">flash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_property</span><span class="p">(</span><span class="s1">&#39;identify&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_property_choices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PropertyChoices</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_choice_for_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property_choices</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">choices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">choices</span><span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">get_property_for_choice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property_choices</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">choices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">choices</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">choices</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="n">k</span>
+                        <span class="k">break</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">on_prop_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">prop</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;property&#39;</span><span class="p">)</span>
+        <span class="n">lock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_property_lock</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lock</span><span class="o">.</span><span class="n">locked</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_choice_for_property</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">fut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_property</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="n">fut</span><span class="p">,</span> <span class="n">loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_loop</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SmartScopeMonitor"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.SmartScopeMonitor">[docs]</a><span class="k">class</span> <span class="nc">SmartScopeMonitor</span><span class="p">(</span><span class="n">SmartViewMonitor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A single instance of a monitor within a SmartScope device</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        scope_mode (str): The type of scope to display.  Choices are:</span>
+<span class="sd">            &#39;audio_dbfs&#39;, &#39;audio_dbvu&#39;, &#39;histogram&#39;, &#39;parade_rgb&#39;, &#39;parade_yuv&#39;,</span>
+<span class="sd">            &#39;video&#39;, &#39;vector_100&#39;, &#39;vector_75&#39;, &#39;waveform&#39;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scope_mode</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="k">class</span> <span class="nc">PropertyChoices</span><span class="p">(</span><span class="n">SmartViewMonitor</span><span class="o">.</span><span class="n">PropertyChoices</span><span class="p">):</span>
+        <span class="n">scope_mode</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;audio_dbfs&#39;</span><span class="p">:</span><span class="s1">&#39;AudioDbfs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;audio_dbvu&#39;</span><span class="p">:</span><span class="s1">&#39;AudioDbvu&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;histogram&#39;</span><span class="p">:</span><span class="s1">&#39;Histogram&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;parade_rgb&#39;</span><span class="p">:</span><span class="s1">&#39;ParadeRGB&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;parade_yuv&#39;</span><span class="p">:</span><span class="s1">&#39;ParadeYUV&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;video&#39;</span><span class="p">:</span><span class="s1">&#39;Picture&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;vector_100&#39;</span><span class="p">:</span><span class="s1">&#39;Vector100&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;vector_75&#39;</span><span class="p">:</span><span class="s1">&#39;Vector75&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;waveform&#39;</span><span class="p">:</span><span class="s1">&#39;WaveformLuma&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">_bind_properties</span> <span class="o">=</span> <span class="n">SmartViewMonitor</span><span class="o">.</span><span class="n">PropertyChoices</span><span class="o">.</span><span class="n">_bind_properties</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="s1">&#39;scope_mode&#39;</span><span class="p">,</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Preset"><a class="viewcode-back" href="../../../backends.html#vidhubcontrol.backends.base.Preset">[docs]</a><span class="k">class</span> <span class="nc">Preset</span><span class="p">(</span><span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stores and recalls routing information</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name: The name of the preset.</span>
+<span class="sd">            This is a :class:`pydispatch.Property`</span>
+<span class="sd">        index (int): The index of the preset as it is stored in the</span>
+<span class="sd">            :attr:`~BackendBase.presets` container.</span>
+<span class="sd">        crosspoints (dict): The crosspoints that this preset has stored.</span>
+<span class="sd">            This is a :class:`~pydispatch.properties.DictProperty`</span>
+<span class="sd">        active (bool): A flag indicating whether all of the crosspoints stored</span>
+<span class="sd">            in this preset are currently active on the switcher.</span>
+<span class="sd">            This is a :class:`pydispatch.Property`</span>
+
+<span class="sd">    Events:</span>
+<span class="sd">        on_preset_stored: Dispatched after the preset stores its state.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">Property</span><span class="p">()</span>
+    <span class="n">crosspoints</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="n">Property</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">_events_</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;on_preset_stored&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;backend&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Preset </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;crosspoints&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">connected</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">prelude_parsed</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_active</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">prelude_parsed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_ready</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">crosspoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_crosspoints</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">crosspoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_preset_crosspoints</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs_to_store</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clear_current</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">outputs_to_store</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outputs_to_store</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">num_outputs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">clear_current</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_lock</span><span class="p">(</span><span class="s1">&#39;crosspoints&#39;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">out_idx</span> <span class="ow">in</span> <span class="n">outputs_to_store</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;on_preset_stored&#39;</span><span class="p">,</span> <span class="n">preset</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">set_crosspoints</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">check_active</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">out_idx</span><span class="p">,</span> <span class="n">in_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">in_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span> <span class="o">!=</span> <span class="n">in_idx</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">def</span> <span class="nf">on_backend_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_backend_ready</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_active</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">on_backend_crosspoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">prelude_parsed</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_active</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">on_preset_crosspoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crosspoints</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">prelude_parsed</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_active</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Matthew Reid
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
