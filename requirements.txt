@@ -3,3 +3,4 @@ json-object-factory
 zeroconf
 python-osc
 pid
+netifaces
