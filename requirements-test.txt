@@ -1,5 +1,5 @@
 m2r
-pytest>=3.0.2
+pytest>=6.2.4
 pytest-asyncio
 pytest-cov
 pytest-xdist
