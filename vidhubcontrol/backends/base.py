@@ -51,7 +51,10 @@ class BackendBase(Dispatcher):
         if self.connected:
             return self.client
         self.connected = True
-        r = await self.do_connect()
+        try:
+            r = await asyncio.wait_for(self.do_connect(), timeout=2)
+        except asyncio.TimeoutError as exc:
+            r = False
         if r is False:
             self.connection_error = True
             self.connected = False

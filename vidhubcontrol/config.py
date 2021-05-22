@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import logging
 
 import jsonfactory
 from pydispatch import Dispatcher, Property
@@ -15,6 +16,8 @@ from vidhubcontrol.backends import (
     SmartViewTelnetBackend,
     SmartScopeTelnetBackend,
 )
+
+logger = logging.getLogger(__name__)
 
 BACKENDS = {
     'vidhub':{cls.__name__:cls for cls in [DummyBackend, TelnetBackend]},
@@ -108,6 +111,7 @@ class Config(ConfigBase):
         self.starting = asyncio.Event()
         self.running = asyncio.Event()
         self.stopped = asyncio.Event()
+        self.initialized = asyncio.Event()
         self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
         if 'loop' in kwargs:
             Config.loop = kwargs['loop']
@@ -172,7 +176,9 @@ class Config(ConfigBase):
                 task = _init_backend(prop, d['cls'], **okwargs)
                 tasks.append(task)
         if len(tasks):
-            await asyncio.wait(tasks)
+            await asyncio.gather(*tasks)
+        self.initialized.set()
+
     async def start(self, **kwargs):
         """Starts the device backends and discovery routines
 
@@ -311,6 +317,8 @@ class Config(ConfigBase):
         prop[value] = backend
         self.save()
     async def add_discovered_device(self, device_type, info, device_id):
+        await self.initialized.wait()
+        logger.debug(f'add_discovered_device: {device_type}, {info}, {device_id}')
         async with self.discovery_lock:
             prop = getattr(self, self._device_type_map[device_type]['prop'])
             cls = None
@@ -322,7 +330,9 @@ class Config(ConfigBase):
             hostport = int(info.port)
             if device_id in prop:
                 obj = prop[device_id]
+                logger.debug(f'existing device: {obj!r}')
                 if obj.hostaddr != hostaddr or obj.hostport != hostport:
+                    logger.debug('resetting hostaddr')
                     await obj.reset_hostaddr(hostaddr, hostport)
                 return
             backend = await cls.create_async(

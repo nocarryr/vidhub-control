@@ -1,5 +1,8 @@
+import logging
 import asyncio
 import telnetlib
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_LIMIT = 2 ** 16
 
@@ -29,6 +32,7 @@ class FakeSocket(object):
         self.telnet = tn
         self.running = False
         self.tx_queue = asyncio.Queue()
+
     async def run(self):
         self.running = True
         while self.running:
@@ -80,11 +84,15 @@ class _Telnet(telnetlib.Telnet):
         self.writer = None
 
     async def close_async(self):
+        logger.debug(f'Telnet.close_async...')
         if self.sock:
+            logger.debug('closing sock')
             self.sock.close()
             await asyncio.wait([self.sock_fut])
+            logger.debug('sock closed')
         self.sock = None
         self.close()
+        logger.info('Telnet closed')
 
     async def write(self, bfr):
         if telnetlib.IAC in bfr:
