@@ -1,4 +1,7 @@
 import asyncio
+from typing import (
+    List, Tuple, Dict, Union, Optional, Any, Callable, Coroutine, Awaitable,
+)
 import ipaddress
 import logging
 
@@ -9,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 try:
     import zeroconf
+    from zeroconf.asyncio import AsyncZeroconf
+    from zeroconf import IPVersion
     ZEROCONF_AVAILABLE = True
 except ImportError: # pragma: no cover
     zeroconf = None
@@ -18,11 +23,58 @@ from vidhubcontrol.utils import find_ip_addresses
 
 PUBLISH_TTL = 60
 
-def convert_bytes_dict(d):
+StrOrBytes = Union[str, bytes]
+AddressLike = Union[StrOrBytes, ipaddress.IPv4Address]
+CoroFunc = Callable[[Any, Any], Coroutine]
+
+def convert_bytes_dict(d: Dict[bytes, bytes]) -> Dict[str, str]:
     return {str(k, 'UTF-8'):str(d[k], 'UTF-8') for k in d.keys()}
 
-def convert_dict_bytes(d):
-    return {bytes(k, 'UTF-8'):bytes(d[k], 'UTF-8') for k in d.keys()}
+def convert_dict_bytes(d: Dict[StrOrBytes, StrOrBytes]) -> Dict[bytes, bytes]:
+    r = {}
+    for key, val in d.items():
+        if not isinstance(key, bytes):
+            key = key.encode()
+        if not isinstance(val, bytes):
+            val = val.encode()
+        r[key] = val
+    return r
+
+def pack_ip_address(ip: AddressLike) -> bytes:
+    if isinstance(ip, bytes):
+        return ip
+    if isinstance(ip, ipaddress.IPv4Interface):
+        ip = ip.ip.packed
+    elif isinstance(ip, ipaddress.IPv4Address):
+        ip = ip.packed
+    elif isinstance(val, str):
+        ip = ipaddress.ip_address(val).packed
+    return ip
+
+def unpack_ip_address(ip: AddressLike) -> ipaddress.IPv4Address:
+    if isinstance(ip, ipaddress.IPv4Interface):
+        return ip.ip
+    return ipaddress.ip_address(ip)
+
+def run_on_loop(
+    coro: CoroFunc,
+    dest_loop: asyncio.BaseEventLoop,
+    cur_loop: Optional[asyncio.BaseEventLoop] = None,
+    create_task: Optional[bool] = True
+) -> Awaitable:
+    if cur_loop is None:
+        try:
+            cur_loop = asyncio.get_event_loop()
+        except RuntimeError:
+            cur_loop = None
+    is_same_loop = cur_loop is dest_loop
+    if not is_same_loop:
+        fut = asyncio.run_coroutine_threadsafe(coro, loop=dest_loop)
+    elif create_task:
+        fut = asyncio.ensure_future(coro)
+    else:
+        fut = coro
+    return fut
 
 class ServiceInfo(Dispatcher):
     """Container for Zeroconf service information
@@ -34,18 +86,45 @@ class ServiceInfo(Dispatcher):
         name (str): Fully qualified service name
         server (str): Fully qualified name for service host
             (defaults to :attr:`name`)
-        address (:class:`ipaddress.IPv4Address`): The service ip address
+        addresses: The service ip address
         port (int): The service port
         properties (dict): Custom properties for the service
 
     """
     properties = DictProperty()
-    _attrs = ['type', 'name', 'server', 'address', 'port', 'properties']
-    def __init__(self, **kwargs):
-        for attr in self._attrs:
-            setattr(self, attr, kwargs.get(attr))
+    _direct_attrs = ['name', 'server', 'port', 'properties']
+    def __init__(
+        self,
+        type_: str,
+        name: str,
+        server: Optional[str] = None,
+        port: Optional[int] = None,
+        addresses: Optional[List[AddressLike]] = None,
+        properties: Optional[Dict] = None,
+        ttl: Optional[int] = None,
+    ) -> None:
+        self.type: str = type_
+        self.name: str = name
+        self.server: Optional[str] = server
+        self.port: Optional[int] = port
+
+        if addresses is None:
+            addresses = []
+        self.addresses: List[AddressLike] = addresses
+        if properties is not None:
+            self.properties = properties
+        self.ttl: Optional[int] = ttl
+
+    @property
+    def address(self) -> Optional[ipaddress.IPv4Address]:
+        """The first element of :attr:`addresses`
+        """
+        if not len(self.addresses):
+            raise ValueError(f'{self!r} has no addresses')
+        return self.addresses[0]
+
     @classmethod
-    def from_zc_info(cls, info):
+    def from_zc_info(cls, info: 'zeroconf.ServiceInfo') -> 'ServiceInfo':
         """Creates an instance from a :class:`zeroconf.ServiceInfo` object
 
         Arguments:
@@ -55,48 +134,43 @@ class ServiceInfo(Dispatcher):
             An instance of :class:`ServiceInfo`
 
         """
-        kwargs = {}
-        for attr in cls._attrs:
-            val = getattr(info, attr)
-            if attr == 'properties':
-                val = convert_bytes_dict(val)
-            elif attr == 'address':
-                val = ipaddress.ip_address(val)
-            kwargs[attr] = val
+        kwargs = {k:getattr(info, k) for k in cls._direct_attrs}
+        kwargs['type_'] = info.type
+        addresses = info.parsed_addresses(IPVersion.V4Only)
+        kwargs['addresses'] = [unpack_ip_address(addr) for addr in addresses]
+        kwargs['properties'] = convert_bytes_dict(info.properties)
+        kwargs['ttl'] = info.host_ttl
         return cls(**kwargs)
+
     @property
-    def id(self):
+    def id(self) -> Tuple[str, str]:
         """Unique id for the service as a ``tuple`` of (:attr:`type`, :attr:`name`)
         """
         return (self.type, self.name)#, self.address, self.port)
-    def to_zc_info(self):
+
+    def to_zc_info(self) -> 'zeroconf.ServiceInfo':
         """Creates a copy as an instance of :class:`zeroconf.ServiceInfo`
         """
-        kwargs = {}
-        for attr in self._attrs:
-            val = getattr(self, attr)
-            if attr == 'properties':
-                val = convert_dict_bytes(val)
-            elif attr == 'address':
-                if isinstance(val, ipaddress.IPv4Interface):
-                    val = val.ip.packed
-                elif isinstance(val, ipaddress.IPv4Address):
-                    val = val.packed
-                else:
-                    val = ipaddress.ip_address(val).packed
-            kwargs[attr] = val
-        type_ = kwargs.pop('type')
-        name = kwargs.pop('name')
-        return zeroconf.ServiceInfo(type_, name, **kwargs)
-    def update(self, other):
+        kwargs = {k:getattr(self, k) for k in self._direct_attrs}
+        kwargs['type_'] = self.type
+        kwargs['addresses'] = [pack_ip_address(addr) for addr in self.addresses]
+        kwargs['properties'] = convert_dict_bytes(self.properties)
+        if self.ttl is not None:
+            kwargs['host_ttl'] = self.ttl
+        return zeroconf.ServiceInfo(**kwargs)
+
+    def update(self, other: 'ServiceInfo'):
         """Updates the :attr:`properties` from another :class:`ServiceInfo` instance
         """
-        if self.properties == other.properties:
-            return
+        assert other.id == self.id
         self.properties = other.properties.copy()
+        self.addresses = other.addresses.copy()
+        self.server = other.server
+        self.port = other.port
+
     def __hash__(self):
         return hash(self.id)
-    def __eq__(self, other):
+    def __eq__(self, other: 'ServiceInfo'):
         return self.id == other.id
     def __repr__(self):
         return '<{self.__class__.__name__}> {self}'.format(self=self)
@@ -114,25 +188,36 @@ class Message(object):
         are used internally in :class:`Listener` methods.
 
     """
-    def __init__(self, info):
-        self.info = info
+    __slots__ = ('info',)
+    def __init__(self, info: ServiceInfo):
+        self.info: ServiceInfo = info
     def __repr__(self):
         return str(self)
     def __str__(self):
         return '{self.__class__.__name__}: {self.info}'.format(self=self)
 
-class AddedMessage(Message):
+class BrowserMessage(Message):
     pass
 
-class RemovedMessage(Message):
+class AddedMessage(BrowserMessage):
     pass
 
-class PublishMessage(Message):
-    def __init__(self, info, ttl=PUBLISH_TTL):
-        super().__init__(info)
-        self.ttl = ttl
+class RemovedMessage(BrowserMessage):
+    pass
 
-class UnPublishMessage(Message):
+class UpdateMessage(BrowserMessage):
+    pass
+
+class RegistrationMessage(Message):
+    pass
+
+class PublishMessage(RegistrationMessage):
+    pass
+
+class RepublishMessage(RegistrationMessage):
+    pass
+
+class UnPublishMessage(RegistrationMessage):
     pass
 
 class Listener(Dispatcher):
@@ -154,7 +239,7 @@ class Listener(Dispatcher):
             using :meth:`publish_service` as :class:`ServiceInfo` instances.
 
     """
-    _events_ = ['service_added', 'service_removed']
+    _events_ = ['service_added', 'service_updated', 'service_removed']
     services = DictProperty()
     def __init__(self, mainloop, service_type):
         self.mainloop = mainloop
@@ -162,89 +247,91 @@ class Listener(Dispatcher):
         self.running = False
         self.stopped = asyncio.Event()
         self.message_queue = asyncio.Queue()
+        self._service_info_lock = asyncio.Lock()
         self.zeroconf = None
         self.published_services = {}
+
     async def start(self):
         """Starts the service listener
-
-        Runs :class:`zeroconf.Zeroconf` in an :class:`~concurrent.futures.Executor`
-        instance through `asyncio.AbstractEventLoop.run_in_executor`
-        (see :meth:`run_zeroconf`).
-
         """
-        await self.mainloop.run_in_executor(None, self.run_zeroconf)
+        if self.running:
+            return
+        self.run_zeroconf()
         self.running = True
-        self.run_future = asyncio.ensure_future(self.run(), loop=self.mainloop)
+        self.run_future = asyncio.ensure_future(self.run())
+
     async def run(self):
         """Main loop for communicating with :class:`zeroconf.Zeroconf`
 
         Waits for messages on the :attr:`message_queue` and processes them.
         The loop will exit if an object placed on the queue is not an instance
         of :class:`Message`.
-
-        When the loop exits, the :class:`zeroconf.Zeroconf` instance will be
-        closed.
-
         """
+        async def handle_service_registration(msg: RegistrationMessage):
+            if not ZEROCONF_AVAILABLE:
+                return
+            zc_info = msg.info.to_zc_info()
+            if isinstance(msg, PublishMessage):
+                coro = self.async_zeroconf.async_register_service(zc_info)
+                timeout = zeroconf._REGISTER_TIME
+            elif isinstance(msg, RepublishMessage):
+                coro = self.async_zeroconf.async_update_service(zc_info)
+                timeout = zeroconf._REGISTER_TIME
+            else:
+                coro = self.async_zeroconf.async_unregister_service(zc_info)
+                timeout = zeroconf._UNREGISTER_TIME
+            timeout = timeout / 1000 * 3
+            await coro
+            # await asyncio.sleep(timeout)
+
         while self.running:
             msg = await self.message_queue.get()
-            self.message_queue.task_done()
             if not isinstance(msg, Message):
-                self.running = False
+                self.message_queue.task_done()
                 break
+            if isinstance(msg, RegistrationMessage):
+                await handle_service_registration(msg)
             elif isinstance(msg, AddedMessage):
-                if msg.info.id in self.services:
-                    self.services[msg.info.id].update(msg.info)
-                else:
-                    await self.add_service_info(msg.info)
+                await self.add_service_info(msg.info)
             elif isinstance(msg, RemovedMessage):
-                if msg.info.id in self.services:
-                    await self.remove_service_info(msg.info)
-            elif isinstance(msg, PublishMessage):
-                if not ZEROCONF_AVAILABLE:
-                    continue
-                zc_info = msg.info.to_zc_info()
-                await self.mainloop.run_in_executor(
-                    None, self.zeroconf.register_service,
-                    zc_info, msg.ttl,
-                )
-            elif isinstance(msg, UnPublishMessage):
-                zc_info = msg.info.to_zc_info()
-                await self.mainloop.run_in_executor(
-                    None, self.zeroconf.unregister_service, zc_info,
-                )
-        await self.mainloop.run_in_executor(None, self.stop_zeroconf)
-        self.stopped.set()
+                await self.remove_service_info(msg.info)
+            elif isinstance(msg, UpdateMessage):
+                await self.update_service_info(msg.info)
+
+            self.message_queue.task_done()
+
     async def stop(self):
-        """Stops the loop in :meth:`run`
+        """Stops the service listener
         """
         if not self.running:
             return
-        self.message_queue.put_nowait(None)
-        await self.stopped.wait()
+        self.running = False
+        await self.message_queue.put(None)
+        await self.run_future
+        await self.stop_zeroconf()
+        self.stopped.set()
+
     def run_zeroconf(self):
         """Starts :class:`zeroconf.Zeroconf` and :class:`zeroconf.ServiceBrowser` instances
-
-        This is meant to be called inside of an :class:`concurrent.futures.Executor`
-        and not used directly.
-
         """
         if not ZEROCONF_AVAILABLE:
             return
-        self.zeroconf = zeroconf.Zeroconf()
+        self.async_zeroconf = AsyncZeroconf()
+        self.zeroconf = self.async_zeroconf.zeroconf
         self.zeroconf.listener = self
         self.browser = zeroconf.ServiceBrowser(self.zeroconf, self.service_type, self)
-    def stop_zeroconf(self):
+
+    async def stop_zeroconf(self):
         """Closes the :class:`zeroconf.Zeroconf` instance
-
-        This is meant to be called inside of an :class:`concurrent.futures.Executor`
-        and not used directly.
-
         """
         if self.zeroconf is None:
             return
-        self.zeroconf.close()
-    async def add_message(self, msg):
+        zc, a_zc = self.zeroconf, self.async_zeroconf
+        self.zeroconf = None
+        self.async_zeroconf = None
+        await a_zc.async_close()
+
+    async def add_message(self, msg: Message):
         """Adds a message to the :attr:`message_queue`
 
         Arguments:
@@ -252,28 +339,59 @@ class Listener(Dispatcher):
 
         """
         await self.message_queue.put(msg)
-    async def add_service_info(self, info, **kwargs):
-        self.services[info.id] = info
+
+    async def add_service_info(self, info: ServiceInfo, **kwargs):
+        async with self._service_info_lock:
+            if msg.info.id in self.services:
+                raise ValueError(f'Service "{msg.info}" already discovered')
+            self.services[info.id] = info
         self.emit('service_added', info, **kwargs)
-    async def remove_service_info(self, info, **kwargs):
-        del self.services[info.id]
+
+    async def update_service_info(self, info: ServiceInfo, **kwargs):
+        async with self._service_info_lock:
+            if info.id not in self.services:
+                self.services[info.id] = info
+                self.emit('service_added', info, **kwargs)
+                return
+            cur = self.services[info.id]
+            cur.update(info)
+        self.emit('service_updated', info, **kwargs)
+
+    async def remove_service_info(self, info: ServiceInfo, **kwargs):
+        async with self._service_info_lock:
+            if info.id not in self.services:
+                return
+            del self.services[info.id]
         self.emit('service_removed', info, **kwargs)
-    def remove_service(self, zc, type_, name):
-        info = ServiceInfo(type=type_, name=name)
-        msg = RemovedMessage(info)
-        asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
-    def add_service(self, zc, type_, name):
+
+    def add_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
         info = zc.get_service_info(type_, name)
         info = ServiceInfo.from_zc_info(info)
-        msg = AddedMessage(info)
-        asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
-    async def get_local_ifaces(self, refresh=False):
+        msg = UpdateMessage(info)
+        run_on_loop(self.add_message(msg), self.mainloop)
+
+    def remove_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
+        info = ServiceInfo(type_=type_, name=name)
+        msg = RemovedMessage(info)
+        run_on_loop(self.add_message(msg), self.mainloop)
+
+    def update_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
+        info = zc.get_service_info(type_, name)
+        if info is None:
+            self.remove_service(zc, type_, name)
+            return
+        info = ServiceInfo.from_zc_info(info)
+        msg = UpdateMessage(info)
+        run_on_loop(self.add_message(msg), self.mainloop)
+
+    async def get_local_ifaces(self, refresh: Optional[bool] = False) -> List[ipaddress.IPv4Interface]:
         ifaces = getattr(self, '_local_ifaces', None)
         if ifaces is not None and not refresh:
             return ifaces
         ifaces = self._local_ifaces = [iface for iface_name, iface in find_ip_addresses()]
         return ifaces
-    async def get_local_hostname(self):
+
+    async def get_local_hostname(self) -> str:
         name = getattr(self, '_local_hostname', None)
         if name is not None:
             return name
@@ -287,8 +405,16 @@ class Listener(Dispatcher):
             name = 'localhost'
         self._local_hostname = name
         return name
-    async def publish_service(self, type_, port, name=None, addresses=None,
-                              properties=None, ttl=PUBLISH_TTL):
+
+    async def publish_service(
+        self,
+        type_: str,
+        port: int,
+        name: Optional[str] = None,
+        addresses: Optional[AddressLike] = None,
+        properties: Optional[Dict] = None,
+        ttl: Optional[int] = PUBLISH_TTL
+    ):
         """Publishes a service on the network
 
         Arguments:
@@ -312,64 +438,70 @@ class Listener(Dispatcher):
             addresses = await self.get_local_ifaces()
         if properties is None:
             properties = {}
-        info_kwargs = {
-            'type':type_,
-            'port':port,
-            'name':name,
-            'properties':properties,
-        }
-        for addr in addresses:
-            if not isinstance(addr, ipaddress.IPv4Address):
-                addr = ipaddress.IPv4Address(addr)
-            info_kwargs['address'] = addr
-            info = ServiceInfo(**info_kwargs)
-            if info.id not in self.published_services:
-                self.published_services[info.id] = {}
-            if info.address in self.published_services[info.id]:
-                continue
-            self.published_services[info.id][info.address] = info
-            msg = PublishMessage(info, ttl)
-            asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
-    async def unpublish_service(self, type_, port, name=None, addresses=None, properties=None):
-        """Removes a service published through :meth:`publish_service`
 
-        Arguments:
-            type_ (str): Fully qualified service type
-            port (int): The service port
-            name (str, optional): Fully qualified service name. If not provided,
-                this will be generated from the ``type_`` and the hostname
-                detected by :meth:`get_local_hostname`
-            addresses (optional): If provided, an ``iterable`` of IP addresses
-                to unpublish. Can be :class:`ipaddress.IPv4Address` or any type
-                that can be parsed by :func:`ipaddress.ip_address`
-            properties (dict, optional): Custom properties for the service
+        if addresses is None:
+            addresses = []
+        addresses = [unpack_ip_address(addr) for addr in addresses]
+        info = ServiceInfo(
+            type_=type_, port=port, name=name, properties=properties,
+            ttl=ttl, addresses=addresses,
+        )
+
+        if info.id in self.published_services:
+            raise ValueError(f'Service already published: {info!r}')
+        self.published_services[info.id] = info
+        msg = PublishMessage(info)
+        await run_on_loop(self.add_message(msg), self.mainloop)
+
+    async def republish_service(
+        self,
+        type_: str,
+        port: int,
+        name: Optional[str] = None,
+        addresses: Optional[AddressLike] = None,
+        properties: Optional[Dict] = None,
+        ttl: Optional[int] = PUBLISH_TTL
+    ):
+        """Update an existing :class:`ServiceInfo` and republish it
 
         """
         hostname = await self.get_local_hostname()
         if name is None:
             name = '.'.join([hostname, type_])
-        if addresses is None:
-            addresses = await self.get_local_ifaces()
-        if properties is None:
-            properties = {}
-        info_kwargs = {
-            'type':type_,
-            'port':port,
-            'name':name,
-            'properties':properties,
-        }
-        for addr in addresses:
-            if not isinstance(addr, ipaddress.IPv4Address):
-                addr = ipaddress.IPv4Address(addr)
-            info_kwargs['address'] = addr
-            info = ServiceInfo(**info_kwargs)
-            if info.id not in self.published_services:
-                continue
-            if info.address not in self.published_services[info.id]:
-                continue
-            del self.published_services[info.id][info.address]
-            msg = PublishMessage(info)
-            asyncio.run_coroutine_threadsafe(self.add_message(msg), loop=self.mainloop)
+        service_id = (type_, name)
+        if service_id not in self.published_services:
+            raise KeyError(f'Service "{service_id}" does not exist')
+        info = self.published_services[service_id]
+        info.port = port
+        if addresses is not None:
+            addresses = [unpack_ip_address(addr) for addr in addresses]
+            info.addresses = addresses
+        if properties is not None:
+            info.properties = properties
+        info.ttl = ttl
+        msg = RepublishMessage(info)
+        await run_on_loop(self.add_message(msg), self.mainloop)
+
+    async def unpublish_service(self, type_: str, name: Optional[str] = None):
+        """Removes a service published through :meth:`publish_service`
+
+        Arguments:
+            type_ (str): Fully qualified service type
+            name (str, optional): Fully qualified service name. If not provided,
+                this will be generated from the ``type_`` and the hostname
+                detected by :meth:`get_local_hostname`
+        """
+        hostname = await self.get_local_hostname()
+        if name is None:
+            name = '.'.join([hostname, type_])
+
+        service_id = (type_, name)
+        if service_id not in self.published_services:
+            raise KeyError(f'Service "{service_id}" does not exist')
+        info = self.published_services[service_id]
+        msg = UnPublishMessage(info)
+        del self.published_services[service_id]
+        await run_on_loop(self.add_message(msg), self.mainloop)
 
 class BMDDiscovery(Listener):
     """Zeroconf listener for Blackmagic devices
@@ -389,36 +521,71 @@ class BMDDiscovery(Listener):
     vidhubs = DictProperty()
     smart_views = DictProperty()
     smart_scopes = DictProperty()
+    _events_ = ['bmd_service_added', 'bmd_service_updated', 'bmd_service_removed']
     def __init__(self, mainloop, service_type='_blackmagic._tcp.local.'):
         super().__init__(mainloop, service_type)
-    async def add_service_info(self, info, **kwargs):
-        device_cls = info.properties.get('class')
-        bmd_id = info.properties.get('unique id', '').upper()
-        if device_cls == 'Videohub':
-            self.vidhubs[bmd_id] = info
-            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'vidhub'})
-        elif info.properties.get('class') == 'SmartView':
-            if 'SmartScope' in info.properties.get('name', ''):
-                self.smart_scopes[bmd_id] = info
-                kwargs['device_type'] = 'smartscope'
+        self.bind_async(
+            mainloop,
+            service_added=self._add_bmd_service_info,
+            service_updated=self._update_bmd_service_info,
+            service_removed=self._remove_bmd_service_info,
+        )
+
+    async def _add_bmd_service_info(self, info: ServiceInfo, **kwargs):
+        device_cls = info.properties['class']
+        bmd_id = info.properties['unique id'].upper()
+        kwargs.update({'class':device_cls, 'id':bmd_id})
+        async with self._service_info_lock:
+            if device_cls == 'Videohub':
+                assert bmd_id not in self.vidhubs
+                self.vidhubs[bmd_id] = info
+                device_type = 'vidhub'
+            elif device_cls == 'SmartView':
+                if 'SmartScope' in info.properties['name']:
+                    assert bmd_id not in self.smart_scopes
+                    self.smart_scopes[bmd_id] = info
+                    device_type = 'smartscope'
+                else:
+                    assert bmd_id not in self.smart_views
+                    self.smart_views[bmd_id] = info
+                    device_type = 'smartview'
+        kwargs['device_type'] = device_type
+        self.emit('bmd_service_added', info, **kwargs)
+
+    async def _update_bmd_service_info(self, info: ServiceInfo, **kwargs):
+        device_cls = info.properties['class']
+        bmd_id = info.properties['unique id'].upper()
+        kwargs.update({'class':device_cls, 'id':bmd_id})
+        async with self._service_info_lock:
+            if bmd_id in self.vidhubs:
+                device_type = 'vidhub'
+                o = self.vidhubs[bmd_id]
+            elif bmd_id in self.smart_scopes:
+                device_type = 'smartscope'
+                o = self.smartscopes[bmd_id]
+            elif bmd_id in self.smart_views:
+                device_type = 'smartview'
+                o = self.smart_views[bmd_id]
             else:
-                self.smart_views[bmd_id] = info
-                kwargs['device_type'] = 'smartview'
-            kwargs.update({'class':device_cls, 'id':bmd_id})
-        await super().add_service_info(info, **kwargs)
-    async def remove_service_info(self, info, **kwargs):
+                raise KeyError(f'Cannot find entry for "{info!r}"')
+        assert o is info
+        kwargs['device_type'] = device_type
+        self.emit('bmd_service_updated', info, **kwargs)
+
+    async def _remove_bmd_service_info(self, info: ServiceInfo, **kwargs):
         device_cls = info.properties.get('class')
         bmd_id = info.properties.get('unique id', '').upper()
-        if bmd_id in self.vidhubs and device_cls == 'Videohub':
-            del self.vidhubs[bmd_id]
-            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'vidhub'})
-        elif bmd_id in self.smart_views and device_cls == 'SmartView':
-            del self.smart_views[bmd_id]
-            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartview'})
-        elif bmd_id in self.smart_scopes and device_cls == 'SmartView':
-            del self.smart_scopes[bmd_id]
-            kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartscope'})
-        await super().remove_service_info(info, **kwargs)
+        async with self._service_info_lock:
+            if bmd_id in self.vidhubs and device_cls == 'Videohub':
+                del self.vidhubs[bmd_id]
+                kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'vidhub'})
+            elif bmd_id in self.smart_views and device_cls == 'SmartView':
+                del self.smart_views[bmd_id]
+                kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartview'})
+            elif bmd_id in self.smart_scopes and device_cls == 'SmartView':
+                del self.smart_scopes[bmd_id]
+                kwargs.update({'class':device_cls, 'id':bmd_id, 'device_type':'smartscope'})
+        self.emit('bmd_service_removed', info, **kwargs)
 
 
 def main():

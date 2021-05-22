@@ -65,20 +65,27 @@ async def test_config_discovery(tempconfig,
                                 smartscope_zeroconf_info,
                                 mocked_vidhub_telnet_device):
 
+    import zeroconf
+    from zeroconf.asyncio import AsyncZeroconf
+
+    loop = asyncio.get_event_loop()
+
     class Waiter(object):
         def __init__(self):
             self.queue = asyncio.Queue()
         def bind(self, obj, *event_names):
             for event_name in event_names:
-                obj.bind(**{event_name:self.on_event})
+                obj.bind_async(loop, **{event_name:self.on_event})
         def unbind(self, obj):
             obj.unbind(self)
-        def on_event(self, *args, **kwargs):
-            self.queue.put_nowait((args, kwargs))
+        async def on_event(self, *args, **kwargs):
+            await self.queue.put((args, kwargs))
         async def wait(self):
-            ev = await self.queue.get()
+            ev = await asyncio.wait_for(self.queue.get(), timeout=1)
             self.queue.task_done()
             return ev
+
+    publisher = AsyncZeroconf()
     waiter = Waiter()
 
     config = await Config.load_async(str(tempconfig))
@@ -86,18 +93,15 @@ async def test_config_discovery(tempconfig,
 
     waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
 
-    args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    await config.discovery_listener.publish_service(*args, **kwargs)
-
-    args, kwargs = [smartview_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    await config.discovery_listener.publish_service(*args, **kwargs)
-
-    args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    await config.discovery_listener.publish_service(*args, **kwargs)
+    for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
+        kwargs = zc_data['info_kwargs']
+        info = zeroconf.ServiceInfo(**kwargs)
+        await publisher.async_register_service(info)
 
     events_received = 0
     while events_received < 3:
-        await waiter.wait()
+        r = await waiter.wait()
+        print(r)
         events_received += 1
 
     assert vidhub_zeroconf_info['device_id'] in config.vidhubs
@@ -105,6 +109,7 @@ async def test_config_discovery(tempconfig,
     assert smartscope_zeroconf_info['device_id'] in config.smartscopes
 
     await config.stop()
+    await publisher.async_close()
 
 
 @pytest.mark.asyncio

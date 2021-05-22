@@ -85,13 +85,15 @@ def vidhub_zeroconf_info():
         'device_id':VIDHUB_DEVICE_ID.upper(),
         'info_args':['_blackmagic._tcp.local.', 9990],
         'info_kwargs':{
+            'type_':'_blackmagic._tcp.local.',
+            'port':VIDHUB_PORT,
             'name':'Smart Videohub 12x12-{}._blackmagic._tcp.local.'.format(VIDHUB_DEVICE_ID.upper()),
-            'addresses':['127.0.0.1'],
+            'addresses':[b'\x7f\x00\x00\x01'],
             'properties':{
-                'name':'Smart Videohub 12x12',
-                'protocol version':'2.7',
-                'class':'Videohub',
-                'unique id':VIDHUB_DEVICE_ID,
+                b'name':b'Smart Videohub 12x12',
+                b'protocol version':b'2.7',
+                b'class':b'Videohub',
+                b'unique id':VIDHUB_DEVICE_ID.encode(),
             },
         },
     }
@@ -104,13 +106,15 @@ def smartview_zeroconf_info():
         'device_id':SMARTVIEW_DEVICE_ID.upper(),
         'info_args':['_blackmagic._tcp.local.', SMARTVIEW_PORT],
         'info_kwargs':{
+            'type_':'_blackmagic._tcp.local.',
+            'port':SMARTVIEW_PORT,
             'name':'SmartView Something-{}._blackmagic._tcp.local.'.format(SMARTVIEW_DEVICE_ID.upper()),
-            'addresses':['127.0.0.1'],
+            'addresses':[b'\x7f\x00\x00\x01'],
             'properties':{
-                'name':'SmartView Something',
-                'protocol version':'1.3',
-                'class':'SmartView',
-                'unique id':SMARTVIEW_DEVICE_ID,
+                b'name':b'SmartView Something',
+                b'protocol version':b'1.3',
+                b'class':b'SmartView',
+                b'unique id':SMARTVIEW_DEVICE_ID.encode(),
             },
         },
     }
@@ -123,13 +127,15 @@ def smartscope_zeroconf_info():
         'device_id':SMARTSCOPE_DEVICE_ID.upper(),
         'info_args':['_blackmagic._tcp.local.', SMARTSCOPE_PORT],
         'info_kwargs':{
+            'type_':'_blackmagic._tcp.local.',
+            'port':SMARTSCOPE_PORT,
             'name':'SmartScope Duo-{}._blackmagic._tcp.local.'.format(SMARTSCOPE_DEVICE_ID.upper()),
-            'addresses':['127.0.0.1'],
+            'addresses':[b'\x7f\x00\x00\x01'],
             'properties':{
-                'name':'SmartScope Duo 4K',
-                'protocol version':'1.3',
-                'class':'SmartView',
-                'unique id':SMARTSCOPE_DEVICE_ID,
+                b'name':b'SmartScope Duo 4K',
+                b'protocol version':b'1.3',
+                b'class':b'SmartView',
+                b'unique id':SMARTSCOPE_DEVICE_ID.encode(),
             },
         },
     }

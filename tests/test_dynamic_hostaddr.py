@@ -12,6 +12,10 @@ async def test_hostaddr_change(tempconfig,
                                smartscope_zeroconf_info,
                                mocked_vidhub_telnet_device):
 
+    import zeroconf
+    from zeroconf import _REGISTER_TIME
+    from zeroconf.asyncio import AsyncZeroconf
+
     class Waiter(object):
         def __init__(self):
             self.queue = asyncio.Queue()
@@ -23,12 +27,14 @@ async def test_hostaddr_change(tempconfig,
         def on_event(self, *args, **kwargs):
             self.queue.put_nowait((args, kwargs))
         async def wait(self):
-            ev = await self.queue.get()
+            ev = await asyncio.wait_for(self.queue.get(), timeout=1)
             self.queue.task_done()
             return ev
 
 
     PUBLISH_TTL = 5
+
+    publisher = AsyncZeroconf()
 
     waiter = Waiter()
 
@@ -38,17 +44,12 @@ async def test_hostaddr_change(tempconfig,
     waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
 
     # Publish original addresses
-    args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config.discovery_listener.publish_service(*args, **kwargs)
-
-    args, kwargs = [smartview_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config.discovery_listener.publish_service(*args, **kwargs)
-
-    args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config.discovery_listener.publish_service(*args, **kwargs)
+    for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
+        kwargs = zc_data['info_kwargs']
+        info = zeroconf.ServiceInfo(**kwargs)
+        info.host_ttl = 5
+        await publisher.async_register_service(info)
+    await asyncio.sleep(_REGISTER_TIME / 1000 * 3)
 
     events_received = 0
     while events_received < 3:
@@ -64,21 +65,15 @@ async def test_hostaddr_change(tempconfig,
     assert smartscope_id in config.smartscopes
 
     # Unpublish
-    args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    del kwargs['ttl']
-    await config.discovery_listener.unpublish_service(*args, **kwargs)
+    for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
+        kwargs = zc_data['info_kwargs']
+        info = zeroconf.ServiceInfo(**kwargs)
+        await publisher.async_unregister_service(info)
 
-    args, kwargs = [smartview_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    del kwargs['ttl']
-    await config.discovery_listener.unpublish_service(*args, **kwargs)
-
-    args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    del kwargs['ttl']
-    await config.discovery_listener.unpublish_service(*args, **kwargs)
 
     await config.stop()
     config = None
-    await asyncio.sleep(PUBLISH_TTL)
+    await asyncio.sleep(_REGISTER_TIME / 1000 * 3)
 
 
     # Alter saved conf data with false address info
@@ -107,6 +102,9 @@ async def test_hostaddr_change(tempconfig,
     assert smartview.backend_unavailable is True
     assert smartscope.backend_unavailable is True
 
+    assert not vidhub.backend.connected
+    assert not smartview.backend.connected
+    assert not smartscope.backend.connected
 
     # Republish correct addresses
     waiter2 = Waiter()
@@ -114,17 +112,13 @@ async def test_hostaddr_change(tempconfig,
     waiter2.bind(smartview.backend, 'connected')
     waiter2.bind(smartscope.backend, 'connected')
 
-    args, kwargs = [vidhub_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config2.discovery_listener.publish_service(*args, **kwargs)
+    for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
+        kwargs = zc_data['info_kwargs']
+        info = zeroconf.ServiceInfo(**kwargs)
+        info.host_ttl = 5
+        await publisher.async_register_service(info)
 
-    args, kwargs = [smartview_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config2.discovery_listener.publish_service(*args, **kwargs)
-
-    args, kwargs = [smartscope_zeroconf_info[key] for key in ['info_args', 'info_kwargs']]
-    kwargs['ttl'] = 5
-    await config2.discovery_listener.publish_service(*args, **kwargs)
+    await asyncio.sleep(_REGISTER_TIME / 1000 * 3)
 
     events_received = 0
     while events_received < 3:
@@ -148,3 +142,5 @@ async def test_hostaddr_change(tempconfig,
     assert config2.smartscopes[smartscope_id] is smartscope
 
     await config2.stop()
+
+    await publisher.async_close()

@@ -200,8 +200,10 @@ class Config(ConfigBase):
            await self.running.wait()
            return
         self.discovery_listener = BMDDiscovery(self.loop)
-        self.discovery_listener.bind(
-            service_added=self.on_discovery_service_added,
+        self.discovery_listener.bind_async(
+            self.loop,
+            bmd_service_added=self.on_discovery_service_added,
+            bmd_service_updated=self.on_discovery_service_updated,
         )
         await self.discovery_listener.start()
         self.starting.clear()
@@ -334,19 +336,18 @@ class Config(ConfigBase):
                 await backend.disconnect()
                 return
             await self.add_device(backend)
-    def on_discovery_service_added(self, info, **kwargs):
+    async def on_discovery_service_added(self, info, **kwargs):
         if kwargs.get('class') not in ['Videohub', 'SmartView']:
             return
         device_type = kwargs.get('device_type')
         device_id = kwargs.get('id')
         if device_id is None:
             return
-        prop = getattr(self, self._device_type_map[device_type]['prop'])
-        if device_id in prop:
-            obj = prop[device_id]
-            if obj.backend is not None and obj.backend.connected:
-                return
-        asyncio.run_coroutine_threadsafe(self.add_discovered_device(device_type, info, device_id), loop=self.loop)
+        await self.add_discovered_device(device_type, info, device_id)
+
+    async def on_discovery_service_updated(self, info, **kwargs):
+        logger.debug(f'update: {info!r}, {kwargs}')
+
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
     def save(self, filename=None):
