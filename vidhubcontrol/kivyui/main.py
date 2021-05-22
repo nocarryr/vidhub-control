@@ -151,11 +151,11 @@ class DeviceDropdownButton(Button):
         self.text = str(self.device.device_name)
         if self.app is None:
             return
-        self.app.bind_events(self.device, device_name=self.on_device_name)
+        self.device.bind(device_name=self.on_device_name)
     def on_app(self, instance, value):
         if self.app is None:
             return
-        self.app.bind_events(self.device, device_name=self.on_device_name)
+        self.device.bind(device_name=self.on_device_name)
     @mainthread
     def on_device_name(self, instance, value, **kwargs):
         self.text = str(value)
@@ -206,15 +206,14 @@ class RootWidget(FloatLayout):
         self.connected = self.active_widget.connected
 
 class VidhubControlApp(App):
-    async_server = ObjectProperty(None)
     vidhub_config = ObjectProperty(None)
+    interfaces = ObjectProperty(None)
     vidhubs = DictProperty()
     smartviews = DictProperty()
     smartscopes = DictProperty()
     selected_device = ObjectProperty(None)
     popup_widget = ObjectProperty(None, allownone=True)
     aio_loop = ObjectProperty(None)
-    async_server_loop = ObjectProperty(None)
     def __init__(self, **kwargs):
         kwargs['kv_directory'] = APP_PATH
         super(VidhubControlApp, self).__init__(**kwargs)
@@ -238,22 +237,37 @@ class VidhubControlApp(App):
     def on_start(self, *args, **kwargs):
         if self.aio_loop is None:
             self.aio_loop = asyncio.get_event_loop()
-        self.async_server = AsyncServer(self)
-        self.async_server.start()
-        self.async_server.thread_run_event.wait()
-        self.vidhub_config = self.async_server.config
+        self.run_async_coro(self.async_start())
+
+    async def async_run(self, async_lib=None):
+        await super().async_run(async_lib)
+        await self.async_stop()
+        Logger.info('Config shut down successfully')
+
+    async def async_start(self):
+        osc_disabled = self.config.get('osc', 'enable') != 'yes'
+        opts = Opts({
+            'config_filename':self.config.get('main', 'config_filename'),
+            'osc_address':None,
+            'osc_port':self.config.getint('osc', 'port'),
+            'osc_iface_name':None,
+            'osc_disabled':osc_disabled,
+        })
+        config, interfaces = await runserver.start(self.aio_loop, opts)
+        self.vidhub_config = config
+        self.interfaces = interfaces
         self.update_vidhubs()
         self.update_smartviews()
         self.update_smartscopes()
-        self.bind_events(self.vidhub_config,
+        self.vidhub_config.bind(
             vidhubs=self.update_vidhubs,
             smartviews=self.update_smartviews,
             smartscopes=self.update_smartscopes,
         )
-    def on_stop(self, *args, **kwargs):
-        self.async_server.stop()
-        if self.async_server.exc_info is not None:
-            Logger.error(self.async_server.exc_info)
+
+    async def async_stop(self):
+        await runserver.stop(self.vidhub_config, self.interfaces)
+
     def on_popup_widget(self, *args):
         if self.popup_widget is None:
             return
@@ -290,58 +304,10 @@ class VidhubControlApp(App):
             self.smartscopes[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_device = val.backend
-    def bind_events(self, obj, **kwargs):
-        self.async_server.bind_events(obj, **kwargs)
+
     def run_async_coro(self, coro):
-        return self.async_server.run_async_coro(coro)
+        return asyncio.ensure_future(coro)
 
-
-
-class AioBridge(threading.Thread):
-    def __init__(self, event_loop=None):
-        super().__init__()
-        self.daemon = True
-        self.running = False
-        self.exc_info = None
-        self.thread_run_event = threading.Event()
-        self.thread_stop_event = threading.Event()
-        self.event_loop = event_loop
-    def run(self):
-        loop = self.event_loop
-        if loop is None:
-            loop = self.event_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        self.aio_stop_event = asyncio.Event()
-        self.running = True
-        try:
-            loop.run_until_complete(self.aioloop())
-            self.thread_stop_event.set()
-        except Exception as e:
-            self.exc_info = e
-            raise
-        finally:
-            if not self.thread_stop_event.is_set():
-                loop.run_until_complete(self.aioshutdown())
-    def stop(self):
-        self.running = False
-        self.event_loop.call_soon_threadsafe(self.aio_stop_event.set)
-    async def aioloop(self):
-        await self.aiostartup()
-        self.thread_run_event.set()
-        await self.aio_stop_event.wait()
-    async def aiostartup(self):
-        pass # pragma: no cover
-    async def aioshutdown(self):
-        pass # pragma: no cover
-    def bind_events(self, obj, **kwargs):
-        # Override pydispatch.Dispatcher.bind() using wrapped_callback
-        # Events should then be dispatched from the thread's event loop to
-        # the main thread using kivy.clock.Clock
-        async def do_bind(obj_, **kwargs_):
-            obj_.bind(**kwargs_)
-        asyncio.run_coroutine_threadsafe(do_bind(obj, **kwargs), loop=self.event_loop)
-    def run_async_coro(self, coro):
-        return asyncio.run_coroutine_threadsafe(coro, loop=self.event_loop)
 
 
 class Opts(object):
@@ -349,27 +315,12 @@ class Opts(object):
         for key, val in d.items():
             setattr(self, key, val)
 
-class AsyncServer(AioBridge):
-    def __init__(self, app):
-        super().__init__(app.async_server_loop)
-        self.app = app
-        osc_disabled = self.app.config.get('osc', 'enable') != 'yes'
-        self.opts = Opts({
-            'config_filename':self.app.config.get('main', 'config_filename'),
-            'osc_address':None,
-            'osc_port':self.app.config.getint('osc', 'port'),
-            'osc_iface_name':None,
-            'osc_disabled':osc_disabled,
-        })
-    async def aiostartup(self):
-        self.app.async_server_loop = self.event_loop
-        self.config, self.interfaces = await runserver.start(self.event_loop, self.opts)
-    async def aioshutdown(self):
-        await runserver.stop(self.config, self.interfaces)
 
 
 def main():
-    VidhubControlApp().run()
+    loop = asyncio.get_event_loop()
+    app = VidhubControlApp()
+    loop.run_until_complete(app.async_run())
 
 if __name__ == '__main__':
     main()

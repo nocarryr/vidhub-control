@@ -48,7 +48,7 @@ class VidhubWidget(BoxLayout):
         self.name = self.vidhub.device_name
         self.connected = self.vidhub.connected
         self.crosspoints[:] = self.vidhub.crosspoints[:]
-        self.app.bind_events(self.vidhub,
+        self.vidhub.bind(
             connected=self.on_vidhub_connected,
             device_name=self.on_vidhub_device_name,
             crosspoints=self.on_vidhub_crosspoints,
@@ -212,7 +212,7 @@ class InputButtonGrid(ButtonGrid):
             return
         self.button_labels = {i:lbl for i, lbl in enumerate(vidhub.input_labels)}
         self.num_buttons = vidhub.num_inputs
-        self.app.bind_events(vidhub,
+        vidhub.bind(
             input_labels=self.on_vidhub_labels,
             num_inputs=self.on_vidhub_num_buttons,
         )
@@ -238,7 +238,7 @@ class OutputButtonGrid(ButtonGrid):
             return
         self.button_labels = {i:lbl for i, lbl in enumerate(vidhub.output_labels)}
         self.num_buttons = vidhub.num_outputs
-        self.app.bind_events(vidhub,
+        vidhub.bind(
             output_labels=self.on_vidhub_labels,
             num_outputs=self.on_vidhub_num_buttons,
         )
@@ -267,15 +267,13 @@ class PresetButtonGrid(ButtonGrid):
             self.num_buttons = 12
         else:
             self.num_buttons = len(vidhub.presets)
-        self.app.bind_events(vidhub,
+        vidhub.bind(
             on_preset_added=self.on_preset_added,
             on_preset_active=self.on_preset_active,
         )
         for preset in vidhub.presets:
             self.on_preset_active(preset=preset, value=preset.active)
-            self.app.bind_events(preset,
-                name=self.on_preset_name,
-            )
+            preset.bind(name=self.on_preset_name)
     def unbind_vidhub(self, *args, **kwargs):
         self.vidhub.unbind(self)
         for preset in self.vidhub.presets:
@@ -291,9 +289,7 @@ class PresetButtonGrid(ButtonGrid):
             self.num_buttons = len(self.button_labels)
         if preset.active and preset.index not in self.selected_buttons:
             self.selected_buttons.append(preset.index)
-        self.app.bind_events(preset,
-            name=self.on_preset_name,
-        )
+        preset.bind(name=self.on_preset_name)
     @mainthread
     def on_preset_name(self, instance, value, **kwargs):
         self.button_labels[instance.index] = value

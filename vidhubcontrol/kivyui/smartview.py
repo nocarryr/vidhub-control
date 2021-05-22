@@ -38,7 +38,7 @@ class SmartViewWidget(BoxLayout):
             return
         self.name = self.device.device_name
         self.connected = self.device.connected
-        self.app.bind_events(self.device,
+        self.device.bind(
             device_name=self.on_device_name,
             connected=self.on_device_connected,
             num_monitors=self.build_monitors,
@@ -174,8 +174,7 @@ class MonitorWidget(BoxLayout):
             val = getattr(self.monitor, key)
             val = self._monitor_value_to_self(key, val)
             setattr(self, key, val)
-        self.app.bind_events(
-            self.monitor,
+        self.monitor.bind(
             **{key:self.on_monitor_prop for key in self._prop_keys}
         )
     def unbind_monitor(self):

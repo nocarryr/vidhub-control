@@ -56,7 +56,7 @@ class VidhubEditView(BoxLayout):
             return
         self.vidhub.device_name = value
     def bind_vidhub(self):
-        self.app.bind_events(self.vidhub, device_name=self.on_vidhub_device_name)
+        self.vidhub.bind(device_name=self.on_vidhub_device_name)
         self.vidhub_bound = True
     def unbind_vidhub(self, vidhub):
         vidhub.unbind(self.on_vidhub_device_name)
@@ -120,7 +120,7 @@ class VidhubEditLabelList(BoxLayout):
         if value is not None:
             self.bind_vidhub()
     def bind_vidhub(self):
-        self.app.bind_events(self.vidhub, **{self.vidhub_prop_get:self.on_vidhub_labels})
+        self.vidhub.bind(**{self.vidhub_prop_get:self.on_vidhub_labels})
         self.vidhub_bound = True
     def unbind_vidhub(self, vidhub):
         vidhub.unbind(self.on_vidhub_labels)
@@ -158,7 +158,7 @@ class VidhubPresetEditList(VidhubEditLabelList):
             return False
         return True
     def bind_vidhub(self):
-        self.app.bind_events(self.vidhub, on_preset_added=self.on_vidhub_preset_added)
+        self.vidhub.bind(on_preset_added=self.on_vidhub_preset_added)
         self.vidhub_bound = True
     def unbind_vidhub(self, vidhub):
         vidhub.unbind(self.on_vidhub_preset_added)
@@ -205,7 +205,7 @@ class VidhubEditPresetItem(VidhubEditLabelItem):
         if self.preset is not None:
             self.bind_preset()
     def bind_preset(self):
-        self.app.bind_events(self.preset, name=self.on_preset_name)
+        self.preset.bind(name=self.on_preset_name)
     @mainthread
     def on_preset_name(self, instance, value, **kwargs):
         self.text = value
