@@ -213,7 +213,7 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
 def tempconfig(tmpdir):
     return tmpdir.join('vidhubcontrol.json')
 
-@pytest.fixture(params=[False, True])
+@pytest.fixture(params=[False])
 def missing_netifaces(request, monkeypatch):
     import zeroconf
     import netifaces
