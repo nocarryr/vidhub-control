@@ -28,6 +28,7 @@ jobs:
         pip install -e .
     - name: Test with pytest
       run: |
+        py.test --collect-only
         py.test --cov-config .coveragerc --cov=vidhubcontrol
     - name: Upload to Coveralls
       run: coveralls --service=github
