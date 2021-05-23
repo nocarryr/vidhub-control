@@ -362,7 +362,6 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
     await client.start()
 
     server_addr = interface.server._server_address
-    print(f'{server_addr=}, {client_addr=}')
 
     assert interface.root_node.find('vidhubs/by-id/dummy') is not None
     assert interface.root_node.find('vidhubs/by-name/dummy-name') is not None
