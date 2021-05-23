@@ -24,6 +24,7 @@ for iface_name, iface in find_ip_addresses():
 def runserver_scriptname(request):
     return request.param
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_runserver(
     tempconfig, mocked_vidhub_telnet_device,
