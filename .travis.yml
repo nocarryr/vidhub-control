@@ -42,7 +42,7 @@ install:
     - pip install -e .
 script:
     # - travis-sphinx build --source=doc/source --nowarn
-    - ./runtests.sh
+    - py.test --cov-config .coveragerc --cov=vidhubcontrol
 after_success:
     - coveralls
     # - sh -c "if [ '$ALLOW_DEPLOY' = 'true' ]; then travis-sphinx deploy; fi"
