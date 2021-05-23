@@ -105,7 +105,7 @@ async def test_pubsub_nodes(missing_netifaces, unused_tcp_port_factory):
             for node in [self.osc_node, self.subscribe_node, self.query_node, self.list_node]:
                 node.bind(on_message_received=self.on_client_node_message)
         async def wait_for_response(self):
-            msg = await self.msg_queue.get()
+            msg = await asyncio.wait_for(self.msg_queue.get(), timeout=5)
             self.msg_queue.task_done()
             return msg
         async def subscribe(self, server_addr):
@@ -337,7 +337,7 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
             await self.wait_for_response()
             self.node = None
         async def wait_for_response(self):
-            msg = await self.msg_queue.get()
+            msg = await asyncio.wait_for(self.msg_queue.get(), timeout=5)
             self.msg_queue.task_done()
             return msg
         def on_message_received(self, node, client_address, *messages):
@@ -471,7 +471,7 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
             self.kwargs = kwargs
             self.event.set()
         async def wait(self):
-            await self.event.wait()
+            await asyncio.wait_for(self.event.wait(), timeout=5)
             self.event.clear()
             return self.args, self.kwargs
 

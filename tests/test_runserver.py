@@ -85,6 +85,10 @@ async def test_runserver(
         node_messages.append((node, messages))
         node_message_rx.set()
 
+    async def wait_for_message():
+        await asyncio.wait_for(node_message_rx.wait(), timeout=5)
+        node_message_rx.clear()
+
     client_node.bind(on_tree_message_received=on_node_msg)
 
     # TODO: this fails in OscInterface. Need to add test and debug
@@ -100,8 +104,7 @@ async def test_runserver(
         n.ensure_message(server_addr, 0)
         await asyncio.sleep(.1)
         n.ensure_message(server_addr)
-        await node_message_rx.wait()
-        node_message_rx.clear()
+        await wait_for_message()
         messages = node_messages[-1][1]
         assert messages[0] == 0
 
@@ -113,8 +116,7 @@ async def test_runserver(
     print('checking preset 0 active')
     n = vidhub_node.add_child('presets/0/active')
     n.ensure_message(server_addr)
-    await node_message_rx.wait()
-    node_message_rx.clear()
+    await wait_for_message()
     messages = node_messages[-1][1]
     assert messages[0]
     # TODO: this should be "is True" might be an issue with the OSC type tag
@@ -125,8 +127,7 @@ async def test_runserver(
     for i in range(12):
         n = vidhub_node.find('crosspoints/{}'.format(i))
         n.ensure_message(server_addr)
-        await node_message_rx.wait()
-        node_message_rx.clear()
+        await wait_for_message()
         messages = node_messages[-1][1]
         assert messages[0] == 2
 
