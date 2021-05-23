@@ -3,6 +3,7 @@ from typing import (
     List, Tuple, Dict, Union, Optional, Any, Callable, Coroutine, Awaitable,
 )
 import ipaddress
+import platform
 import logging
 
 from pydispatch import Dispatcher, Property
@@ -398,10 +399,15 @@ class Listener(Dispatcher):
         name = None
         for iface in await self.get_local_ifaces():
             _name, srv = await self.mainloop.getnameinfo((str(iface.ip), 80))
-            if _name is not None and _name != 'localhost':
-                name = _name
-                break
+            if _name is None or _name == 'localhost':
+                continue
+            if _name == str(iface.ip):
+                continue
+            if len(_name) > 63:
+                continue
         if name is None:
+            name = platform.node()
+        if not name:
             name = 'localhost'
         self._local_hostname = name
         return name
