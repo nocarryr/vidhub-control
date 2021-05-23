@@ -559,8 +559,11 @@ async def test_interface_config(tempconfig, missing_netifaces):
     vidhub = await DummyBackend.create_async(device_id='foo')
     await config.add_vidhub(vidhub)
 
-    while 'foo' not in interface.vidhubs:
-        await asyncio.sleep(.1)
+    async def wait_for_foo():
+        while 'foo' not in interface.vidhubs:
+            await asyncio.sleep(.1)
+
+    await asyncio.wait_for(wait_for_foo(), timeout=5)
 
     vidhub_node = interface.root_node.find('vidhubs/by-id/foo')
 
