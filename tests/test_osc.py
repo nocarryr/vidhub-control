@@ -82,9 +82,11 @@ async def test_nodes():
 
 
 @pytest.mark.asyncio
-async def test_pubsub_nodes(missing_netifaces):
+async def test_pubsub_nodes(missing_netifaces, unused_tcp_port_factory):
     from pydispatch import Dispatcher, Property
     from vidhubcontrol.interfaces.osc import OscNode, PubSubOscNode, OSCUDPServer, OscDispatcher
+
+    server_port, client_port = unused_tcp_port_factory(), unused_tcp_port_factory()
 
     class Publisher(Dispatcher):
         value = Property()
@@ -162,12 +164,12 @@ async def test_pubsub_nodes(missing_netifaces):
     sub_addrs = set((n.osc_address for n in subscribe_root.walk()))
     assert pub_addrs == sub_addrs
 
-    server_addr = ('127.0.0.1', 9000)
+    server_addr = ('127.0.0.1', server_port)
     server_dispatcher = OscDispatcher()
     publish_root.osc_dispatcher = server_dispatcher
     server = OSCUDPServer(server_addr, server_dispatcher)
 
-    client_addr = ('127.0.0.1', 9001)
+    client_addr = ('127.0.0.1', client_port)
     client_dispatcher = OscDispatcher()
     subscribe_root.osc_dispatcher = client_dispatcher
     client = OSCUDPServer(client_addr, client_dispatcher)
@@ -300,9 +302,11 @@ async def test_pubsub_nodes(missing_netifaces):
     await server.stop()
 
 @pytest.mark.asyncio
-async def test_interface(missing_netifaces):
+async def test_interface(missing_netifaces, unused_tcp_port_factory):
     from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, OscDispatcher
     from vidhubcontrol.backends import DummyBackend
+
+    server_port, client_port = unused_tcp_port_factory(), unused_tcp_port_factory()
 
     class NodeResponse(object):
         def __init__(self, node=None):
@@ -344,7 +348,7 @@ async def test_interface(missing_netifaces):
                 'messages':messages,
             })
 
-    interface = OscInterface()
+    interface = OscInterface(hostport=server_port)
     vidhub = DummyBackend(device_name='dummy-name')
     await interface.add_vidhub(vidhub)
     await interface.start()
@@ -352,12 +356,13 @@ async def test_interface(missing_netifaces):
     client_node = OscNode('vidhubcontrol')
     client_dispatcher = OscDispatcher()
     client_node.osc_dispatcher = client_dispatcher
-    client_addr = (str(interface.hostiface.ip), interface.hostport+1)
+    client_addr = (str(interface.hostiface.ip), client_port)
     client = OSCUDPServer(client_addr, client_dispatcher)
 
     await client.start()
 
     server_addr = interface.server._server_address
+    print(f'{server_addr=}, {client_addr=}')
 
     assert interface.root_node.find('vidhubs/by-id/dummy') is not None
     assert interface.root_node.find('vidhubs/by-name/dummy-name') is not None

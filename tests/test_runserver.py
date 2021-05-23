@@ -25,7 +25,10 @@ def runserver_scriptname(request):
     return request.param
 
 @pytest.mark.asyncio
-async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scriptname):
+async def test_runserver(
+    tempconfig, mocked_vidhub_telnet_device,
+    runserver_scriptname, unused_tcp_port_factory
+):
 
     # Build a config file to be read later in the subprocess
     Config.loop = None
@@ -44,8 +47,8 @@ async def test_runserver(tempconfig, mocked_vidhub_telnet_device, runserver_scri
 
     Config.USE_DISCOVERY = True
 
-    osc_server_port = 9000
-    osc_client_port = 9001
+    osc_server_port = unused_tcp_port_factory()
+    osc_client_port = unused_tcp_port_factory()
 
     cmd_str = '{} --config {} --osc-address {} --osc-port {}'.format(
         runserver_scriptname, tempconfig, HOST_IFACE.ip, osc_server_port)
