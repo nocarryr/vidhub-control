@@ -13,73 +13,46 @@ async def kivy_app(tmpdir, monkeypatch):
     monkeypatch.setenv('KIVY_UNITTEST', '1')
     monkeypatch.setattr('vidhubcontrol.runserver.Config.DEFAULT_FILENAME', str(vidhub_conf))
 
-    from kivy.clock import Clock, mainthread
-    from kivy.base import runTouchApp, stopTouchApp
     from vidhubcontrol.kivyui import main as kivy_main
 
     aio_loop = asyncio.get_event_loop()
     aio_loop.set_debug(True)
 
     class AppOverride(kivy_main.VidhubControlApp):
-        __events__ = ['on_aio_start']
+        def __init__(self, **kwargs):
+            kwargs['kv_file'] = os.path.join(kivy_main.APP_PATH, 'vidhubcontrol.kv')
+            super().__init__(**kwargs)
+            self._startup_ready = asyncio.Event()
+            self._app_ready = asyncio.Event()
+
         def get_application_config(self):
             return str(ui_conf)
+
+        async def start_async(self):
+            """Use this method to start the app in tests
+            """
+            self._run_task = asyncio.ensure_future(self.async_run())
+            await self.wait_for_widget_init()
+            await self._app_ready.wait()
+
+        async def stop_async(self):
+            """Use this method to stop the app in tests
+            """
+            self.stop()
+            await self._run_task
 
         def on_start(self, *args, **kwargs):
             super().on_start(*args, **kwargs)
             self._startup_ready.set()
 
-        def run(self):
-            self.aio_loop = aio_loop
-            kv_dir = os.path.dirname(os.path.abspath(kivy_main.__file__))
-            self.kv_file = os.path.join(kv_dir, 'vidhubcontrol.kv')
-            self._startup_ready = asyncio.Event()
-            if not self.built:
-                self.load_config()
-                self.load_kv(filename=self.kv_file)
-                root = self.build()
-                if root:
-                    self.root = root
-
-            if self.root:
-                from kivy.core.window import Window
-                Window.add_widget(self.root)
-
-            # Check if the window is already created
-            from kivy.base import EventLoop
-            window = EventLoop.window
-            if window:
-                self._app_window = window
-                window.set_title(self.get_application_name())
-                icon = self.get_application_icon()
-                if icon:
-                    window.set_icon(icon)
-                self._install_settings_keys(window)
-            else:
-                Logger.critical("Application: No window is created."
-                                " Terminating application run.")
-                return
-            self._kv_loop = EventLoop
-            self._kv_loop_running = True
-            self._aio_running = True
-            self.dispatch('on_start')
-            runTouchApp(self.root, slave=True)
-            self._aio_mainloop_future = asyncio.ensure_future(self._aio_mainloop(), loop=self.aio_loop)
-
-        @mainthread
-        def stop(self):
-            self.dispatch('on_stop')
-
-            stopTouchApp()
-
-            # Clear the window children
-            if self._app_window:
-                for child in self._app_window.children:
-                    self._app_window.remove_widget(child)
-
-            self._kv_loop_running = False
+        async def async_start(self):
+            """Override of base class method to initialize config, interfaces, etc
+            """
+            await super().async_start()
+            self._app_ready.set()
 
         async def wait_for_widget_init(self, root=None):
+            await self._startup_ready.wait()
             if root is None:
                 root = self.root
             def check_init():
@@ -90,44 +63,13 @@ async def kivy_app(tmpdir, monkeypatch):
                         return False
                 return True
             while not check_init():
-                await asyncio.sleep(0)
-
-        async def start_async(self):
-            self.run()
-            await self._startup_ready.wait()
-            await self.wait_for_widget_init()
-
-        async def stop_async(self):
-            if self._kv_loop_running:
-                self.stop()
-            await self._aio_mainloop_future
-            while not self.async_server.thread_stop_event.is_set():
-                await asyncio.sleep(.1)
-
-        async def _aio_mainloop(self):
-            start_ts = self.aio_loop.time()
-            initial = True
-            while not self._kv_loop.quit:
-                now = self.aio_loop.time()
-                if now >= start_ts + KIVY_STALL_TIMEOUT:
-                    print ('Exiting app. Runtime exceeded threshold')
-                    raise KeyboardInterrupt()
-                self._kv_loop.idle()
-                await asyncio.sleep(0)
-                if initial:
-                    self.dispatch('on_aio_start')
-                    initial = False
-            self._kv_loop.exit()
-
-        def on_aio_start(self, *args, **kwargs):
-            pass
+                await asyncio.sleep(.01)
 
     app = AppOverride()
     return app
 
 @pytest.fixture
 def KvEventWaiter():
-    from kivy.clock import mainthread
     class KvEventWaiter_(object):
         def __init__(self):
             self._loop = asyncio.get_event_loop()
@@ -138,17 +80,14 @@ def KvEventWaiter():
         def unbind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
             obj.unbind(**kwargs)
-        async def wait(self):
-            await self.aio_event.wait()
+        async def wait(self, timeout=5):
+            await asyncio.wait_for(self.aio_event.wait(), timeout)
             self.aio_event.clear()
-        async def bind_and_wait(self, obj, *events):
+        async def bind_and_wait(self, obj, timeout=5, *events):
             self.aio_event.clear()
             self.bind(obj, *events)
-            await self.wait()
-        @mainthread
+            await self.wait(timeout)
         def kivy_callback(self, *args, **kwargs):
-            async def do_set():
-                self.aio_event.set()
-            asyncio.run_coroutine_threadsafe(do_set(), loop=self._loop)
+            self.aio_event.set()
 
     return KvEventWaiter_

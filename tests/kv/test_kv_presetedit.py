@@ -5,7 +5,7 @@ import pytest
 async def test_vidhub_preset_edit(kivy_app, KvEventWaiter):
     kv_waiter = KvEventWaiter()
     kv_waiter.bind(kivy_app, 'on_start')
-    kivy_app.run()
+    await kivy_app.start_async()
     await kv_waiter.wait()
 
     config = kivy_app.vidhub_config

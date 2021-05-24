@@ -6,7 +6,7 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
 
     kv_waiter = KvEventWaiter()
     kv_waiter.bind(kivy_app, 'on_start')
-    kivy_app.run()
+    await kivy_app.start_async()
     await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
@@ -166,7 +166,7 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
             output_button_grid.button_widgets[dest].dispatch('on_release')
             while vidhub1.crosspoints[dest] != in_idx:
                 await asyncio.sleep(0)
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
             check_values(vidhub1)
 
         # Output already selected, deselect

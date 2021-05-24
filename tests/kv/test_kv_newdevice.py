@@ -7,7 +7,7 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter, mocked_vidhub_telnet_devi
 
     kv_waiter = KvEventWaiter()
     kv_waiter.bind(kivy_app, 'on_start')
-    kivy_app.run()
+    await kivy_app.start_async()
     await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
