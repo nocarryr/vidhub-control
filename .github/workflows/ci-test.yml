@@ -25,11 +25,10 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install -r requirements-test.txt
         pip install coveralls
-        pip install -e .
+        pip install -e .[kivy]
     - name: Test with pytest
       run: |
-        py.test --collect-only
-        py.test --cov-config .coveragerc --cov=vidhubcontrol
+        ./run_tests.sh
     - name: Upload to Coveralls
       run: coveralls --service=github
       env:

@@ -2,4 +2,5 @@ m2r
 pytest>=6.2.4
 pytest-asyncio
 pytest-cov
+pytest-xvfb
 coveralls
