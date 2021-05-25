@@ -5,6 +5,12 @@ import pytest
 
 KIVY_STALL_TIMEOUT = 90
 
+async def wait_clock_frames(n, sleep_time=1 / 60.):
+    from kivy.clock import Clock
+    frames_start = Clock.frames
+    while Clock.frames < frames_start + n:
+        await asyncio.sleep(sleep_time)
+
 @pytest.fixture
 async def kivy_app(tmpdir, monkeypatch):
     vidhub_conf = tmpdir.join('vidhubcontrol.json')
