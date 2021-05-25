@@ -89,6 +89,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     assert len(preset_button_grid.selected_buttons) == 1
     assert preset_button_grid.selected_buttons[0] == preset1.index
 
+    kv_waiter.unbind(preset_button_grid, 'selected_buttons')
+    await asyncio.sleep(.1)
+    await kv_waiter.clear()
+
     # Test preset name binding
     kv_waiter.bind(preset_button_grid.button_widgets[0], 'text')
 
@@ -102,6 +106,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     # Test preset add/store from vidhub
     print('test add/store from vidhub')
     kv_waiter.unbind(preset_button_grid.button_widgets[0], 'text')
+    await asyncio.sleep(.1)
+    assert kv_waiter.empty()
+
+    kv_waiter.bind(preset_button_grid, 'selected_buttons')
 
     xpts3 = [2] * vidhub.num_outputs
     await vidhub.set_crosspoints(*((i, v) for i, v in enumerate(xpts3)))

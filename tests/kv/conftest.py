@@ -76,21 +76,35 @@ def KvEventWaiter():
     class KvEventWaiter_(object):
         def __init__(self):
             self._loop = asyncio.get_event_loop()
-            self.aio_event = asyncio.Event()
+            self.queue = asyncio.Queue()
+            self._lock = asyncio.Lock()
         def bind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
             obj.bind(**kwargs)
         def unbind(self, obj, *events):
             kwargs = {e:self.kivy_callback for e in events}
             obj.unbind(**kwargs)
+        def empty(self):
+            return self.queue.empty()
+        async def clear(self):
+            await asyncio.sleep(0)
+            async with self._lock:
+                while not self.empty():
+                    _ = await self.queue.get()
+                    self.queue.task_done()
         async def wait(self, timeout=5):
-            await asyncio.wait_for(self.aio_event.wait(), timeout)
-            self.aio_event.clear()
+            r = await asyncio.wait_for(self.queue.get(), timeout)
+            self.queue.task_done()
+            return r
         async def bind_and_wait(self, obj, timeout=5, *events):
-            self.aio_event.clear()
             self.bind(obj, *events)
-            await self.wait(timeout)
+            return await self.wait(timeout)
         def kivy_callback(self, *args, **kwargs):
-            self.aio_event.set()
+            async def put(item):
+                if self._lock.locked():
+                    return
+                async with self._lock:
+                    await self.queue.put(item)
+            asyncio.ensure_future(put((args, kwargs)))
 
     return KvEventWaiter_

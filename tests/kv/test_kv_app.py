@@ -38,7 +38,7 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
     assert btn.device is vidhub2
     assert btn.text == vidhub2.device_name == 'Dummy 2'
 
-    assert not kv_waiter.aio_event.is_set()
+    assert kv_waiter.empty()
     btn.dispatch('on_release')
     await kv_waiter.wait()
     assert kivy_app.selected_device is vidhub2

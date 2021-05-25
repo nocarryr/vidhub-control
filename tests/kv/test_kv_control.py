@@ -24,10 +24,14 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
     vidhub2 = kivy_app.vidhubs['dummy2']
 
+    kv_waiter.unbind(kivy_app, 'vidhubs')
+    await kv_waiter.clear()
+
     kv_waiter.bind(kivy_app.root, 'active_widget')
     kivy_app.selected_device = vidhub1
     await kv_waiter.wait()
     kv_waiter.unbind(kivy_app.root, 'active_widget')
+    await kv_waiter.clear()
 
     vidhub_widget = kivy_app.root.active_widget.vidhub_widget
     input_button_grid = vidhub_widget.input_button_grid
@@ -111,18 +115,31 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
 
     kv_waiter.unbind(input_button_grid, 'button_labels')
     kv_waiter2.unbind(output_button_grid, 'button_labels')
-    kv_waiter.aio_event.clear()
-    kv_waiter2.aio_event.clear()
+    await asyncio.sleep(.5)
+    await kv_waiter.clear()
+    await kv_waiter2.clear()
 
     kv_waiter.bind(input_button_grid, 'selected_buttons')
     kv_waiter2.bind(output_button_grid, 'selected_buttons')
 
     print('testing output-first routing')
     for out_idx in range(vidhub1.num_outputs):
+        expected_input_btn = vidhub1.crosspoints[out_idx]
+        should_change = input_button_grid.selected_buttons != [expected_input_btn]
+
         output_button_grid.button_widgets[out_idx].dispatch('on_release')
-        await kv_waiter.wait()
         await kv_waiter2.wait()
+        assert output_button_grid.selected_buttons == [out_idx]
+        if should_change:
+            await kv_waiter.wait()
+            assert input_button_grid.selected_buttons == [expected_input_btn]
+        else:
+            await asyncio.sleep(.1)
+            assert kv_waiter.empty()
+            assert kv_waiter2.empty()
+
         check_values(vidhub1)
+
         for in_idx in range(vidhub1.num_inputs):
             if vidhub1.crosspoints[out_idx] == in_idx:
                 src = in_idx + 1
@@ -130,6 +147,10 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
                     src = 0
             else:
                 src = in_idx
+            if vidhub1.crosspoints[out_idx] == src:
+                assert input_button_grid.selected_buttons == [src]
+                continue
+
             print('out {} -> in {}'.format(out_idx, src))
             input_button_grid.button_widgets[src].dispatch('on_release')
             await kv_waiter.wait()
@@ -138,43 +159,82 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         # Output already selected, deselect
         output_button_grid.button_widgets[out_idx].dispatch('on_release')
         await kv_waiter.wait()
+        assert input_button_grid.selected_buttons == []
         await kv_waiter2.wait()
+        assert output_button_grid.selected_buttons == []
         assert vidhub_widget.first_selected == 'None'
         check_values(vidhub1)
 
-    kv_waiter.aio_event.clear()
-    kv_waiter2.aio_event.clear()
+    await asyncio.sleep(.5)
+    assert kv_waiter.empty()
+    assert kv_waiter2.empty()
 
     print('testing input-first routing')
     for in_idx in range(vidhub1.num_inputs):
+        expected_output_btns = set([_i for _i, _j in enumerate(vidhub1.crosspoints) if _j == in_idx])
+        should_change = output_button_grid.selected_buttons == expected_output_btns
+
         input_button_grid.button_widgets[in_idx].dispatch('on_release')
-        await kv_waiter.wait()
-        await kv_waiter2.wait()
+        arg1, _ = await kv_waiter.wait()
+        _, val = arg1
+        assert val == [in_idx]
+        if should_change:
+            arg2, _ = await kv_waiter2.wait()
+            _, val = arg2
+            assert set(val) == expected_output_btns
+        else:
+            await asyncio.sleep(.1)
+            assert kv_waiter.empty()
+            if not kv_waiter2.empty():
+                arg2, _ = await kv_waiter2.wait()
+                _, val = arg2
+                assert set(val) == expected_output_btns
+            assert set(output_button_grid.selected_buttons) == expected_output_btns
+
         check_values(vidhub1)
+
         for out_idx in range(vidhub1.num_outputs):
             if vidhub1.crosspoints[out_idx] == in_idx:
-                dest = vidhub1.crosspoints[out_idx] + 1
+                dest = out_idx + 1
                 if dest >= vidhub1.num_outputs:
                     dest = 0
             else:
-                dest = in_idx
+                dest = out_idx
+
+            if vidhub1.crosspoints[dest] == in_idx:
+                await asyncio.sleep(.1)
+                assert kv_waiter.empty()
+                assert kv_waiter2.empty()
+                assert set(output_button_grid.selected_buttons) == expected_output_btns
+                continue
+
+            assert dest not in expected_output_btns
+            expected_output_btns.add(dest)
 
             print('out {} -> in {}'.format(dest, in_idx))
             output_button_grid.button_widgets[dest].dispatch('on_release')
+            await kv_waiter2.wait()
+            assert set(output_button_grid.selected_buttons) == expected_output_btns
             while vidhub1.crosspoints[dest] != in_idx:
                 await asyncio.sleep(0)
             await asyncio.sleep(0.01)
             check_values(vidhub1)
 
         # Output already selected, deselect
+        inp_should_change = input_button_grid.selected_buttons != []
+        out_should_change = output_button_grid.selected_buttons != []
+
+        print(f'inp.btn{in_idx}.on_release')
         input_button_grid.button_widgets[in_idx].dispatch('on_release')
         await kv_waiter.wait()
+        assert input_button_grid.selected_buttons == []
         await kv_waiter2.wait()
+        assert output_button_grid.selected_buttons == []
         assert vidhub_widget.first_selected == 'None'
         check_values(vidhub1)
 
-    kv_waiter.aio_event.clear()
-    kv_waiter2.aio_event.clear()
+    await kv_waiter.clear()
+    await kv_waiter2.clear()
 
     print('testing crosspoint changes from vidhub backend')
     vidhub1.crosspoints[:] = [2]*vidhub1.num_inputs
