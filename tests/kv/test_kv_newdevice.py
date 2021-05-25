@@ -6,9 +6,6 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter, mocked_vidhub_telnet_devi
     from vidhubcontrol.backends import DummyBackend
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
 
@@ -71,5 +68,3 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter, mocked_vidhub_telnet_devi
             new_device = vidhub
             break
     assert new_device is not None
-
-    await kivy_app.stop_async()

@@ -7,9 +7,6 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
     from vidhubcontrol.backends import DummyBackend
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
     dropdown = kivy_app.root.header_widget.vidhub_dropdown
@@ -36,7 +33,6 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
 
     assert kivy_app.selected_device is vidhub1
 
-    await kivy_app.wait_for_widget_init()
 
     btn = dropdown.btns['dummy2']
     assert btn.device is vidhub2
@@ -46,5 +42,3 @@ async def test_vidhub_dropdown(kivy_app, KvEventWaiter):
     btn.dispatch('on_release')
     await kv_waiter.wait()
     assert kivy_app.selected_device is vidhub2
-
-    await kivy_app.stop_async()

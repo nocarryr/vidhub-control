@@ -5,9 +5,6 @@ import pytest
 async def test_vidhub_routing(kivy_app, KvEventWaiter):
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
 
@@ -190,6 +187,3 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         await kv_waiter2.wait()
         await asyncio.sleep(.1)
         check_values(vidhub1)
-
-
-    await kivy_app.stop_async()

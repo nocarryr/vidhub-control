@@ -6,9 +6,6 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     from vidhubcontrol.backends import DummyBackend
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
     vidhub = await DummyBackend.create_async(device_id='dummy1', device_name='Dummy 1')
@@ -155,6 +152,3 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         await kv_waiter.wait()
 
     assert len(preset_button_grid.selected_buttons) == 0
-
-
-    await kivy_app.stop_async()

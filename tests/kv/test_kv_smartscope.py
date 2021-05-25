@@ -6,9 +6,6 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
     from vidhubcontrol.backends import SmartViewDummyBackend, SmartScopeDummyBackend
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
     smartscope = await SmartScopeDummyBackend.create_async(device_name='Dummy 1')
@@ -210,5 +207,3 @@ async def test_vidhub_routing(kivy_app, KvEventWaiter):
         popup.dispatch('on_submit')
 
         assert device.device_name == 'foobarbaz'
-
-    await kivy_app.stop_async()

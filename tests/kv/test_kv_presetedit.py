@@ -4,9 +4,6 @@ import pytest
 @pytest.mark.asyncio
 async def test_vidhub_preset_edit(kivy_app, KvEventWaiter):
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
 
@@ -313,5 +310,3 @@ async def test_vidhub_preset_edit(kivy_app, KvEventWaiter):
     await close_edit_popup(popup, submit=True)
 
     assert preset.crosspoints == expected_xpts
-
-    await kivy_app.stop_async()

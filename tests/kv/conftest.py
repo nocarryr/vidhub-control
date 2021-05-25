@@ -15,8 +15,6 @@ async def kivy_app(tmpdir, monkeypatch):
 
     from vidhubcontrol.kivyui import main as kivy_main
 
-    aio_loop = asyncio.get_event_loop()
-    aio_loop.set_debug(True)
 
     class AppOverride(kivy_main.VidhubControlApp):
         def __init__(self, **kwargs):
@@ -66,7 +64,12 @@ async def kivy_app(tmpdir, monkeypatch):
                 await asyncio.sleep(.01)
 
     app = AppOverride()
-    return app
+    await app.start_async()
+    await wait_clock_frames(5)
+
+    yield app
+
+    await app.stop_async()
 
 @pytest.fixture
 def KvEventWaiter():

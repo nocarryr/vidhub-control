@@ -5,9 +5,6 @@ import pytest
 async def test_vidhub_edit(kivy_app, KvEventWaiter):
 
     kv_waiter = KvEventWaiter()
-    kv_waiter.bind(kivy_app, 'on_start')
-    await kivy_app.start_async()
-    await kv_waiter.wait()
 
     config = kivy_app.vidhub_config
     async def build_vidhub(**kwargs):
@@ -160,5 +157,3 @@ async def test_vidhub_edit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     assert txt_widget.text == edit_widget.text == vidhub.device_name == 'foobar1'
-
-    await kivy_app.stop_async()
