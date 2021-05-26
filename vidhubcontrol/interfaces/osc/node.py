@@ -91,7 +91,9 @@ class OscNode(Dispatcher):
                 return self.children[name]
             child = cls(name, self, **kwargs)
             tail = child
-        child.bind(on_tree_message_received=self.on_child_message_received)
+        child.bind_async(self.event_loop,
+            on_tree_message_received=self.on_child_message_received,
+        )
         self.children[child.name] = child
         return tail
     def on_parent(self, instance, value, **kwargs):
@@ -112,17 +114,12 @@ class OscNode(Dispatcher):
         obj.map(self.osc_address, self.on_osc_dispatcher_message)
         for child in self:
             child.osc_dispatcher = obj
-    def ensure_message(self, client_address, *args, **kwargs):
-        asyncio.ensure_future(
-            self.send_message(client_address, *args, **kwargs),
-            loop=self.event_loop,
-        )
     async def send_message(self, client_address, *args, **kwargs):
         await self.osc_dispatcher.send_message(self, client_address, *args, **kwargs)
-    def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
+    async def on_osc_dispatcher_message(self, osc_address, client_address, *messages):
         self.emit('on_message_received', self, client_address, *messages)
         self.emit('on_tree_message_received', self, client_address, *messages)
-    def on_child_message_received(self, node, client_address, *messages):
+    async def on_child_message_received(self, node, client_address, *messages):
         self.emit('on_tree_message_received', node, client_address, *messages)
     def __iter__(self):
         yield from self.children.values()
@@ -145,20 +142,25 @@ class PubSubOscNode(OscNode):
         subscribe_node = self.add_child('_subscribe')
         query_node = self.add_child('_query')
         list_node = self.add_child('_list')
-        subscribe_node.bind(on_message_received=self.on_subscribe_node_message)
-        query_node.bind(on_message_received=self.on_query_node_message)
-        list_node.bind(on_message_received=self.on_list_node_message)
+        subscribe_node.bind_async(self.event_loop,
+            on_message_received=self.on_subscribe_node_message,
+        )
+        query_node.bind_async(self.event_loop,
+            on_message_received=self.on_query_node_message,
+        )
+        list_node.bind_async(self.event_loop,
+            on_message_received=self.on_list_node_message,
+        )
         self.bind(published_property=self.on_published_property)
         self.published_property = kwargs.get('published_property')
-    def on_subscribe_node_message(self, node, client_address, *messages):
+
+    async def on_subscribe_node_message(self, node, client_address, *messages):
         if len(messages) == 1 and not messages[0]:
             remove = True
         else:
             remove = False
-        asyncio.ensure_future(
-            self._add_or_remove_subscriber(client_address, remove),
-            loop=self.event_loop,
-        )
+        await self._add_or_remove_subscriber(client_address, remove)
+
     async def _add_or_remove_subscriber(self, client_address, remove):
         async with self._subscriber_lock:
             if remove:
@@ -167,16 +169,23 @@ class PubSubOscNode(OscNode):
                 self.subscribers.add(client_address)
         node = self.find('_subscribe')
         await node.send_message(client_address)
+
     async def _send_to_subscribers(self, *messages):
+        coros = set()
         async with self._subscriber_lock:
             for client_address in self.subscribers:
-                await self.send_message(client_address, *messages)
-    def update_subscribers(self, *messages):
-        asyncio.ensure_future(self._send_to_subscribers(*messages), loop=self.event_loop)
-    def on_query_node_message(self, node, client_address, *messages):
+                coros.add(self.send_message(client_address, *messages))
+        if len(coros):
+            await asyncio.gather(*coros)
+
+    async def update_subscribers(self, *messages):
+        await self._send_to_subscribers(*messages)
+
+    async def on_query_node_message(self, node, client_address, *messages):
         recursive = False
         if len(messages) and isinstance(messages[0], str):
             recursive = 'recursive' in messages[0].lower()
+        coros = set()
         if recursive:
             for node in self.walk():
                 if not isinstance(node, PubSubOscNode):
@@ -185,13 +194,16 @@ class PubSubOscNode(OscNode):
                     response = node.get_query_response()
                 except NotImplementedError:
                     continue
-                node.ensure_message(client_address, *response)
+                coros.add(node.send_message(client_address, *response))
         else:
             try:
                 response = self.get_query_response()
+                coros.add(self.send_message(client_address, *response))
             except NotImplementedError:
                 response = None
-            self.ensure_message(client_address, *response)
+        if len(coros):
+            await asyncio.gather(*coros)
+
     def get_query_response(self):
         prop = self.published_property
         if prop is not None:
@@ -203,7 +215,8 @@ class PubSubOscNode(OscNode):
                 value = [value]
             return value
         raise NotImplementedError()
-    def on_list_node_message(self, node, client_address, *messages):
+
+    async def on_list_node_message(self, node, client_address, *messages):
         recursive = False
         if len(messages) and isinstance(messages[0], str):
             recursive = 'recursive' in messages[0].lower()
@@ -214,7 +227,8 @@ class PubSubOscNode(OscNode):
         child_iter = (n for n in child_iter if n.name not in ('_query', '_subscribe', '_list'))
         addrs = [n.build_osc_address(to_parent=self) for n in child_iter if n is not self]
         node = self.find('_list')
-        node.ensure_message(client_address, *addrs)
+        await node.send_message(client_address, *addrs)
+
     def on_published_property(self, instance, value, **kwargs):
         old = kwargs.get('old')
         if old is not None:
@@ -223,12 +237,13 @@ class PubSubOscNode(OscNode):
         if value is None:
             return
         inst, prop = value
-        inst.bind(**{prop:self.on_published_property_change})
-    def on_published_property_change(self, instance, value, **kwargs):
+        inst.bind_async(self.event_loop, **{prop:self.on_published_property_change})
+
+    async def on_published_property_change(self, instance, value, **kwargs):
         if isinstance(value, list):
             args = value
         elif isinstance(value, dict):
             args = value.keys()
         else:
             args = [value]
-        self.update_subscribers(*args)
+        await self.update_subscribers(*args)

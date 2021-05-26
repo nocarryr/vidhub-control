@@ -25,34 +25,34 @@ async def _handle_callback(handler, osc_address, client_address, when=None, *mes
         if when > now:
             await asyncio.sleep(when - now)
     if handler.args:
-        handler.callback(osc_address, client_address, handler.args, *messages)
+        r = handler.callback(osc_address, client_address, handler.args, *messages)
     else:
-        handler.callback(osc_address, client_address, *messages)
+        r = handler.callback(osc_address, client_address, *messages)
+    if asyncio.iscoroutinefunction(handler.callback):
+        await r
 
 async def _call_handlers_for_packet(data, client_address, dispatcher):
-    handler_futures = []
+    coros = set()
     try:
         packet = osc_packet.OscPacket(data)
         for timed_msg in packet.messages:
             handlers = dispatcher.handlers_for_address(
                 timed_msg.message.address)
-            if not handlers:
-                continue
             for handler in handlers:
-                handler_futures.append(asyncio.ensure_future(_handle_callback(
+                coros.add(_handle_callback(
                     handler,
                     timed_msg.message.address,
                     client_address,
                     timed_msg.time,
                     *timed_msg.message,
-                )))
+                ))
     except:# osc_packet.ParseError:
         # Pass? Probably not best, but this is a re-implementation for now
         #pass
         raise
     finally:
-        if len(handler_futures):
-            await asyncio.wait(handler_futures)
+        if len(coros):
+            await asyncio.gather(*coros)
 
 class OSCUDPServer(osc_server.AsyncIOOSCUDPServer):
     def __init__(self, server_address, dispatcher, loop=None):

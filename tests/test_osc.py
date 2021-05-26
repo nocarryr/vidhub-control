@@ -70,8 +70,11 @@ async def test_nodes():
 
     root.bind(on_tree_message_received=listener.on_tree_message_received)
 
+    coros = set()
     for node in all_nodes.values():
-        node.on_osc_dispatcher_message(node.osc_address, None, *['foo', 'bar'])
+        coros.add(node.on_osc_dispatcher_message(node.osc_address, None, *['foo', 'bar']))
+    await asyncio.gather(*coros)
+    await asyncio.sleep(.01)
 
     assert set(listener.messages_received.keys()) == set(all_nodes.keys())
     assert set(listener.tree_messages_received.keys()) == set(all_nodes.keys())
@@ -206,7 +209,6 @@ async def test_pubsub_nodes(missing_netifaces, unused_tcp_port_factory):
     # so there should be no responses
     with pytest.raises(NotImplementedError):
         publish_root.get_query_response()
-        publish_root.on_query_node_message(publish_root, client_address)
 
     await listener.query_node.send_message(server_addr)
     await asyncio.sleep(1)
@@ -493,7 +495,7 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
         assert list(msg['messages']) == vidhub.crosspoints
         assert vidhub.crosspoints == xpts
         name = 'preset_{}'.format(i)
-        preset_node.find('store').ensure_message(server_addr, i, name)
+        await preset_node.find('store').send_message(server_addr, i, name)
         await waiter.wait()
         assert vidhub.presets[i].name == name
         assert vidhub.presets[i].crosspoints == {i:v for i, v in enumerate(xpts)}
