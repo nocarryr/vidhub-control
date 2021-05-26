@@ -88,6 +88,8 @@ class OscInterface(Dispatcher):
         self.server = OSCUDPServer(addr, self.osc_dispatcher)
         await self.server.start()
     async def stop(self):
+        if self.config is not None and self.config.USE_DISCOVERY:
+            await self.unpublish_zeroconf_service()
         if self.server is not None:
             await self.server.stop()
         self.server = None
@@ -99,6 +101,8 @@ class OscInterface(Dispatcher):
                 'types':'ifsbrTF',
             }
         )
+    async def unpublish_zeroconf_service(self):
+        await self.config.discovery_listener.unpublish_service('_osc._udp.local.')
     def on_vidhub_name(self, instance, value, **kwargs):
         old = kwargs.get('old')
         with self.emission_lock('vidhubs_by_name'):
