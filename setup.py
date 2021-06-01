@@ -27,6 +27,10 @@ setup(
     description = "Control Smart Videohub Devices",
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
+    package_data={
+        '': ['LICENSE*', 'README*'],
+        'vidhubcontrol.kivyui': ['*.kv'],
+    },
     install_requires=INSTALL_REQUIRES,
     python_requires='>=3.5',
     entry_points={
