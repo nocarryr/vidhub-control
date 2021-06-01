@@ -2,4 +2,5 @@
 Overview
 ========
 
-.. mdinclude:: ../../README.md
+.. include:: ../../README.rst
+    :start-line: 3
