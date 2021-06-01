@@ -31,7 +31,7 @@ Links
     * - Source code
       - https://github.com/nocarryr/vidhub-control
     * - Documentation
-      - https://nocarryr.github.io/vidhub-control/
+      - https://vidhub-control.readthedocs.io/
 
 
 Dependencies
