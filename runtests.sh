@@ -4,7 +4,7 @@ set -e
 if [ "$1" = "--no-cov" ]; then
     COVARG=""
 else
-    COVARG="--cov"
+    COVARG="--cov=vidhubcontrol"
 fi
 
 py.test --cov-config .coveragerc $COVARG
