@@ -44,7 +44,6 @@ release = '0.0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxcontrib.asyncio',
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
@@ -172,6 +171,6 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python':('https://docs.python.org/3.5', None),
+    'python':('https://docs.python.org/', None),
     'pydispatch':('https://nocarryr.github.io/python-dispatch', None),
 }
