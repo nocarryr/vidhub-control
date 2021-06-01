@@ -1,0 +1,92 @@
+
+name: Test from sdist and wheels
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+      - name: Build dists
+        run: python setup.py sdist bdist_wheel
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'dists'
+          path: 'dist/*'
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-test.txt
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: 'dists'
+        path: dist
+    - name: Delete source directory
+      run: rm -Rf vidhubcontrol
+    - name: Install wheel
+      run: pip install dist/*.whl
+    - name: Test built wheel
+      run: |
+        ./runtests.sh --no-cov
+    - name: Install sdist
+      run: |
+        pip uninstall -y vidhub-control
+        pip install dist/*.tar.gz
+    - name: Test built sdist
+      run: |
+        ./runtests.sh --no-cov
+
+  deploy:
+    needs: test
+    if: ${{ success() && github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel twine
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: 'dists'
+          path: dist
+      - name: Publish to PyPI
+        env:
+          TWINE_REPOSITORY_URL: ${{ secrets.TWINE_REPOSITORY_URL }}
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: twine upload dist/*
