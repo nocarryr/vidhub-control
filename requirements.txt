@@ -1,6 +1,0 @@
-python-dispatch>=0.1.0
-json-object-factory
-zeroconf>=0.31.0
-python-osc
-pid
-netifaces
