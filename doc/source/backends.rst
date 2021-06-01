@@ -1,14 +1,14 @@
-backends package
-================
+:mod:`vidhubcontrol.backends`
+=============================
 
-vidhubcontrol.backends.base module
+:mod:`vidhubcontrol.backends.base`
 ----------------------------------
 
 .. automodule:: vidhubcontrol.backends.base
     :members:
     :show-inheritance:
 
-vidhubcontrol.backends.telnet module
+:mod:`vidhubcontrol.backends.telnet`
 ------------------------------------
 
 .. automodule:: vidhubcontrol.backends.telnet

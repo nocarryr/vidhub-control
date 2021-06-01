@@ -1,5 +1,5 @@
-discovery module
-================
+:mod:`vidhubcontrol.discovery`
+==============================
 
 .. automodule:: vidhubcontrol.discovery
     :members:
