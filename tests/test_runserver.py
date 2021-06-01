@@ -14,6 +14,7 @@ from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, Os
 
 BASE_PATH = os.path.dirname(os.path.abspath(vidhubcontrol.__file__))
 SCRIPT_PATH = os.path.join(BASE_PATH, 'runserver.py')
+SCRIPT_PATH = f'python {SCRIPT_PATH}'
 ENTRY_POINT = 'vidhubcontrol-server'
 
 for iface_name, iface in find_ip_addresses():
