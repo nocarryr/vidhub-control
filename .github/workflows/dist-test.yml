@@ -54,14 +54,14 @@ jobs:
     - name: Delete source directory
       run: rm -Rf vidhubcontrol
     - name: Install wheel
-      run: pip install dist/*.whl
+      run: pip install --no-index --only-binary vidhubcontrol --find-links=dist/ vidhub-control[kivy]
     - name: Test built wheel
       run: |
         ./runtests.sh --no-cov
     - name: Install sdist
       run: |
         pip uninstall -y vidhub-control
-        pip install dist/*.tar.gz
+        run: pip install --no-index --no-binary vidhubcontrol --find-links=dist/ vidhub-control[kivy]
     - name: Test built sdist
       run: |
         ./runtests.sh --no-cov
