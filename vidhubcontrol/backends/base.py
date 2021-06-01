@@ -14,12 +14,20 @@ class BackendBase(Dispatcher):
         connected (bool): A flag indicating the connection status.
             :class:`pydispatch.properties.Property`
 
-    Events:
-        on_preset_added: This :class:`~pydispatch.dispatch.Event` is emitted
+    :Events:
+        .. function:: on_preset_added(backend: BackendBase = self, preset: Preset = preset)
+
+            This :class:`~pydispatch.dispatch.Event` is emitted
             when a new :class:`Preset` has been added.
-        on_preset_stored: This :class:`~pydispatch.dispatch.Event` is emitted
+
+        .. function:: on_preset_stored(backend: BackendBase = self, preset: Preset = preset)
+
+            This :class:`~pydispatch.dispatch.Event` is emitted
             when an existing :class:`Preset` has been recorded (updated).
-        on_preset_active: This :class:`~pydispatch.dispatch.Event` is emitted
+
+        .. function:: on_preset_active(backend: BackendBase, preset: Preset = preset, value: bool = value)
+
+            This :class:`~pydispatch.dispatch.Event` is emitted
             when an existing :class:`Preset` has determined that its stored
             routing information is currently active on the switcher.
 
@@ -345,13 +353,14 @@ class SmartViewBackendBase(BackendBase):
         monitors (list): A ``list`` containing instances of :class:`SmartViewMonitor`
             or :class:`SmartScopeMonitor`, depending on device type.
 
-        Events:
-            on_monitor_property_change: Dispatched when any
-                :class:`~pydispatch.properties.Property` value changes. The event
-                signature for callbacks is
-                ``(smartview_device, property_name, value, **kwargs)`` containing
-                a keyword argument "monitor" containing the :class:`SmartViewMonitor`
-                instance.
+    :Events:
+        .. function:: on_monitor_property_change(self: SmartViewBackendBase, name: str, value: Any, monitor: SmartViewMonitor = monitor)
+
+            Dispatched when any :class:`~pydispatch.properties.Property`
+            value changes. The event signature for callbacks is
+            ``(smartview_device, property_name, value, **kwargs)`` containing
+            a keyword argument "monitor" containing the :class:`SmartViewMonitor`
+            instance.
 
     """
     num_monitors = Property()
@@ -564,8 +573,10 @@ class Preset(Dispatcher):
             in this preset are currently active on the switcher.
             This is a :class:`pydispatch.Property`
 
-    Events:
-        on_preset_stored: Dispatched after the preset stores its state.
+    :Events:
+        .. function:: on_preset_stored(preset: Preset = self)
+
+            Dispatched after the preset stores its state.
 
     """
     name = Property()
