@@ -24,7 +24,6 @@ for iface_name, iface in find_ip_addresses():
 def runserver_scriptname(request):
     return request.param
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_runserver(
     tempconfig, mocked_vidhub_telnet_device,
@@ -94,7 +93,7 @@ async def test_runserver(
 
     # TODO: this fails in OscInterface. Need to add test and debug
     # info_node = vidhub_node.add_child('info')
-    # info_node.ensure_message(server_addr)
+    # await info_node.send_message(server_addr)
     #
     # await node_message_rx.wait()
     # node_message_rx.clear()
@@ -102,21 +101,21 @@ async def test_runserver(
     print('setting crosspoints')
     for i in range(12):
         n = vidhub_node.add_child('crosspoints/{}'.format(i))
-        n.ensure_message(server_addr, 0)
+        await n.send_message(server_addr, 0)
         await asyncio.sleep(.1)
-        n.ensure_message(server_addr)
+        await n.send_message(server_addr)
         await wait_for_message()
         messages = node_messages[-1][1]
         assert messages[0] == 0
 
     print('recalling preset 0')
     n = vidhub_node.add_child('presets/0/recall')
-    n.ensure_message(server_addr)
+    await n.send_message(server_addr)
     await asyncio.sleep(.1)
 
     print('checking preset 0 active')
     n = vidhub_node.add_child('presets/0/active')
-    n.ensure_message(server_addr)
+    await n.send_message(server_addr)
     await wait_for_message()
     messages = node_messages[-1][1]
     assert messages[0]
@@ -127,7 +126,7 @@ async def test_runserver(
     print('checking preset crosspoints')
     for i in range(12):
         n = vidhub_node.find('crosspoints/{}'.format(i))
-        n.ensure_message(server_addr)
+        await n.send_message(server_addr)
         await wait_for_message()
         messages = node_messages[-1][1]
         assert messages[0] == 2
