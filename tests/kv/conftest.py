@@ -25,6 +25,8 @@ async def kivy_app(tmpdir, monkeypatch):
     ui_conf = Path(tmpdir) / 'vidhubcontrol-ui.ini'
     assert not ui_conf.exists()
     ui_conf.write_text(UI_CONF.format(vidhub_conf=vidhub_conf))
+    print(f'vidhub_conf={vidhub_conf}')
+    print(f'ui_conf={ui_conf}')
 
     monkeypatch.setenv('KIVY_UNITTEST', '1')
 
@@ -82,6 +84,9 @@ async def kivy_app(tmpdir, monkeypatch):
     await app.start_async()
     await wait_clock_frames(5)
     assert Path(app.vidhub_config.filename) == vidhub_conf
+    assert not len(app.vidhub_config.vidhubs)
+    assert not len(app.vidhub_config.smartviews)
+    assert not len(app.vidhub_config.smartscopes)
 
     yield app
 
