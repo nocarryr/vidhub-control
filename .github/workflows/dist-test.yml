@@ -36,6 +36,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
         dist-type: [sdist, wheel]
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
