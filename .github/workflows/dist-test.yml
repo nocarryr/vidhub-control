@@ -52,7 +52,9 @@ jobs:
         name: 'dists'
         path: dist
     - name: Install pip extras
-      run: pip install -r vidhubcontrol/kivyui/requirements.txt
+      run: |
+        KV_DEPS=$(./tools/get_setup_requires.py -e kivy)
+        pip install "$KV_DEPS"
     - name: Delete source directory
       run: rm -Rf vidhubcontrol
     - name: Install wheel
