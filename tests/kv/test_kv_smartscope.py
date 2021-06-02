@@ -1,6 +1,5 @@
 import asyncio
 import pytest
-from conftest import wait_clock_frames
 
 @pytest.mark.asyncio
 async def test_kv_smartscope(kivy_app, KvEventWaiter):
@@ -55,7 +54,7 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
                 await kivy_app.wait_for_widget_init(monitor_widget)
                 while None in (monitor_widget.app, monitor_widget.monitor):
                     await asyncio.sleep(0)
-                await wait_clock_frames(5)
+                await asyncio.sleep(.2)
 
             coros = set()
             for monitor_widget in smartview_widget.monitor_widgets:
