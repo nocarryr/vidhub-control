@@ -1,9 +1,16 @@
 import os
+from pathlib import Path
 import asyncio
 import time
 import pytest
 
 KIVY_STALL_TIMEOUT = 90
+
+UI_CONF = '\n'.join([
+    '[main]',
+    'config_filename = {vidhub_conf}',
+    '',
+])
 
 async def wait_clock_frames(n, sleep_time=1 / 60.):
     from kivy.clock import Clock
@@ -13,11 +20,13 @@ async def wait_clock_frames(n, sleep_time=1 / 60.):
 
 @pytest.fixture
 async def kivy_app(tmpdir, monkeypatch):
-    vidhub_conf = tmpdir.join('vidhubcontrol.json')
-    ui_conf = tmpdir.join('vidhubcontrol-ui.ini')
+    vidhub_conf = Path(tmpdir) / 'vidhubcontrol.json'
+    assert not vidhub_conf.exists()
+    ui_conf = Path(tmpdir) / 'vidhubcontrol-ui.ini'
+    assert not ui_conf.exists()
+    ui_conf.write_text(UI_CONF.format(vidhub_conf=vidhub_conf))
 
     monkeypatch.setenv('KIVY_UNITTEST', '1')
-    monkeypatch.setattr('vidhubcontrol.runserver.Config.DEFAULT_FILENAME', str(vidhub_conf))
 
     from vidhubcontrol.kivyui import main as kivy_main
 
@@ -72,6 +81,7 @@ async def kivy_app(tmpdir, monkeypatch):
     app = AppOverride()
     await app.start_async()
     await wait_clock_frames(5)
+    assert Path(app.vidhub_config.filename) == vidhub_conf
 
     yield app
 
