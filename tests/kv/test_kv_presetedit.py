@@ -28,6 +28,8 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
     kv_waiter.unbind(kivy_app.root, 'active_widget')
 
+    await kv_waiter.assert_empty()
+
     edit_widget = kivy_app.root.active_widget.vidhub_edit_widget
     preset_widget = edit_widget.preset_label_list
 
@@ -76,8 +78,10 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     preset_widget.add_preset()
     await kv_waiter.wait()
 
-    preset_item_widget, popup = await open_edit_popup(0)
     kv_waiter.unbind(preset_widget, 'list_items')
+    await kv_waiter.clear()
+
+    preset_item_widget, popup = await open_edit_popup(0)
 
     assert popup.preset == preset_item_widget.preset
     assert not len(popup.crosspoint_widgets)
@@ -103,6 +107,8 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     kv_waiter.unbind(xpt_popup.button_grid, 'selected_buttons')
+    await kv_waiter.assert_empty()
+
     assert xpt_popup.button_grid.selected_buttons == [1]
 
     kv_waiter.bind(xpt_widget, 'selection_popup')
@@ -110,6 +116,8 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     kv_waiter.unbind(xpt_widget, 'selection_popup')
+    await kv_waiter.assert_empty()
+
     assert xpt_widget.selection_popup is None
     assert xpt_widget.source == 1
     assert xpt_widget.source_label == vidhub1.input_labels[1]
@@ -130,6 +138,8 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     kv_waiter.unbind(xpt_popup.button_grid, 'selected_buttons')
+    await kv_waiter.assert_empty()
+
     assert xpt_popup.button_grid.selected_buttons == [1]
 
     kv_waiter.bind(xpt_widget, 'selection_popup')
@@ -137,6 +147,8 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     kv_waiter.unbind(xpt_widget, 'selection_popup')
+    await kv_waiter.assert_empty()
+
     assert xpt_widget.selection_popup is None
     assert xpt_widget.dest == 1
     assert xpt_widget.dest_label == vidhub1.output_labels[1]
@@ -201,6 +213,7 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     preset = await vidhub1.store_preset()
     await kv_waiter.wait()
     kv_waiter.unbind(preset_button_grid, 'selected_buttons')
+    await kv_waiter.clear()
 
     preset_item_widget, popup = await open_edit_popup(preset.index)
     print('crosspoint_dict: ', popup.get_crosspoint_dict())
@@ -218,6 +231,7 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     popup.crosspoint_widgets[0].dispatch('on_crosspoint_remove', widget=popup.crosspoint_widgets[0])
     await kv_waiter.wait()
     kv_waiter.unbind(popup, 'crosspoint_widgets')
+    await kv_waiter.assert_empty()
     print('crosspoint_dict: ', popup.get_crosspoint_dict())
 
     assert popup.get_crosspoint_dict() != preset.crosspoints
@@ -236,6 +250,7 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     popup.crosspoint_widgets[0].dispatch('on_crosspoint_remove', widget=popup.crosspoint_widgets[0])
     await kv_waiter.wait()
     kv_waiter.unbind(popup, 'crosspoint_widgets')
+    await kv_waiter.assert_empty()
     print('crosspoint_dict: ', popup.get_crosspoint_dict())
 
     expected_xpts = popup.get_crosspoint_dict()
@@ -292,12 +307,14 @@ async def test_kv_presetedit(kivy_app, KvEventWaiter):
     await kv_waiter.wait()
 
     kv_waiter.unbind(xpt_popup.button_grid, 'selected_buttons')
+    await kv_waiter.assert_empty()
     assert xpt_popup.button_grid.selected_buttons == [1]
 
     kv_waiter.bind(xpt_widget, 'selection_popup')
     xpt_popup.dispatch('on_submit')
     await kv_waiter.wait()
     kv_waiter.unbind(xpt_widget, 'selection_popup')
+    await kv_waiter.assert_empty()
 
     await asyncio.sleep(.1)
 

@@ -107,6 +107,17 @@ def KvEventWaiter():
             obj.unbind(**kwargs)
         def empty(self):
             return self.queue.empty()
+        async def assert_empty(self):
+            await asyncio.sleep(0)
+            if self.empty():
+                return True
+            async with self._lock:
+                items = []
+                while not self.empty():
+                    item = await self.queue.get()
+                    self.queue.task_done()
+                    items.append(item)
+            raise Exception(f'{self} not empty. Queue items: {items}')
         async def clear(self):
             await asyncio.sleep(0)
             async with self._lock:
