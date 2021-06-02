@@ -2,7 +2,7 @@ import asyncio
 import pytest
 
 @pytest.mark.asyncio
-async def test_vidhub_preset_edit(kivy_app, KvEventWaiter):
+async def test_kv_presetedit(kivy_app, KvEventWaiter):
     kv_waiter = KvEventWaiter()
 
     config = kivy_app.vidhub_config

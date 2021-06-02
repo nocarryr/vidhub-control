@@ -2,7 +2,7 @@ import asyncio
 import pytest
 
 @pytest.mark.asyncio
-async def test_vidhub_routing(kivy_app, KvEventWaiter):
+async def test_kv_control(kivy_app, KvEventWaiter):
 
     kv_waiter = KvEventWaiter()
 

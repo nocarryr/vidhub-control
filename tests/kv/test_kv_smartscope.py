@@ -2,7 +2,7 @@ import asyncio
 import pytest
 
 @pytest.mark.asyncio
-async def test_vidhub_routing(kivy_app, KvEventWaiter):
+async def test_kv_smartscope(kivy_app, KvEventWaiter):
     from vidhubcontrol.backends import SmartViewDummyBackend, SmartScopeDummyBackend
 
     kv_waiter = KvEventWaiter()
