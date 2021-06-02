@@ -35,6 +35,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
+        dist-type: [sdist, wheel]
 
     steps:
     - uses: actions/checkout@v2
@@ -58,15 +59,12 @@ jobs:
     - name: Delete source directory
       run: rm -Rf vidhubcontrol
     - name: Install wheel
+      if: ${{ matrix.dist-type == 'wheel' }}
       run: pip install dist/*.whl
-    - name: Test built wheel
-      run: |
-        ./runtests.sh --no-cov
     - name: Install sdist
-      run: |
-        pip uninstall -y vidhub-control
-        pip install dist/*.tar.gz
-    - name: Test built sdist
+      if: ${{ matrix.dist-type == 'sdist' }}
+      run: pip install dist/*.tar.gz
+    - name: Test distribution
       run: |
         ./runtests.sh --no-cov
 
