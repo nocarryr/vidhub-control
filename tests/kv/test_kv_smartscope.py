@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+from conftest import wait_clock_frames
 
 @pytest.mark.asyncio
 async def test_kv_smartscope(kivy_app, KvEventWaiter):
@@ -43,11 +44,25 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
             kv_waiter.unbind(smartview_widget, 'device')
 
         smartview_widget = kivy_app.root.active_widget
-        await kivy_app.wait_for_widget_init(smartview_widget)
 
-        while len(smartview_widget.monitor_widget_container.children) < device.num_monitors:
-            await asyncio.sleep(0)
-        await asyncio.sleep(.1)
+        async def wait_for_monitor_init():
+            await kivy_app.wait_for_widget_init(smartview_widget)
+
+            while len(smartview_widget.monitor_widget_container.children) < device.num_monitors:
+                await asyncio.sleep(0)
+
+            async def wait_for_mon_widget(monitor_widget):
+                await kivy_app.wait_for_widget_init(monitor_widget)
+                while None in (monitor_widget.app, monitor_widget.monitor):
+                    await asyncio.sleep(0)
+                await wait_clock_frames(5)
+
+            coros = set()
+            for monitor_widget in smartview_widget.monitor_widgets:
+                coros.add(wait_for_mon_widget(monitor_widget))
+            await asyncio.gather(*coros)
+
+        await wait_for_monitor_init()
 
         def check_values():
             assert device.device_name == smartview_widget.name
