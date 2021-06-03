@@ -11,6 +11,8 @@ KIVY_STALL_TIMEOUT = 90
 UI_CONF = '\n'.join([
     '[main]',
     'config_filename = {vidhub_conf}',
+    '[osc]',
+    'enable = no',
     '',
 ])
 
