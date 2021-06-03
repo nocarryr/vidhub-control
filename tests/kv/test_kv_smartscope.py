@@ -8,10 +8,10 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
     kv_waiter = KvEventWaiter()
 
     config = kivy_app.vidhub_config
-    smartscope = await SmartScopeDummyBackend.create_async(device_name='Dummy 1')
+    smartscope = await SmartScopeDummyBackend.create_async(device_name='Scope 1')
     for monitor in smartscope.monitors:
         await monitor.set_property_from_backend('scope_mode', 'Picture')
-    smartview = await SmartViewDummyBackend.create_async(device_name='Dummy 1')
+    smartview = await SmartViewDummyBackend.create_async(device_name='Monitor 1')
 
     kv_waiter.bind(kivy_app, 'smartscopes')
     kv_waiter.bind(kivy_app, 'smartviews')
@@ -39,9 +39,11 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
             smartview_widget.device = None
             await kv_waiter.wait()
             kivy_app.selected_device = device
-            await kv_waiter.wait()
+            while smartview_widget.device is not device:
+                await kv_waiter.wait()
             kv_waiter.unbind(smartview_widget, 'device')
             await asyncio.sleep(.2)
+            await kv_waiter.clear()
 
         smartview_widget = kivy_app.root.active_widget
 
@@ -223,3 +225,4 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
         popup.dispatch('on_submit')
 
         assert device.device_name == new_name
+        await kv_waiter.clear()
