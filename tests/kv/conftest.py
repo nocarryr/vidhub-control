@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import asyncio
 import time
+from pkg_resources import resource_filename
 import pytest
 
 KIVY_STALL_TIMEOUT = 90
@@ -33,10 +34,11 @@ async def kivy_app(tmpdir, monkeypatch):
 
     from vidhubcontrol.kivyui import main as kivy_main
 
+    KV_FILE = Path(resource_filename(kivy_main.__name__, 'vidhubcontrol.kv'))
 
     class AppOverride(kivy_main.VidhubControlApp):
         def __init__(self, **kwargs):
-            kwargs['kv_file'] = os.path.join(kivy_main.APP_PATH, 'vidhubcontrol.kv')
+            kwargs['kv_file'] = str(KV_FILE)
             super().__init__(**kwargs)
             self._startup_ready = asyncio.Event()
             self._app_ready = asyncio.Event()
