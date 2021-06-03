@@ -8,7 +8,7 @@ from pkg_resources import resource_filename
 
 from kivy.resources import resource_add_path
 from kivy.logger import Logger
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 from kivy.app import App
 from kivy.properties import (
     ObjectProperty,
@@ -159,7 +159,6 @@ class DeviceDropdownButton(Button):
         if self.app is None:
             return
         self.device.bind(device_name=self.on_device_name)
-    @mainthread
     def on_device_name(self, instance, value, **kwargs):
         self.text = str(value)
 
@@ -203,7 +202,6 @@ class RootWidget(FloatLayout):
             name=self.update_active_widget_props,
             connected=self.update_active_widget_props,
         )
-    @mainthread
     def update_active_widget_props(self, *args, **kwargs):
         self.name = self.active_widget.name
         self.connected = self.active_widget.connected
@@ -277,7 +275,6 @@ class VidhubControlApp(App):
         self.popup_widget.bind(on_dismiss=self.on_popup_widget_dismiss)
     def on_popup_widget_dismiss(self, *args):
         self.popup_widget = None
-    @mainthread
     def update_vidhubs(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -287,7 +284,6 @@ class VidhubControlApp(App):
             self.vidhubs[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_device = val.backend
-    @mainthread
     def update_smartviews(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
@@ -297,7 +293,6 @@ class VidhubControlApp(App):
             self.smartviews[key] = val.backend
             if restore_device and key == last_device:
                 self.selected_device = val.backend
-    @mainthread
     def update_smartscopes(self, *args, **kwargs):
         restore_device = self.config.get('main', 'restore_device') == 'yes'
         last_device = self.config.get('main', 'last_device')
