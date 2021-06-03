@@ -72,7 +72,7 @@ jobs:
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
-        name: logs-${{ python-version }}-${{ dist-type }}
+        name: logs-${{ matrix.python-version }}-${{ matrix.dist-type }}
         path: ~/pytest-tmpdir/**/*
 
   deploy:
