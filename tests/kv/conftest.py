@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 import asyncio
 import time
 from pkg_resources import resource_filename
@@ -13,11 +14,24 @@ UI_CONF = '\n'.join([
     '',
 ])
 
+IS_CI = os.environ.get('CI') == 'true'
+
+TMPFILE_DEST = Path.home() / 'pytest-tmpdir'
+if not TMPFILE_DEST.exists():
+    TMPFILE_DEST.mkdir()
+
 async def wait_clock_frames(n, sleep_time=1 / 60.):
     from kivy.clock import Clock
     frames_start = Clock.frames
     while Clock.frames < frames_start + n:
         await asyncio.sleep(sleep_time)
+
+def get_kv_logfile():
+    from kivy.logger import Logger, FileHandler
+    for h in Logger.handlers:
+        if not isinstance(h, FileHandler):
+            continue
+        return Path(h.filename)
 
 @pytest.fixture
 async def kivy_app(tmpdir, monkeypatch):
@@ -33,6 +47,8 @@ async def kivy_app(tmpdir, monkeypatch):
     monkeypatch.setattr('vidhubcontrol.discovery.ZEROCONF_AVAILABLE', False)
 
     from vidhubcontrol.kivyui import main as kivy_main
+
+    kv_logfile = get_kv_logfile()
 
     KV_FILE = Path(resource_filename(kivy_main.__name__, 'vidhubcontrol.kv'))
 
@@ -91,9 +107,24 @@ async def kivy_app(tmpdir, monkeypatch):
     assert not len(app.vidhub_config.smartviews)
     assert not len(app.vidhub_config.smartscopes)
 
-    yield app
+    try:
+        yield app
+        await app.stop_async()
+    finally:
+        if IS_CI:
+            tmpsrc = Path(tmpdir).parent
+            tmpdst = TMPFILE_DEST / tmpsrc.name
 
-    await app.stop_async()
+            def copy_ignore_fn(src, names):
+                src = Path(src)
+                ignored = set()
+                for name in names:
+                    if (src / name).is_symlink():
+                        ignored.add(name)
+                return ignored
+
+            shutil.copytree(tmpsrc, tmpdst, ignore=copy_ignore_fn)
+            shutil.copy2(kv_logfile, tmpdst)
 
 @pytest.fixture
 def KvEventWaiter():

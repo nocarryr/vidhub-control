@@ -68,6 +68,12 @@ jobs:
     - name: Test distribution
       run: |
         ./runtests.sh --no-cov
+    - name: Upload logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: logs-${{ python-version }}-${{ dist-type }}
+        path: ~/pytest-tmpdir/**/*
 
   deploy:
     needs: test
