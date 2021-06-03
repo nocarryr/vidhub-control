@@ -204,20 +204,21 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
         assert popup == smartview_widget.edit_name_widget
         assert popup.text == device.device_name
 
-        popup.text = 'foobarbaz'
+        new_name = f'{device_type}-foobar'
+        popup.text = new_name
         popup.dispatch('on_cancel')
 
         assert kivy_app.popup_widget is None
         assert smartview_widget.edit_name_widget is None
         assert smartview_widget.edit_name_enabled is False
-        assert device.device_name != 'foobarbaz'
+        assert device.device_name != new_name
 
         smartview_widget.edit_name_enabled = True
         popup = kivy_app.popup_widget
         assert popup == smartview_widget.edit_name_widget
         assert popup.text == device.device_name
 
-        popup.text = 'foobarbaz'
+        popup.text = new_name
         popup.dispatch('on_submit')
 
-        assert device.device_name == 'foobarbaz'
+        assert device.device_name == new_name
