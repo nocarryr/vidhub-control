@@ -42,7 +42,7 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
             while smartview_widget.device is not device:
                 await kv_waiter.wait()
             kv_waiter.unbind(smartview_widget, 'device')
-            await asyncio.sleep(.2)
+            await asyncio.sleep(.5)
             await kv_waiter.clear()
 
         smartview_widget = kivy_app.root.active_widget
