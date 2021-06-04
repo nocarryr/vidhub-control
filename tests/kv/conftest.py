@@ -45,6 +45,7 @@ async def kivy_app(tmpdir, monkeypatch):
     print(f'vidhub_conf={vidhub_conf}')
     print(f'ui_conf={ui_conf}')
 
+    monkeypatch.setenv('VIDHUBCONTROL_USE_KIVY', '1')
     monkeypatch.setenv('KIVY_UNITTEST', '1')
     monkeypatch.setattr('vidhubcontrol.discovery.ZEROCONF_AVAILABLE', False)
 

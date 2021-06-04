@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from loguru import logger
 import string
 import errno
 
@@ -13,7 +13,6 @@ from .base import (
     MONITOR_PROPERTY_MAP,
 )
 
-logger = logging.getLogger(__name__)
 
 class TelnetBackendBase(object):
     """Mix-in class for backends implementing telnet

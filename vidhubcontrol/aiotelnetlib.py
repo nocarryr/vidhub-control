@@ -1,8 +1,7 @@
-import logging
+from loguru import logger
 import asyncio
 import telnetlib
 
-logger = logging.getLogger(__name__)
 
 _DEFAULT_LIMIT = 2 ** 16
 

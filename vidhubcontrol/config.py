@@ -1,7 +1,7 @@
 import os
 import json
 import asyncio
-import logging
+from loguru import logger
 
 import jsonfactory
 from pydispatch import Dispatcher, Property
@@ -17,7 +17,6 @@ from vidhubcontrol.backends import (
     SmartScopeTelnetBackend,
 )
 
-logger = logging.getLogger(__name__)
 
 BACKENDS = {
     'vidhub':{cls.__name__:cls for cls in [DummyBackend, TelnetBackend]},
@@ -194,6 +193,7 @@ class Config(ConfigBase):
             return
         self.starting.set()
 
+        logger.info('Config starting...')
         self.start_kwargs.update(kwargs)
         kwargs = self.start_kwargs
 
@@ -214,12 +214,14 @@ class Config(ConfigBase):
         await self.discovery_listener.start()
         self.starting.clear()
         self.running.set()
+        logger.debug('Config started')
     async def stop(self):
         """Stops all device backends and discovery routines
         """
         self.running.clear()
         if self.discovery_listener is None:
             return
+        logger.debug('Config stopping...')
         await self.discovery_listener.stop()
         self.discovery_listener = None
         for vidhub in self.vidhubs.values():
@@ -230,6 +232,7 @@ class Config(ConfigBase):
             await smartscope.backend.disconnect()
         self.stopped.set()
         Config.loop = None
+        logger.debug('Config stopped')
     async def build_backend(self, device_type, backend_name, **kwargs):
         """Creates a "backend" instance
 

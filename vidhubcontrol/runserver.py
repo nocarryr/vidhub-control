@@ -4,7 +4,7 @@ import os
 import signal
 import asyncio
 import argparse
-import logging
+from loguru import logger
 
 try:
     from pid import PidFile
@@ -17,15 +17,6 @@ except ImportError:
         def __exit__(self, *args):
             pass
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s',
-)
-
-if __name__ == '__main__':
-    logger = logging.getLogger('runserver')
-else:
-    logger = logging.getLogger(__name__)
 
 from vidhubcontrol.config import Config
 from vidhubcontrol.interfaces.osc import OscInterface

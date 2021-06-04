@@ -3,11 +3,11 @@ import json
 import threading
 import asyncio
 from pathlib import Path
+from loguru import logger
 
 from pkg_resources import resource_filename
 
 from kivy.resources import resource_add_path
-from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.properties import (
@@ -243,7 +243,7 @@ class VidhubControlApp(App):
     async def async_run(self, async_lib=None):
         await super().async_run(async_lib)
         await self.async_stop()
-        Logger.info('Config shut down successfully')
+        logger.info('Config shut down successfully')
 
     async def async_start(self):
         osc_disabled = self.config.get('osc', 'enable') != 'yes'

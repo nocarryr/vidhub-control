@@ -4,12 +4,11 @@ from typing import (
 )
 import ipaddress
 import platform
-import logging
+from loguru import logger
 
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import DictProperty
 
-logger = logging.getLogger(__name__)
 
 try:
     import zeroconf
@@ -257,10 +256,13 @@ class Listener(Dispatcher):
         """
         if self.running:
             return
-        self.run_zeroconf()
         self.running = True
+        logger.debug('Discovery starting...')
+        self.run_zeroconf()
         self.run_future = asyncio.ensure_future(self.run())
+        logger.debug('Discovery started')
 
+    @logger.catch
     async def run(self):
         """Main loop for communicating with :class:`zeroconf.Zeroconf`
 
@@ -290,6 +292,7 @@ class Listener(Dispatcher):
             if not isinstance(msg, Message):
                 self.message_queue.task_done()
                 break
+            logger.debug(f'Handling "{msg!r}"')
             if isinstance(msg, RegistrationMessage):
                 await handle_service_registration(msg)
             elif isinstance(msg, AddedMessage):
@@ -298,7 +301,7 @@ class Listener(Dispatcher):
                 await self.remove_service_info(msg.info)
             elif isinstance(msg, UpdateMessage):
                 await self.update_service_info(msg.info)
-
+            logger.debug('Message handled')
             self.message_queue.task_done()
 
     async def stop(self):
@@ -307,10 +310,12 @@ class Listener(Dispatcher):
         if not self.running:
             return
         self.running = False
+        logger.debug('Discovery stopping...')
         await self.message_queue.put(None)
         await self.run_future
         await self.stop_zeroconf()
         self.stopped.set()
+        logger.debug('Discovery stopped')
 
     def run_zeroconf(self):
         """Starts :class:`zeroconf.Zeroconf` and :class:`zeroconf.ServiceBrowser` instances
