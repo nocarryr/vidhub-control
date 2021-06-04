@@ -175,7 +175,11 @@ class ServiceInfo(Dispatcher):
     def __repr__(self):
         return '<{self.__class__.__name__}> {self}'.format(self=self)
     def __str__(self):
-        return '{self.name}: {self.type} ({self.address}:{self.port}), properties={self.properties}'.format(self=self)
+        if not len(self.addresses):
+            addr = None
+        else:
+            addr = self.addresses[0]
+        return f'{self.name}: {self.type} ({addr}:{self.port}), properties={self.properties}'
 
 class Message(object):
     """A message to communicate actions to and from :class:`Listener`
