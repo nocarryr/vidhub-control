@@ -23,7 +23,6 @@ logger.add(sys.stderr, filter=level_per_module)
 
 orig_stderr = sys.stderr
 root_logger = logging.getLogger()
-logger.info(f'{root_logger=}, {orig_stderr=}, {logger=}')
 
 if IS_KIVY_RUN:
     os.environ['KIVY_NO_CONSOLELOG'] = '1'
