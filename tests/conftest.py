@@ -145,6 +145,7 @@ def smartscope_zeroconf_info():
 def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
+        disabled_ports = set()
         def __init__(self, host=None, port=None, timeout=None, loop=None):
             self.host = host
             self.port = port
@@ -165,10 +166,19 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 self.preamble = 'smartview'
             elif value == SMARTSCOPE_PORT:
                 self.preamble = 'smartscope'
+        @classmethod
+        def set_port_enable(cls, port, value):
+            if value:
+                cls.disabled_ports.discard(port)
+            else:
+                cls.disabled_ports.add(port)
         async def open(self, host, port=0, timeout=0, loop=None):
             if self.port is None:
                 self.port = port
             self.port
+            if port in Telnet.disabled_ports:
+                await asyncio.sleep(3)
+                return
             if self.host == TELNET_HOSTADDR_BAD:
                 # Raise a fake 'Connect call failed' exception
                 raise OSError(errno.EHOSTUNREACH, (self.host, self.port))

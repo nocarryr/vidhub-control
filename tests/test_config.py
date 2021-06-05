@@ -70,6 +70,9 @@ async def test_config_discovery(tempconfig,
 
     loop = asyncio.get_event_loop()
 
+    zc_item_data = [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]
+    zc_infos = [zeroconf.ServiceInfo(**d['info_kwargs']) for d in zc_item_data]
+
     class Waiter(object):
         def __init__(self):
             self.queue = asyncio.Queue()
@@ -93,10 +96,8 @@ async def test_config_discovery(tempconfig,
 
     waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
 
-    for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
-        kwargs = zc_data['info_kwargs']
-        info = zeroconf.ServiceInfo(**kwargs)
-        await publisher.async_register_service(info)
+    coros = [publisher.async_register_service(info) for info in zc_infos]
+    await asyncio.gather(*coros)
 
     events_received = 0
     while events_received < 3:
@@ -107,6 +108,44 @@ async def test_config_discovery(tempconfig,
     assert vidhub_zeroconf_info['device_id'] in config.vidhubs
     assert smartview_zeroconf_info['device_id'] in config.smartviews
     assert smartscope_zeroconf_info['device_id'] in config.smartscopes
+
+    coros = [publisher.async_unregister_service(info) for info in zc_infos]
+    await asyncio.gather(*coros)
+    await asyncio.sleep(.5)
+
+    # Stop and delete original config and publisher
+    await config.stop()
+    await publisher.async_close()
+
+    del config
+
+    # Set the mocked telnet to simulate device offline
+    for info in zc_infos:
+        mocked_vidhub_telnet_device.set_port_enable(info.port, False)
+
+    # Open a new config from the saved data above
+    publisher = AsyncZeroconf()
+    config = await Config.load_async(str(tempconfig))
+    await config.start()
+
+    # Make sure the backends exist, but aren't connected
+    await asyncio.sleep(5)
+    assert not config.vidhubs[vidhub_zeroconf_info['device_id']].backend.connected
+    assert not config.smartviews[smartview_zeroconf_info['device_id']].backend.connected
+    assert not config.smartscopes[smartscope_zeroconf_info['device_id']].backend.connected
+
+    # Re-enable mocked telnet and publish the zeroconf services
+    for info in zc_infos:
+        mocked_vidhub_telnet_device.set_port_enable(info.port, True)
+
+    coros = [publisher.async_register_service(info) for info in zc_infos]
+    await asyncio.gather(*coros)
+
+    # Make sure the config reconnects the devices once discovered
+    await asyncio.sleep(.5)
+    assert config.vidhubs[vidhub_zeroconf_info['device_id']].backend.connected
+    assert config.smartviews[smartview_zeroconf_info['device_id']].backend.connected
+    assert config.smartscopes[smartscope_zeroconf_info['device_id']].backend.connected
 
     await config.stop()
     await publisher.async_close()
