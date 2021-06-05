@@ -337,6 +337,8 @@ class Config(ConfigBase):
                 if obj.hostaddr != hostaddr or obj.hostport != hostport:
                     logger.debug('resetting hostaddr')
                     await obj.reset_hostaddr(hostaddr, hostport)
+                elif not obj.backend.connected:
+                    await obj.reconnect()
                 return
             backend = await cls.create_async(
                 hostaddr=hostaddr,
@@ -520,6 +522,9 @@ class DeviceConfigBase(ConfigBase):
             kwargs.setdefault(key, val)
         kwargs['event_loop'] = backend.event_loop
         return await cls.create(**kwargs)
+    async def reconnect(self):
+        await self.backend.disconnect()
+        await self.backend.connect()
     async def reset_hostaddr(self, hostaddr, hostport=None):
         if hostport is None:
             hostport = self.hostport
