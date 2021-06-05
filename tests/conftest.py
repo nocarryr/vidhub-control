@@ -210,6 +210,41 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     return Telnet
 
 @pytest.fixture
+def telnet_backend_factory(mocked_vidhub_telnet_device):
+    from vidhubcontrol.backends.telnet import (
+        TelnetBackend, SmartViewTelnetBackend, SmartScopeTelnetBackend
+    )
+
+    def inner(backend_name):
+        d = {'backend_name':backend_name, 'kwargs':{'hostaddr':True}}
+        if backend_name == 'vidhub':
+            d['cls'] = TelnetBackend
+            d['kwargs']['hostport'] = VIDHUB_PORT
+            d.update({
+                'device_id':VIDHUB_DEVICE_ID,
+                'device_model':'Smart Videohub 12x12',
+                'device_name':'Smart Videohub 12x12',
+            })
+        elif backend_name == 'smartview':
+            d['cls'] = SmartViewTelnetBackend
+            d['kwargs']['hostport'] = SMARTVIEW_PORT
+            d.update({
+                'device_id':SMARTVIEW_DEVICE_ID,
+                'device_model':'SmartView Something',
+                'device_name':'SmartView Something',
+            })
+        elif backend_name == 'smartscope':
+            d['cls'] = SmartScopeTelnetBackend
+            d['kwargs']['hostport'] = SMARTSCOPE_PORT
+            d.update({
+                'device_id':SMARTSCOPE_DEVICE_ID,
+                'device_model':'SmartScope Duo 4K',
+                'device_name':'SmartScope Duo',
+            })
+        return d
+    return inner
+
+@pytest.fixture
 def tempconfig(tmpdir):
     return tmpdir.join('vidhubcontrol.json')
 
