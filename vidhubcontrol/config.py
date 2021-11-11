@@ -86,6 +86,9 @@ class Config(ConfigBase):
         smartscopes (dict): A :class:`~pydispatch.properties.DictProperty` of
             :class:`SmartScopeConfig` instances using
             :attr:`~DeviceConfigBase.device_id` as keys
+        all_devices (dict): A :class:`~pydispatch.properties.DictProperty`
+            containing all devices from :attr:`vidhubs`, :attr:`smartviews` and
+            :attr:`smartscopes`
 
     .. autoattribute:: DEFAULT_FILENAME
 
@@ -97,6 +100,7 @@ class Config(ConfigBase):
     vidhubs = DictProperty()
     smartviews = DictProperty()
     smartscopes = DictProperty()
+    all_devices = DictProperty()
     _conf_attrs = ['vidhubs', 'smartscopes', 'smartviews']
     _device_type_map = {
         'vidhub':{'prop':'vidhubs'},
@@ -162,6 +166,8 @@ class Config(ConfigBase):
             if device_id is None:
                 device_id = self.id_for_device(obj)
             prop[device_id] = obj
+            assert device_id not in self.all_devices
+            self.all_devices[device_id] = obj
             obj.bind(
                 device_id=self.on_backend_device_id,
                 trigger_save=self.on_device_trigger_save,
@@ -301,6 +307,8 @@ class Config(ConfigBase):
             obj = await cls.from_existing(backend, config=self)
         if obj.device_id is None:
             obj.device_id = self.id_for_device(obj)
+        assert obj.device_id not in self.all_devices
+        self.all_devices[obj.device_id] = obj
         prop[obj.device_id] = obj
         obj.bind(
             trigger_save=self.on_device_trigger_save,
@@ -312,11 +320,15 @@ class Config(ConfigBase):
             return
         old = kwargs.get('old')
         prop = getattr(self, self._device_type_map[backend.device_type]['prop'])
+        if old in self.all_devices:
+            del self.all_devices[old]
         if old in prop:
             del prop[old]
         if value in prop:
             self.save()
             return
+        assert value not in self.all_devices
+        self.all_devices[value] = backend
         prop[value] = backend
         self.save()
     async def add_discovered_device(self, device_type, info, device_id):

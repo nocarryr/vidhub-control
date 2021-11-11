@@ -72,6 +72,7 @@ async def test_config_discovery(tempconfig,
 
     zc_item_data = [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]
     zc_infos = [zeroconf.ServiceInfo(**d['info_kwargs']) for d in zc_item_data]
+    device_ids = [d['device_id'] for d in zc_item_data]
 
     class Waiter(object):
         def __init__(self):
@@ -108,6 +109,7 @@ async def test_config_discovery(tempconfig,
     assert vidhub_zeroconf_info['device_id'] in config.vidhubs
     assert smartview_zeroconf_info['device_id'] in config.smartviews
     assert smartscope_zeroconf_info['device_id'] in config.smartscopes
+    assert set(config.all_devices.keys()) == set(device_ids)
 
     coros = [publisher.async_unregister_service(info) for info in zc_infos]
     await asyncio.gather(*coros)
@@ -128,6 +130,8 @@ async def test_config_discovery(tempconfig,
     config = await Config.load_async(str(tempconfig))
     await config.start()
 
+    assert set(config.all_devices.keys()) == set(device_ids)
+
     # Make sure the backends exist, but aren't connected
     await asyncio.sleep(5)
     assert not config.vidhubs[vidhub_zeroconf_info['device_id']].backend.connected
@@ -147,6 +151,8 @@ async def test_config_discovery(tempconfig,
     assert config.smartviews[smartview_zeroconf_info['device_id']].backend.connected
     assert config.smartscopes[smartscope_zeroconf_info['device_id']].backend.connected
 
+    assert set(config.all_devices.keys()) == set(device_ids)
+
     await config.stop()
     await publisher.async_close()
 
@@ -161,17 +167,16 @@ async def test_config_devices(tempconfig, missing_netifaces):
     await config.start()
 
     for i in range(3):
-        device_id = 'dummy{}'.format(i)
         vidhub = await DummyBackend.create_async(
-            device_id=device_id,
+            device_id=f'vidhub-{i}',
             device_name='vidhub{}'.format(i),
         )
         smartview = await SmartViewDummyBackend.create_async(
-            device_id=device_id,
+            device_id=f'smartview-{i}',
             device_name='smartview{}'.format(i),
         )
         smartscope = await SmartScopeDummyBackend.create_async(
-            device_id=device_id,
+            device_id=f'smartscope-{i}',
             device_name='smartscope{}'.format(i)
         )
         if i == 0:
@@ -183,9 +188,11 @@ async def test_config_devices(tempconfig, missing_netifaces):
             await config.add_device(smartview)
             await config.add_device(smartscope)
 
-    keys_expected = set(('dummy{}'.format(i) for i in range(3)))
+    dtypes = ['vidhub', 'smartview', 'smartscope']
+    keys_expected = set([f'{dtype}-{i}' for dtype in dtypes for i in range(3)])
     assert len(config.vidhubs) == len(config.smartviews) == len(config.smartscopes) == 3
-    assert set(config.vidhubs.keys()) == set(config.smartviews.keys()) == set(config.smartscopes.keys()) == keys_expected
+    assert set(config.vidhubs.keys()) | set(config.smartviews.keys()) | set(config.smartscopes.keys()) == keys_expected
+    assert set(config.all_devices.keys()) == keys_expected
 
     for vidhub in config.vidhubs.values():
         assert isinstance(vidhub.backend, DummyBackend)
@@ -198,7 +205,8 @@ async def test_config_devices(tempconfig, missing_netifaces):
     await config2.start()
 
     assert len(config2.vidhubs) == len(config2.smartviews) == len(config2.smartscopes) == 3
-    assert set(config2.vidhubs.keys()) == set(config2.smartviews.keys()) == set(config2.smartscopes.keys()) == keys_expected
+    assert set(config.vidhubs.keys()) | set(config.smartviews.keys()) | set(config.smartscopes.keys()) == keys_expected
+    assert set(config.all_devices.keys()) == keys_expected
 
     for vidhub in config2.vidhubs.values():
         assert isinstance(vidhub.backend, DummyBackend)
