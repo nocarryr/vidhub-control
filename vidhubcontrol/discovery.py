@@ -20,7 +20,6 @@ except ImportError: # pragma: no cover
 if ZEROCONF_AVAILABLE:
     from zeroconf.asyncio import AsyncZeroconf
     from zeroconf import IPVersion
-    from zeroconf.const import _REGISTER_TIME, _UNREGISTER_TIME
 
 
 from vidhubcontrol.utils import find_ip_addresses
@@ -284,16 +283,11 @@ class Listener(Dispatcher):
             zc_info = msg.info.to_zc_info()
             if isinstance(msg, PublishMessage):
                 coro = self.async_zeroconf.async_register_service(zc_info)
-                timeout = _REGISTER_TIME
             elif isinstance(msg, RepublishMessage):
                 coro = self.async_zeroconf.async_update_service(zc_info)
-                timeout = _REGISTER_TIME
             else:
                 coro = self.async_zeroconf.async_unregister_service(zc_info)
-                timeout = _UNREGISTER_TIME
-            timeout = timeout / 1000 * 3
             await coro
-            # await asyncio.sleep(timeout)
 
         while self.running:
             msg = await self.message_queue.get()
