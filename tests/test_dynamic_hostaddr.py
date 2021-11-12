@@ -13,7 +13,7 @@ async def test_hostaddr_change(tempconfig,
                                mocked_vidhub_telnet_device):
 
     import zeroconf
-    from zeroconf import _REGISTER_TIME
+    from zeroconf.const import _REGISTER_TIME
     from zeroconf.asyncio import AsyncZeroconf
 
     class Waiter(object):

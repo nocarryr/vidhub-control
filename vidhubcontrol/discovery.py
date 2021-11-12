@@ -14,6 +14,7 @@ try:
     import zeroconf
     from zeroconf.asyncio import AsyncZeroconf
     from zeroconf import IPVersion
+    from zeroconf.const import _REGISTER_TIME, _UNREGISTER_TIME
     ZEROCONF_AVAILABLE = True
 except ImportError: # pragma: no cover
     zeroconf = None
@@ -280,13 +281,13 @@ class Listener(Dispatcher):
             zc_info = msg.info.to_zc_info()
             if isinstance(msg, PublishMessage):
                 coro = self.async_zeroconf.async_register_service(zc_info)
-                timeout = zeroconf._REGISTER_TIME
+                timeout = _REGISTER_TIME
             elif isinstance(msg, RepublishMessage):
                 coro = self.async_zeroconf.async_update_service(zc_info)
-                timeout = zeroconf._REGISTER_TIME
+                timeout = _REGISTER_TIME
             else:
                 coro = self.async_zeroconf.async_unregister_service(zc_info)
-                timeout = zeroconf._UNREGISTER_TIME
+                timeout = _UNREGISTER_TIME
             timeout = timeout / 1000 * 3
             await coro
             # await asyncio.sleep(timeout)
