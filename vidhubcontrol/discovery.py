@@ -12,13 +12,16 @@ from pydispatch.properties import DictProperty
 
 try:
     import zeroconf
-    from zeroconf.asyncio import AsyncZeroconf
-    from zeroconf import IPVersion
-    from zeroconf.const import _REGISTER_TIME, _UNREGISTER_TIME
     ZEROCONF_AVAILABLE = True
 except ImportError: # pragma: no cover
     zeroconf = None
     ZEROCONF_AVAILABLE = False
+
+if ZEROCONF_AVAILABLE:
+    from zeroconf.asyncio import AsyncZeroconf
+    from zeroconf import IPVersion
+    from zeroconf.const import _REGISTER_TIME, _UNREGISTER_TIME
+
 
 from vidhubcontrol.utils import find_ip_addresses
 
