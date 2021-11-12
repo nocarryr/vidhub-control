@@ -373,24 +373,27 @@ class Listener(Dispatcher):
         self.emit('service_removed', info, **kwargs)
 
     def add_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
-        info = zc.get_service_info(type_, name)
-        info = ServiceInfo.from_zc_info(info)
-        msg = AddedMessage(info)
-        run_on_loop(self.add_message(msg), self.mainloop)
+        if self.running:
+            info = zc.get_service_info(type_, name)
+            info = ServiceInfo.from_zc_info(info)
+            msg = AddedMessage(info)
+            run_on_loop(self.add_message(msg), self.mainloop)
 
     def remove_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
-        info = ServiceInfo(type_=type_, name=name)
-        msg = RemovedMessage(info)
-        run_on_loop(self.add_message(msg), self.mainloop)
+        if self.running:
+            info = ServiceInfo(type_=type_, name=name)
+            msg = RemovedMessage(info)
+            run_on_loop(self.add_message(msg), self.mainloop)
 
     def update_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
-        info = zc.get_service_info(type_, name)
-        if info is None:
-            self.remove_service(zc, type_, name)
-            return
-        info = ServiceInfo.from_zc_info(info)
-        msg = UpdateMessage(info)
-        run_on_loop(self.add_message(msg), self.mainloop)
+        if self.running:
+            info = zc.get_service_info(type_, name)
+            if info is None:
+                self.remove_service(zc, type_, name)
+                return
+            info = ServiceInfo.from_zc_info(info)
+            msg = UpdateMessage(info)
+            run_on_loop(self.add_message(msg), self.mainloop)
 
     async def get_local_ifaces(self, refresh: Optional[bool] = False) -> List[ipaddress.IPv4Interface]:
         ifaces = getattr(self, '_local_ifaces', None)
