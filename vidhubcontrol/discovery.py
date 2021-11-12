@@ -350,8 +350,8 @@ class Listener(Dispatcher):
 
     async def add_service_info(self, info: ServiceInfo, **kwargs):
         async with self._service_info_lock:
-            if msg.info.id in self.services:
-                raise ValueError(f'Service "{msg.info}" already discovered')
+            if info.id in self.services:
+                raise ValueError(f'Service "{info}" already discovered')
             self.services[info.id] = info
         self.emit('service_added', info, **kwargs)
 
@@ -375,7 +375,7 @@ class Listener(Dispatcher):
     def add_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
         info = zc.get_service_info(type_, name)
         info = ServiceInfo.from_zc_info(info)
-        msg = UpdateMessage(info)
+        msg = AddedMessage(info)
         run_on_loop(self.add_message(msg), self.mainloop)
 
     def remove_service(self, zc: 'zeroconf.Zeroconf', type_: str, name: str):
