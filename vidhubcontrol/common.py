@@ -55,7 +55,7 @@ class ConnectionState(enum.IntFlag):
     def __format__(self, format_spec):
         if format_spec == '':
             return str(self)
-        return super().__format__(format_spec)
+        return format(self.value, format_spec)
 
     def __iter__(self):
         for member in ConnectionState:
