@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+from typing import List, Dict, ClassVar
 from loguru import logger
 
 import jsonfactory
@@ -77,16 +78,16 @@ class Config(ConfigBase):
             be added to the asyncio event loop on initialization.
 
     Attributes:
-        vidhubs (dict): A :class:`~pydispatch.properties.DictProperty` of
+        vidhubs: A :class:`~pydispatch.properties.DictProperty` of
             :class:`VidhubConfig` instances using
             :attr:`~DeviceConfigBase.device_id` as keys
-        smartviews (dict): A :class:`~pydispatch.properties.DictProperty` of
+        smartviews: A :class:`~pydispatch.properties.DictProperty` of
             :class:`SmartViewConfig` instances using
             :attr:`~DeviceConfigBase.device_id` as keys
-        smartscopes (dict): A :class:`~pydispatch.properties.DictProperty` of
+        smartscopes: A :class:`~pydispatch.properties.DictProperty` of
             :class:`SmartScopeConfig` instances using
             :attr:`~DeviceConfigBase.device_id` as keys
-        all_devices (dict): A :class:`~pydispatch.properties.DictProperty`
+        all_devices: A :class:`~pydispatch.properties.DictProperty`
             containing all devices from :attr:`vidhubs`, :attr:`smartviews` and
             :attr:`smartscopes`
 
@@ -97,10 +98,10 @@ class Config(ConfigBase):
     """
     DEFAULT_FILENAME = '~/vidhubcontrol.json'
     USE_DISCOVERY = True
-    vidhubs = DictProperty()
-    smartviews = DictProperty()
-    smartscopes = DictProperty()
-    all_devices = DictProperty()
+    vidhubs: Dict[str, 'VidhubConfig'] = DictProperty()
+    smartviews: Dict[str, 'SmartViewConfig'] = DictProperty()
+    smartscopes: Dict[str, 'SmartScopeConfig'] = DictProperty()
+    all_devices: Dict[str, 'DeviceConfigBase'] = DictProperty()
     _conf_attrs = ['vidhubs', 'smartscopes', 'smartviews']
     _device_type_map = {
         'vidhub':{'prop':'vidhubs'},
@@ -454,25 +455,26 @@ class DeviceConfigBase(ConfigBase):
     Attributes:
         config: A reference to the parent :class:`Config` instance
         backend: An instance of :class:`vidhubcontrol.backends.base.BackendBase`
-        backend_name (str): The class name of the backend, used when loading
+        backend_name: The class name of the backend, used when loading
             from saved config data
-        hostaddr (str): The IPv4 address of the device
-        hostport (int): The port address of the device
-        device_name (str): User-defined name to store with the device, defaults
+        hostaddr: The IPv4 address of the device
+        hostport: The port address of the device
+        device_name: User-defined name to store with the device, defaults
             to the :attr:`device_id` value
-        device_id (str): The unique id as reported by the device
+        device_id: The unique id as reported by the device
         backend_unavailable (bool): ``True`` if communication with the device
             could not be established
 
     """
-    config = Property()
-    backend = Property()
-    backend_name = Property()
-    hostaddr = Property()
-    hostport = Property(9990)
-    device_name = Property()
-    device_id = Property()
     backend_unavailable = Property(False)
+    config: Config = Property()
+    backend: 'vidhubcontrol.backends.base.BackendBase' = Property()
+    backend_name: str = Property()
+    hostaddr: str = Property()
+    hostport: int = Property(9990)
+    device_name: str = Property()
+    device_id: str = Property()
+
     _conf_attrs = [
         'backend_name',
         'hostaddr',
@@ -621,16 +623,16 @@ class VidhubConfig(DeviceConfigBase):
     """Config container for VideoHub devices
 
     Attributes:
-        presets (list): Preset data collected from the device
+        presets: Preset data collected from the device
             :class:`presets <vidhubcontrol.backends.base.Preset>`. Will be used
             on initialization to populate the preset data to the device
 
     """
-    presets = ListProperty()
+    presets: List[Dict] = ListProperty()
     _conf_attrs = DeviceConfigBase._conf_attrs + [
         'presets',
     ]
-    device_type = 'vidhub'
+    device_type: ClassVar[str] = 'vidhub'
     @classmethod
     async def create(cls, **kwargs):
         kwargs.setdefault('presets', [])
@@ -683,12 +685,12 @@ class VidhubConfig(DeviceConfigBase):
 class SmartViewConfig(DeviceConfigBase):
     """Config container for SmartView devices
     """
-    device_type = 'smartview'
+    device_type: ClassVar[str] = 'smartview'
 
 class SmartScopeConfig(DeviceConfigBase):
     """Config container for SmartScope devices
     """
-    device_type = 'smartscope'
+    device_type: ClassVar[str] = 'smartscope'
 
 Config._device_type_map['vidhub']['cls'] = VidhubConfig
 Config._device_type_map['smartview']['cls'] = SmartViewConfig

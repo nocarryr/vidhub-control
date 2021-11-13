@@ -18,15 +18,18 @@ class TelnetBackendBase(object):
     """Mix-in class for backends implementing telnet
 
     Attributes:
-        hostaddr (str): IPv4 address of the device
-        hostport (int): Port address of the device
-        read_enabled (bool): Internal flag to keep the :meth:`read_loop` running
-        rx_bfr (bytes): Data received from the device to be parsed
+        hostaddr: IPv4 address of the device
+        hostport: Port address of the device
+        read_enabled: Internal flag to keep the :meth:`read_loop` running
+        rx_bfr: Data received from the device to be parsed
         client: Instance of :class:`vidhubcontrol.aiotelnetlib._Telnet`
 
     """
-    hostaddr = Property()
-    hostport = Property()
+    hostaddr: str = Property()
+    hostport: int = Property()
+    read_enabled: bool
+    rx_bfr: bytes
+    client: 'vidhubcontrol.aiotelnetlib._Telnet'
     def _telnet_init(self, **kwargs):
         self.read_enabled = False
         self.current_section = None

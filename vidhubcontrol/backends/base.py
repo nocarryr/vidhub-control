@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional, List, Dict, ClassVar
 
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
@@ -102,46 +103,46 @@ class VidhubBackendBase(BackendBase):
     Attributes:
         num_outputs (int): The number of outputs as reported by the switcher.
         num_inputs (int): The number of inputs as reported by the switcher.
-        crosspoints (list): This represents the currently active routing of the
+        crosspoints: This represents the currently active routing of the
             switcher. Each element in the ``list`` represents an output (the
             zero-based index of the ``list``) with its selected index as the
             value (also zero-based).
             This is a :class:`pydispatch.properties.ListProperty` and can be
             observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        output_labels (list): A ``list`` containing the names of each output
+        output_labels: A ``list`` containing the names of each output
             as reported by the switcher
             This is a :class:`pydispatch.properties.ListProperty` and can be
             observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        input_labels (list): A ``list`` containing the names of each input
+        input_labels: A ``list`` containing the names of each input
             as reported by the switcher
             This is a :class:`pydispatch.properties.ListProperty` and can be
             observed using the :meth:`~pydispatch.Dispatcher.bind` method.
-        crosspoint_control (list): This is similar to :attr:`~VidhubBackendBase.crosspoints`
+        crosspoint_control: This is similar to :attr:`~VidhubBackendBase.crosspoints`
             but if modified from outside code, the crosspoint changes will be
             set on the device (no method calls required).
             :class:`pydispatch.properties.ListProperty`
-        output_label_control (list): This is similar to :attr:~VidhubBackendBase.output_labels`
+        output_label_control: This is similar to :attr:`~VidhubBackendBase.output_labels`
             but if modified from outside code, the label changes will be written
             to the device (no method calls required).
             :class:`pydispatch.properties.ListProperty`
-        input_label_control (list): This is similar to :attr:~VidhubBackendBase.input_labels`
+        input_label_control: This is similar to :attr:`~VidhubBackendBase.input_labels`
             but if modified from outside code, the label changes will be written
             to the device (no method calls required).
             :class:`pydispatch.properties.ListProperty`
-        presets (list): The currently available (stored) ``list`` of :class:`Preset`
+        presets: The currently available (stored) ``list`` of :class:`Preset`
             instances
             :class:`pydispatch.properties.ListProperty`
     """
-    crosspoints = ListProperty()
-    output_labels = ListProperty()
-    input_labels = ListProperty()
-    crosspoint_control = ListProperty()
-    output_label_control = ListProperty()
-    input_label_control = ListProperty()
-    presets = ListProperty()
-    num_outputs = Property(0)
-    num_inputs = Property(0)
-    device_type = 'vidhub'
+    crosspoints: List[int] = ListProperty()
+    output_labels: List[str] = ListProperty()
+    input_labels: List[str] = ListProperty()
+    crosspoint_control: List[int] = ListProperty()
+    output_label_control: List[str] = ListProperty()
+    input_label_control: List[str] = ListProperty()
+    presets: List['Preset'] = ListProperty()
+    num_outputs: int = Property(0)
+    num_inputs: int = Property(0)
+    device_type: ClassVar[str] = 'vidhub'
     feedback_prop_map = {
         'crosspoints':'crosspoint_control',
         'input_labels':'input_label_control',
@@ -347,10 +348,10 @@ class SmartViewBackendBase(BackendBase):
     """Base class for SmartView devices
 
     Attributes:
-        num_monitors (int): Number of physical monitors as reported by the device
-        inverted (bool): ``True`` if the device has been mounted in an inverted
+        num_monitors: Number of physical monitors as reported by the device
+        inverted: ``True`` if the device has been mounted in an inverted
             configuration (to optimize viewing angle).
-        monitors (list): A ``list`` containing instances of :class:`SmartViewMonitor`
+        monitors: A ``list`` containing instances of :class:`SmartViewMonitor`
             or :class:`SmartScopeMonitor`, depending on device type.
 
     :Events:
@@ -363,11 +364,11 @@ class SmartViewBackendBase(BackendBase):
             instance.
 
     """
-    num_monitors = Property()
-    inverted = Property(False)
-    monitors = ListProperty()
-    monitor_cls = None
-    device_type = 'smartview'
+    num_monitors: Optional[int] = Property()
+    inverted: bool = Property(False)
+    monitors: List['SmartViewMonitor'] = ListProperty()
+    monitor_cls: ClassVar[type] = None
+    device_type: ClassVar[str] = 'smartview'
     _events_ = ['on_monitor_property_change']
     def __init__(self, **kwargs):
         self.bind(monitors=self._on_monitors)
@@ -405,7 +406,7 @@ class SmartViewBackendBase(BackendBase):
         self.num_monitors = len(self.monitors)
 
 class SmartScopeBackendBase(SmartViewBackendBase):
-    device_type = 'smartscope'
+    device_type: ClassVar[str] = 'smartscope'
     def get_monitor_cls(self):
         cls = self.monitor_cls
         if cls is None:
@@ -424,32 +425,32 @@ class SmartViewMonitor(Dispatcher):
     """A single instance of a monitor within a SmartView device
 
     Attributes:
-        index (int): Index of the monitor (zero-based)
-        name (str): The name of the monitor (can be user-defined)
-        brightness (int): The brightness value of the monitor (0-255)
-        contrast (int): The contrast value of the monitor (0-255)
-        saturation (int): The saturation value of the monitor (0-255)
+        index: Index of the monitor (zero-based)
+        name: The name of the monitor (can be user-defined)
+        brightness: The brightness value of the monitor (0-255)
+        contrast: The contrast value of the monitor (0-255)
+        saturation: The saturation value of the monitor (0-255)
         widescreen_sd: Aspect ratio setting for SD format. Choices can be:
             ``True`` (stretching enabled), ``False`` (pillar-box), or
             ``None`` (auto-detect).
-        identify (bool): If set to ``True``, the monitor's border will be white
+        identify: If set to ``True``, the monitor's border will be white
             for a brief duration to physically locate the device.
-        border (str): Sets the border of the monitor to the given color. Choices
+        border: Sets the border of the monitor to the given color. Choices
             are: 'red', 'green', 'blue', 'white', or ``None``.
-        audio_channel (int): The audio channel pair (Embedded in the SDI input)
+        audio_channel: The audio channel pair (Embedded in the SDI input)
             used when :attr:`scope_mode` is set to audio monitoring.
             Values are from 0 to 7 (0 == Channels 1&2, etc).
 
     """
-    index = Property()
-    name = Property()
-    brightness = Property()
-    contrast = Property()
-    saturation = Property()
-    widescreen_sd = Property()
-    identify = Property(False)
-    border = Property()
-    audio_channel = Property()
+    index: int = Property()
+    name: str = Property()
+    brightness: int = Property()
+    contrast: int = Property()
+    saturation: int = Property()
+    widescreen_sd: Optional[bool] = Property()
+    identify: bool = Property(False)
+    border: Optional[str] = Property()
+    audio_channel: int = Property()
     class PropertyChoices():
         widescreen_sd = {
             True:'ON',
@@ -536,12 +537,12 @@ class SmartScopeMonitor(SmartViewMonitor):
     """A single instance of a monitor within a SmartScope device
 
     Attributes:
-        scope_mode (str): The type of scope to display.  Choices are:
+        scope_mode: The type of scope to display.  Choices are:
             'audio_dbfs', 'audio_dbvu', 'histogram', 'parade_rgb', 'parade_yuv',
             'video', 'vector_100', 'vector_75', 'waveform'.
 
     """
-    scope_mode = Property()
+    scope_mode: str = Property()
     class PropertyChoices(SmartViewMonitor.PropertyChoices):
         scope_mode = {
             'audio_dbfs':'AudioDbfs',
@@ -565,11 +566,11 @@ class Preset(Dispatcher):
     Attributes:
         name: The name of the preset.
             This is a :class:`pydispatch.Property`
-        index (int): The index of the preset as it is stored in the
+        index: The index of the preset as it is stored in the
             :attr:`~BackendBase.presets` container.
-        crosspoints (dict): The crosspoints that this preset has stored.
+        crosspoints: The crosspoints that this preset has stored.
             This is a :class:`~pydispatch.properties.DictProperty`
-        active (bool): A flag indicating whether all of the crosspoints stored
+        active: A flag indicating whether all of the crosspoints stored
             in this preset are currently active on the switcher.
             This is a :class:`pydispatch.Property`
 
@@ -579,10 +580,10 @@ class Preset(Dispatcher):
             Dispatched after the preset stores its state.
 
     """
-    name = Property()
-    index = Property()
-    crosspoints = DictProperty()
-    active = Property(False)
+    name: str = Property()
+    index: int = Property()
+    crosspoints: Dict[int, int] = DictProperty()
+    active: bool = Property(False)
     _events_ = ['on_preset_stored']
     def __init__(self, **kwargs):
         self.backend = kwargs.get('backend')

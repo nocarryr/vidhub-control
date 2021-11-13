@@ -91,10 +91,10 @@ class ServiceInfo(Dispatcher):
             (defaults to :attr:`name`)
         addresses: The service ip address
         port (int): The service port
-        properties (dict): Custom properties for the service
+        properties: Custom properties for the service
 
     """
-    properties = DictProperty()
+    properties: Dict[str, str] = DictProperty()
     _direct_attrs = ['name', 'server', 'port', 'properties']
     def __init__(
         self,
@@ -195,6 +195,7 @@ class Message(object):
         are used internally in :class:`Listener` methods.
 
     """
+    info: ServiceInfo
     __slots__ = ('info',)
     def __init__(self, info: ServiceInfo):
         self.info: ServiceInfo = info
@@ -238,16 +239,18 @@ class Listener(Dispatcher):
         service_type (str): The fully qualified service type name to subscribe to
 
     Attributes:
-        services (dict): All services currently discovered as instances of
+        services: All services currently discovered as instances of
             :class:`ServiceInfo`. Stored using :attr:`ServiceInfo.id` as keys
-        message_queue (:class:`asyncio.Queue`): Used to communicate actions and
+        message_queue: Used to communicate actions and
             events with instances of :class:`Message`
-        published_services (dict): Stores services that have been published
+        published_services: Stores services that have been published
             using :meth:`publish_service` as :class:`ServiceInfo` instances.
 
     """
     _events_ = ['service_added', 'service_updated', 'service_removed']
-    services = DictProperty()
+    services: Dict[str, ServiceInfo] = DictProperty()
+    message_queue: asyncio.Queue
+    published_services: Dict[str, ServiceInfo]
     def __init__(self, mainloop, service_type):
         self.mainloop = mainloop
         self.service_type = service_type
@@ -523,20 +526,20 @@ class BMDDiscovery(Listener):
     """Zeroconf listener for Blackmagic devices
 
     Attributes:
-        vidhubs (dict): Contains discovered Videohub devices.
+        vidhubs: Contains discovered Videohub devices.
             This :class:`~pydispatch.properties.DictProperty` can be used to
             subscribe to changes.
-        smart_views (dict): Contains discovered SmartView devices.
+        smart_views: Contains discovered SmartView devices.
             This :class:`~pydispatch.properties.DictProperty` can be used to
             subscribe to changes.
-        smart_scopes (dict): Contains discovered SmartScope devices.
+        smart_scopes: Contains discovered SmartScope devices.
             This :class:`~pydispatch.properties.DictProperty` can be used to
             subscribe to changes.
 
     """
-    vidhubs = DictProperty()
-    smart_views = DictProperty()
-    smart_scopes = DictProperty()
+    vidhubs: Dict[str, ServiceInfo] = DictProperty()
+    smart_views: Dict[str, ServiceInfo] = DictProperty()
+    smart_scopes: Dict[str, ServiceInfo] = DictProperty()
     _events_ = ['bmd_service_added', 'bmd_service_updated', 'bmd_service_removed']
     def __init__(self, mainloop, service_type='_blackmagic._tcp.local.'):
         super().__init__(mainloop, service_type)
