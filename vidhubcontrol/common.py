@@ -6,7 +6,7 @@ from loguru import logger
 from pydispatch import Dispatcher
 
 class ConnectionState(enum.IntFlag):
-    """Enum to describe various connection states
+    r"""Enum to describe various connection states
 
     Members may be combined using bitwise operators (&, \|, ^, ~)
     """
@@ -32,7 +32,7 @@ class ConnectionState(enum.IntFlag):
 
     @classmethod
     def from_str(cls, s: str) -> 'ConnectionState':
-        """Create a :class:`ConnectionState` member by name(s)
+        r"""Create a :class:`ConnectionState` member by name(s)
 
         Combined states can be created by separating their names with a "\|"
         """
