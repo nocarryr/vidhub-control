@@ -352,6 +352,7 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
 
     interface = OscInterface(hostport=server_port)
     vidhub = DummyBackend(device_name='dummy-name')
+    await vidhub.connect()
     await interface.add_vidhub(vidhub)
     await interface.start()
 
@@ -535,6 +536,7 @@ async def test_interface(missing_netifaces, unused_tcp_port_factory):
     assert 'dummy-foo' in msg['messages']
 
     vidhub2 = DummyBackend(device_id='dummy2', device_name='dummy-name-2')
+    await vidhub2.connect()
     await interface.add_vidhub(vidhub2)
 
     msg = await by_id_response.wait_for_response()

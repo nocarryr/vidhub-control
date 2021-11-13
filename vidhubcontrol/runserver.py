@@ -68,7 +68,7 @@ async def run(loop, opts):
     for sig in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(sig, on_sigint, config, interfaces)
     logger.info('Ready')
-    await config.stopped.wait()
+    await config.connection_manager.wait_for('not_connected')
 
 def on_sigint(config, interfaces):
     logger.info('Exiting...')

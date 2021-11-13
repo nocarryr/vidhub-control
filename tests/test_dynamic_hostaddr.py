@@ -4,6 +4,7 @@ import json
 import pytest
 
 from vidhubcontrol.config import Config
+from vidhubcontrol.common import ConnectionState
 
 @pytest.mark.asyncio
 async def test_hostaddr_change(tempconfig,
@@ -13,7 +14,7 @@ async def test_hostaddr_change(tempconfig,
                                mocked_vidhub_telnet_device):
 
     import zeroconf
-    from zeroconf.const import _REGISTER_TIME
+    from zeroconf.const import _REGISTER_TIME, _UNREGISTER_TIME
     from zeroconf.asyncio import AsyncZeroconf
 
     class Waiter(object):
@@ -73,7 +74,7 @@ async def test_hostaddr_change(tempconfig,
 
     await config.stop()
     config = None
-    await asyncio.sleep(_REGISTER_TIME / 1000 * 3)
+    await asyncio.sleep(_UNREGISTER_TIME / 1000 * 3)
 
 
     # Alter saved conf data with false address info
@@ -98,19 +99,12 @@ async def test_hostaddr_change(tempconfig,
     smartview = config2.smartviews[smartview_id]
     smartscope = config2.smartscopes[smartscope_id]
 
-    assert vidhub.backend_unavailable is True
-    assert smartview.backend_unavailable is True
-    assert smartscope.backend_unavailable is True
-
-    assert not vidhub.backend.connected
-    assert not smartview.backend.connected
-    assert not smartscope.backend.connected
+    state = ConnectionState.failure | ConnectionState.not_connected
+    coros = [obj.connection_manager.wait_for('not_connected|failure', 7) for obj in [vidhub, smartview, smartscope]]
+    await asyncio.gather(*coros)
+    assert vidhub.connection_state == smartview.connection_state == smartscope.connection_state == state
 
     # Republish correct addresses
-    waiter2 = Waiter()
-    waiter2.bind(vidhub.backend, 'connected')
-    waiter2.bind(smartview.backend, 'connected')
-    waiter2.bind(smartscope.backend, 'connected')
 
     for zc_data in [vidhub_zeroconf_info, smartview_zeroconf_info, smartscope_zeroconf_info]:
         kwargs = zc_data['info_kwargs']
@@ -120,14 +114,12 @@ async def test_hostaddr_change(tempconfig,
 
     await asyncio.sleep(_REGISTER_TIME / 1000 * 3)
 
-    events_received = 0
-    while events_received < 3:
-        await waiter2.wait()
-        events_received += 1
+    coros = [obj.connection_manager.wait_for('connected', 5) for obj in [vidhub, smartview, smartscope]]
+    await asyncio.gather(*coros)
 
-    assert vidhub.backend.connected
-    assert smartview.backend.connected
-    assert smartscope.backend.connected
+    assert vidhub.backend.connection_state == ConnectionState.connected
+    assert smartview.backend.connection_state == ConnectionState.connected
+    assert smartscope.backend.connection_state == ConnectionState.connected
 
     assert vidhub.hostaddr == '127.0.0.1'
     assert smartview.hostaddr == '127.0.0.1'

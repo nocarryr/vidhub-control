@@ -1,19 +1,14 @@
+from loguru import logger
 import asyncio
 from typing import Optional, List, Dict, ClassVar
 
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
+from vidhubcontrol.common import ConnectionState, ConnectionManager
 
 class BackendBase(Dispatcher):
     """Base class for communicating with devices
-
-    Attributes:
-        device_id (str): The unique id as reported by the switcher.
-        device_version (str): The firmware version as reported by the switcher.
-        device_model (str): The model name as reported by the switcher.
-        connected (bool): A flag indicating the connection status.
-            :class:`pydispatch.properties.Property`
 
     :Events:
         .. function:: on_preset_added(backend: BackendBase = self, preset: Preset = preset)
@@ -33,57 +28,88 @@ class BackendBase(Dispatcher):
             routing information is currently active on the switcher.
 
     """
-    device_name = Property()
-    device_model = Property()
-    device_id = Property()
-    device_version = Property()
-    connected = Property(False)
-    connection_error = Property(False)
-    exception_type = Property(None)
-    exception_info = Property(None)
-    connection_unavailable = Property(False)
-    running = Property(False)
-    prelude_parsed = Property(False)
+    device_name: str = Property()
+
+    device_model: str = Property()
+    """The model name as reported by the device"""
+
+    device_id: str = Property()
+    """The unique id as reported by the device"""
+
+    device_version: str = Property()
+    """Firmware version reported by the device"""
+
+    connection_manager: ConnectionManager
+    """Manager for the device's :class:`~.common.ConnectionState`"""
+
+    prelude_parsed: bool = Property(False)
     def __init__(self, **kwargs):
+        self.connection_manager = ConnectionManager()
         self.device_name = kwargs.get('device_name')
         self.client = None
         self.event_loop = kwargs.get('event_loop', asyncio.get_event_loop())
         self.bind(device_id=self.on_device_id)
         if self.device_id is None:
             self.device_id = kwargs.get('device_id')
+    @property
+    def connection_state(self) -> ConnectionState:
+        """The current :attr:`~.common.ConnectionManager.state` of the
+        :attr:`connection_manager`
+        """
+        return self.connection_manager.state
     @classmethod
     async def create_async(cls, **kwargs):
         obj = cls(**kwargs)
-        await obj.connect_fut
+        await obj.connect()
         return obj
     async def connect(self):
-        if self.connected:
+        if self.connection_state & ConnectionState.waiting != 0:
+            await self.connection_manager.wait_for('connected|not_connected')
+        if self.connection_state.is_connected:
             return self.client
-        self.connected = True
+        await self.connection_manager.set_state('connecting')
         try:
             r = await asyncio.wait_for(self.do_connect(), timeout=2)
         except asyncio.TimeoutError as exc:
             r = False
-        if r is False:
-            self.connection_error = True
-            self.connected = False
+        if r is False and ConnectionState.failure not in self.connection_state:
+            await self.connection_manager.set_failure('unknown')
+        if ConnectionState.failure in self.connection_state:
+            await self.connection_manager.set_state('not_connected')
         else:
             if self.client is not None:
                 self.client = r
+            await self.connection_manager.set_state('connected')
         return r
     async def disconnect(self):
-        if not self.connected:
+        if ConnectionState.not_connected in self.connection_state:
             return
+        elif ConnectionState.disconnecting in self.connection_state:
+            await self.connection_manager.wait_for('not_connected')
+            return
+        elif ConnectionState.connecting in self.connection_state:
+            state = await self.connection_manager.wait_for('connected|not_connected')
+            if state == ConnectionState.not_connected:
+                return
+        await self.connection_manager.set_state('disconnecting')
         await self.do_disconnect()
         self.client = None
-        self.connected = False
-    def _catch_exception(self, e):
-        self.exception_type = e.__class__
+        await self.connection_manager.set_state('not_connected')
+    async def _catch_exception(self, e: Exception, is_error: Optional[bool] = False):
+        if not is_error:
+            logger.exception(e)
+            return
+        exc_type = e.__class__
         try:
-            self.exception_info = e.args
+            exc_info = e.args
         except:
-            self.exception_info = str(e)
-        self.connection_error = True
+            exc_info = str(e)
+        await self.connection_manager.set_failure(exc_info, e)
+        try:
+            await self.do_disconnect()
+        finally:
+            self.client = None
+            await self.connection_manager.set_state('not_connected')
     async def do_connect(self):
         raise NotImplementedError()
     async def do_disconnect(self):
@@ -170,7 +196,6 @@ class VidhubBackendBase(BackendBase):
                 on_preset_stored=self.on_preset_stored,
                 active=self.on_preset_active,
             )
-        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def set_crosspoint(self, out_idx, in_idx):
         """Set a single crosspoint on the switcher
 
@@ -320,7 +345,7 @@ class VidhubBackendBase(BackendBase):
         control_prop = self.feedback_prop_map[prop.name]
         setattr(self, control_prop, value[:])
     def on_prop_control(self, instance, value, **kwargs):
-        if not self.connected:
+        if not self.connection_state.is_connected:
             return
         if not self.prelude_parsed:
             return
@@ -373,7 +398,6 @@ class SmartViewBackendBase(BackendBase):
     def __init__(self, **kwargs):
         self.bind(monitors=self._on_monitors)
         super().__init__(**kwargs)
-        self.connect_fut = asyncio.ensure_future(self.connect(), loop=self.event_loop)
     async def set_monitor_property(self, monitor, name, value):
         """Set a property value for the given :class:`SmartViewMonitor` instance
 
@@ -593,7 +617,7 @@ class Preset(Dispatcher):
             name = 'Preset {}'.format(self.index + 1)
         self.name = name
         self.crosspoints = kwargs.get('crosspoints', {})
-        if self.backend.connected and self.backend.prelude_parsed:
+        if self.backend.connection_state.is_connected and self.backend.prelude_parsed:
             self.check_active()
         else:
             self.backend.bind(prelude_parsed=self.on_backend_ready)

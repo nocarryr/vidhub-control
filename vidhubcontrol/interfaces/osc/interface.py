@@ -64,7 +64,7 @@ class OscInterface(Dispatcher):
         # query_node = self.root_node.add_child('vidhubs/_query')
         # query_node.bind(on_message_received=self.on_vidhub_query_message)
     async def add_vidhub(self, vidhub):
-        await vidhub.connect_fut
+        await vidhub.connection_manager.wait_for('connected', 5)
         if vidhub.device_id in self.vidhubs:
             return
         node = VidhubNode(vidhub, use_device_id=True)
@@ -80,7 +80,7 @@ class OscInterface(Dispatcher):
         if self.server is not None:
             await self.server.stop()
         if self.config is not None:
-            if not self.config.running.is_set():
+            if not self.config.connection_state.is_connected:
                 await self.config.start()
             if self.config.USE_DISCOVERY:
                 await self.publish_zeroconf_service()
