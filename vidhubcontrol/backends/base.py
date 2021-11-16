@@ -63,38 +63,48 @@ class BackendBase(Dispatcher):
         await obj.connect()
         return obj
     async def connect(self):
-        if self.connection_state & ConnectionState.waiting != 0:
-            await self.connection_manager.wait_for('connected|not_connected')
-        if self.connection_state.is_connected:
-            return self.client
-        await self.connection_manager.set_state('connecting')
+        manager = self.connection_manager
+        async with manager:
+            if manager.state & ConnectionState.waiting != 0:
+                state = await manager.wait_for('connected|not_connected')
+            if manager.state.is_connected:
+                return self.client
+            assert ConnectionState.not_connected in manager.state
+            await manager.set_state('connecting')
+        await asyncio.sleep(0)
         try:
             r = await asyncio.wait_for(self.do_connect(), timeout=2)
         except asyncio.TimeoutError as exc:
             r = False
-        if r is False and ConnectionState.failure not in self.connection_state:
-            await self.connection_manager.set_failure('unknown')
-        if ConnectionState.failure in self.connection_state:
-            await self.connection_manager.set_state('not_connected')
-        else:
-            if self.client is not None:
-                self.client = r
-            await self.connection_manager.set_state('connected')
+        async with manager:
+            if r is False and ConnectionState.failure not in manager.state:
+                await manager.set_failure('unknown')
+            if ConnectionState.failure in manager.state:
+                await manager.set_state('not_connected')
+            else:
+                if self.client is not None:
+                    self.client = r
+                await manager.set_state('connected')
         return r
     async def disconnect(self):
-        if ConnectionState.not_connected in self.connection_state:
-            return
-        elif ConnectionState.disconnecting in self.connection_state:
-            await self.connection_manager.wait_for('not_connected')
-            return
-        elif ConnectionState.connecting in self.connection_state:
-            state = await self.connection_manager.wait_for('connected|not_connected')
-            if state == ConnectionState.not_connected:
+        manager = self.connection_manager
+        async with manager:
+            if ConnectionState.not_connected in manager.state:
                 return
-        await self.connection_manager.set_state('disconnecting')
+            elif ConnectionState.disconnecting in manager.state:
+                await manager.wait_for('not_connected')
+                return
+            elif ConnectionState.connecting in manager.state:
+                state = await manager.wait_for('connected|not_connected')
+                if state == ConnectionState.not_connected:
+                    return
+            assert manager.state.is_connected
+            await manager.set_state('disconnecting')
+        await asyncio.sleep(0)
         await self.do_disconnect()
-        self.client = None
-        await self.connection_manager.set_state('not_connected')
+        async with manager:
+            self.client = None
+            await manager.set_state('not_connected')
     async def _catch_exception(self, e: Exception, is_error: Optional[bool] = False):
         if not is_error:
             logger.exception(e)
@@ -104,12 +114,14 @@ class BackendBase(Dispatcher):
             exc_info = e.args
         except:
             exc_info = str(e)
-        await self.connection_manager.set_failure(exc_info, e)
+        async with self.connection_manager as manager:
+            await manager.set_failure(exc_info, e)
         try:
             await self.do_disconnect()
         finally:
             self.client = None
-            await self.connection_manager.set_state('not_connected')
+            async with self.connection_manager as manager:
+                await manager.set_state('not_connected')
     async def do_connect(self):
         raise NotImplementedError()
     async def do_disconnect(self):

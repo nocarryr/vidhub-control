@@ -184,12 +184,13 @@ class Config(ConfigBase):
         :meth:`_initialize_backends`.
 
         """
-        if ConnectionState.connecting in self.connection_state:
-            await self.connection_manager.wait_for('connected')
-            return
-        if self.connection_state.is_connected:
-            return
-        await self.connection_manager.set_state('connecting')
+        manager = self.connection_manager
+        async with manager:
+            if ConnectionState.connecting in manager.state:
+                await manager.wait_for('connected')
+            if manager.state.is_connected:
+                return
+            await manager.set_state('connecting')
 
         logger.info('Config starting...')
         self.start_kwargs.update(kwargs)
@@ -197,11 +198,10 @@ class Config(ConfigBase):
 
         await self._initialize_backends(**kwargs)
         if not self.USE_DISCOVERY:
-            await self.connection_manager.set_state('connected')
+            async with manager:
+                await manager.set_state('connected')
             return
-        if self.discovery_listener is not None:
-           await self.connection_manager.wait_for('connected')
-           return
+        assert self.discovery_listener is None
         self.discovery_listener = BMDDiscovery(self.loop)
         self.discovery_listener.bind_async(
             self.loop,
@@ -209,12 +209,18 @@ class Config(ConfigBase):
             bmd_service_updated=self.on_discovery_service_updated,
         )
         await self.discovery_listener.start()
-        await self.connection_manager.set_state('connected')
+        async with manager:
+            await manager.set_state('connected')
         logger.debug('Config started')
     async def stop(self):
         """Stops all device backends and discovery routines
         """
-        await self.connection_manager.set_state('disconnecting')
+        async with self.connection_manager as manager:
+            if ConnectionState.waiting in manager.state:
+                await manager.wait_for('connected|not_connected')
+            if ConnectionState.not_connected in manager.state:
+                return
+            await manager.set_state('disconnecting')
         logger.debug('Config stopping...')
         if self.discovery_listener is not None:
             await self.discovery_listener.stop()
@@ -228,7 +234,8 @@ class Config(ConfigBase):
             coros.add(smartscope.close())
         if len(coros):
             await asyncio.gather(*coros)
-        await self.connection_manager.set_state('not_connected')
+        async with self.connection_manager as manager:
+            await manager.set_state('not_connected')
         logger.debug('Config stopped')
     async def build_backend(self, device_type, backend_name, **kwargs):
         """Creates a "backend" instance
@@ -323,10 +330,12 @@ class Config(ConfigBase):
         prop[value] = backend
         self.save()
     async def add_discovered_device(self, device_type, info, device_id):
-        if self.connection_state & (ConnectionState.disconnecting | ConnectionState.not_connected):
-            return
-        if ConnectionState.connecting in self.connection_state:
-            await self.connection_manager.wait_for('connected')
+        manager = self.connection_manager
+        async with manager:
+            if manager.state & (ConnectionState.disconnecting | ConnectionState.not_connected):
+                return
+            if ConnectionState.connecting in manager.state:
+                await manager.wait_for('connected')
         logger.debug(f'add_discovered_device: {device_type}, {info}, {device_id}')
         async with self.discovery_lock:
             prop = getattr(self, self._device_type_map[device_type]['prop'])
@@ -510,13 +519,16 @@ class DeviceConfigBase(ConfigBase):
 
         """
         self = cls(**kwargs)
+        self.unbind(self.on_backend_set)
         for attr in self._conf_attrs:
             setattr(self, attr, kwargs.get(attr))
         self.backend = kwargs.get('backend')
         if self.backend is not None:
-            await self.connection_manager.set_other(self.backend.connection_manager)
+            await self.on_backend_set(self, self.backend, old=None)
         else:
             self.backend = await self.build_backend(**self._get_conf_data())
+            await self.on_backend_set(self, self.backend, old=None)
+        self.bind_async(self.loop, backend=self.on_backend_set)
         return self
     @classmethod
     async def from_existing(cls, backend, **kwargs):
@@ -544,8 +556,9 @@ class DeviceConfigBase(ConfigBase):
         kwargs['event_loop'] = backend.event_loop
         return await cls.create(**kwargs)
     async def reconnect(self):
-        if ConnectionState.waiting in self.connection_manager.state:
-            await self.connection_manager.wait_for('connected|failure')
+        async with self.connection_manager as manager:
+            if ConnectionState.waiting in manager.state:
+                await manager.wait_for('connected|failure')
         await self.backend.disconnect()
         await self.backend.connect()
     async def reset_hostaddr(self, hostaddr, hostport=None):
@@ -561,7 +574,7 @@ class DeviceConfigBase(ConfigBase):
     async def close(self):
         if self.backend is not None:
             await self.backend.disconnect()
-        await self.connection_manager.close()
+        await self.connection_manager.set_other(None)
     async def build_backend(self, cls=None, **kwargs):
         """Creates a backend instance asynchronously
 
@@ -582,11 +595,13 @@ class DeviceConfigBase(ConfigBase):
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
         await self.connection_manager.set_other(None)
-        await self.connection_manager.set_state(ConnectionState.connecting)
+        async with self.connection_manager as manager:
+            await manager.set_state(ConnectionState.connecting)
         backend = cls(**kwargs)
         async def wait_for_connecting():
-            state = await backend.connection_manager.wait_for(ConnectionState.connecting)
-            await self.connection_manager.set_other(backend.connection_manager)
+            async with backend.connection_manager as backend_mgr:
+                state = await backend_mgr.wait_for('connecting')
+            await self.connection_manager.set_other(backend_mgr)
         t = asyncio.ensure_future(backend.connect())
         await wait_for_connecting()
         await t
@@ -606,7 +621,8 @@ class DeviceConfigBase(ConfigBase):
         if backend is None:
             await self.connection_manager.set_other(None)
             return
-        await self.connection_manager.set_other(backend.connection_manager)
+        if self.connection_manager.other is not backend.connection_manager:
+            await self.connection_manager.set_other(backend.connection_manager)
         if backend.connection_state.is_connected:
             if self.backend.device_name != self.device_name:
                 self.device_name = self.backend.device_name
