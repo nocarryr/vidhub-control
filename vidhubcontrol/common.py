@@ -10,12 +10,29 @@ class ConnectionState(enum.IntFlag):
 
     Members may be combined using bitwise operators (&, \|, ^, ~)
     """
-    not_connected = 1                       #: Not connected
-    connecting = 2                          #: Attempting to connect
-    disconnecting = 4                       #: Disconnecting
-    connected = 8                           #: Connected successfully
-    failure = 16                            #: Failed to connect
-    waiting = connecting | disconnecting    #: Connecting or disconnecting
+    not_connected = 1
+    """Indicates there is no connection and no connection attempts are being made
+    """
+
+    connecting = 2
+    """Indicates an attempt to connect is being made
+    """
+
+    disconnecting = 4
+    """Indicates the connection is being closed
+    """
+
+    connected = 8
+    """Indicates the connection is active
+    """
+
+    failure = 16
+    """Indicates an error occured
+    """
+
+    waiting = connecting | disconnecting
+    """Indicates the connection is either :attr:`connecting` or :attr:`disconnecting`
+    """
 
     @property
     def is_compound(self) -> bool:
@@ -35,6 +52,16 @@ class ConnectionState(enum.IntFlag):
         r"""Create a :class:`ConnectionState` member by name(s)
 
         Combined states can be created by separating their names with a "\|"
+
+        >>> from vidhubcontrol.common import ConnectionState
+        >>> ConnectionState.connected | ConnectionState.not_connected
+        <ConnectionState.connected|not_connected: 9>
+        >>> ConnectionState.disconnecting | ConnectionState.failure
+        <ConnectionState.failure|disconnecting: 20>
+        >>> # This combination is already defined as "waiting"
+        >>> ConnectionState.connecting | ConnectionState.disconnecting
+        <ConnectionState.waiting: 6>
+
         """
         if '|' in s:
             result = None
