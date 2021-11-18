@@ -1,6 +1,8 @@
 import os
+import socket
 import asyncio
 import errno
+import contextlib
 
 import pytest
 
@@ -274,3 +276,24 @@ def missing_netifaces(request, monkeypatch):
     else:
         monkeypatch.setattr('vidhubcontrol.discovery.ZEROCONF_AVAILABLE', True)
         monkeypatch.setattr('vidhubcontrol.utils.NETIFACES_AVAILABLE', True)
+
+def _unused_udp_port():
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
+        sock.bind(('127.0.0.1', 0))
+        return sock.getsockname()[1]
+
+@pytest.fixture(scope='session')
+def unused_udp_port_factory():
+    produced = set()
+
+    def factory():
+        port = _unused_udp_port()
+        while port in produced:
+            port = _unused_udp_port()
+        produced.add(port)
+        return port
+    return factory
+
+@pytest.fixture
+def unused_udp_port(unused_udp_port_factory):
+    return unused_udp_port_factory()

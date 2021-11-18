@@ -85,11 +85,11 @@ async def test_nodes():
 
 
 @pytest.mark.asyncio
-async def test_pubsub_nodes(missing_netifaces, unused_tcp_port_factory):
+async def test_pubsub_nodes(missing_netifaces, unused_udp_port_factory):
     from pydispatch import Dispatcher, Property
     from vidhubcontrol.interfaces.osc import OscNode, PubSubOscNode, OSCUDPServer, OscDispatcher
 
-    server_port, client_port = unused_tcp_port_factory(), unused_tcp_port_factory()
+    server_port, client_port = unused_udp_port_factory(), unused_udp_port_factory()
 
     class Publisher(Dispatcher):
         value = Property()
@@ -304,11 +304,11 @@ async def test_pubsub_nodes(missing_netifaces, unused_tcp_port_factory):
     await server.stop()
 
 @pytest.mark.asyncio
-async def test_interface(missing_netifaces, unused_tcp_port_factory):
+async def test_interface(missing_netifaces, unused_udp_port_factory):
     from vidhubcontrol.interfaces.osc import OscNode, OscInterface, OSCUDPServer, OscDispatcher
     from vidhubcontrol.backends import DummyBackend
 
-    server_port, client_port = unused_tcp_port_factory(), unused_tcp_port_factory()
+    server_port, client_port = unused_udp_port_factory(), unused_udp_port_factory()
 
     class NodeResponse(object):
         def __init__(self, node=None):
