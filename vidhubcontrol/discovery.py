@@ -587,7 +587,7 @@ class BMDDiscovery(Listener):
                 o = self.smart_views[bmd_id]
             else:
                 raise KeyError(f'Cannot find entry for "{info!r}"')
-        assert o is info
+        assert o.id == info.id
         kwargs['device_type'] = device_type
         self.emit('bmd_service_updated', info, **kwargs)
 
