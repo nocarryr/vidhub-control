@@ -377,6 +377,7 @@ class Config(ConfigBase):
 
     async def on_discovery_service_updated(self, info, **kwargs):
         logger.debug(f'update: {info!r}, {kwargs}')
+        await self.on_discovery_service_added(info, **kwargs)
 
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
