@@ -357,9 +357,7 @@ class VidhubBackendBase(BackendBase):
         control_prop = self.feedback_prop_map[prop.name]
         setattr(self, control_prop, value[:])
     def on_prop_control(self, instance, value, **kwargs):
-        if not self.connection_state.is_connected:
-            return
-        if not self.prelude_parsed:
+        if not self.prelude_parsed or not self.connection_state.is_connected:
             return
         prop = kwargs.get('property')
         keys = kwargs.get('keys')
