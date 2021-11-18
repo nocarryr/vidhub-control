@@ -146,6 +146,11 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
         disabled_ports = set()
+        port_map = {
+            'vidhub':VIDHUB_PORT,
+            'smartview':SMARTVIEW_PORT,
+            'smartscope':SMARTSCOPE_PORT,
+        }
         def __init__(self, host=None, port=None, timeout=None, loop=None):
             self.host = host
             self.port = port
@@ -160,12 +165,9 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
         @port.setter
         def port(self, value):
             self._port = value
-            if value == VIDHUB_PORT:
-                self.preamble = 'vidhub'
-            elif value == SMARTVIEW_PORT:
-                self.preamble = 'smartview'
-            elif value == SMARTSCOPE_PORT:
-                self.preamble = 'smartscope'
+            for key, port in self.port_map.items():
+                if value == port:
+                    self.preamble = key
         @classmethod
         def set_port_enable(cls, port, value):
             if value:
@@ -194,6 +196,8 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
         async def wait_for_data(self):
             await self.read_ready_event.wait()
         async def write(self, bfr):
+            if self.port in Telnet.disabled_ports:
+                raise OSError(errno.ECONNREFUSED, (self.host, self.port))
             self.rx_bfr = b''.join([self.rx_bfr, bfr])
             if bfr.endswith(b'\n\n'):
                 bfr = self.rx_bfr
@@ -209,6 +213,8 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 if len(self.tx_bfr):
                     self.read_ready_event.set()
         async def read_very_eager(self):
+            if self.port in Telnet.disabled_ports:
+                raise OSError(errno.ECONNREFUSED, (self.host, self.port))
             async with self.tx_lock:
                 bfr = self.tx_bfr
                 self.tx_bfr = b''
