@@ -1,6 +1,8 @@
 import os
+import socket
 import asyncio
 import errno
+import contextlib
 
 import pytest
 
@@ -146,6 +148,11 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
     class Telnet(object):
         preamble = 'vidhub'
         disabled_ports = set()
+        port_map = {
+            'vidhub':VIDHUB_PORT,
+            'smartview':SMARTVIEW_PORT,
+            'smartscope':SMARTSCOPE_PORT,
+        }
         def __init__(self, host=None, port=None, timeout=None, loop=None):
             self.host = host
             self.port = port
@@ -160,12 +167,9 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
         @port.setter
         def port(self, value):
             self._port = value
-            if value == VIDHUB_PORT:
-                self.preamble = 'vidhub'
-            elif value == SMARTVIEW_PORT:
-                self.preamble = 'smartview'
-            elif value == SMARTSCOPE_PORT:
-                self.preamble = 'smartscope'
+            for key, port in self.port_map.items():
+                if value == port:
+                    self.preamble = key
         @classmethod
         def set_port_enable(cls, port, value):
             if value:
@@ -194,6 +198,8 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
         async def wait_for_data(self):
             await self.read_ready_event.wait()
         async def write(self, bfr):
+            if self.port in Telnet.disabled_ports:
+                raise OSError(errno.ECONNREFUSED, (self.host, self.port))
             self.rx_bfr = b''.join([self.rx_bfr, bfr])
             if bfr.endswith(b'\n\n'):
                 bfr = self.rx_bfr
@@ -209,6 +215,8 @@ def mocked_vidhub_telnet_device(monkeypatch, vidhub_telnet_responses):
                 if len(self.tx_bfr):
                     self.read_ready_event.set()
         async def read_very_eager(self):
+            if self.port in Telnet.disabled_ports:
+                raise OSError(errno.ECONNREFUSED, (self.host, self.port))
             async with self.tx_lock:
                 bfr = self.tx_bfr
                 self.tx_bfr = b''
@@ -268,3 +276,24 @@ def missing_netifaces(request, monkeypatch):
     else:
         monkeypatch.setattr('vidhubcontrol.discovery.ZEROCONF_AVAILABLE', True)
         monkeypatch.setattr('vidhubcontrol.utils.NETIFACES_AVAILABLE', True)
+
+def _unused_udp_port():
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
+        sock.bind(('127.0.0.1', 0))
+        return sock.getsockname()[1]
+
+@pytest.fixture(scope='session')
+def unused_udp_port_factory():
+    produced = set()
+
+    def factory():
+        port = _unused_udp_port()
+        while port in produced:
+            port = _unused_udp_port()
+        produced.add(port)
+        return port
+    return factory
+
+@pytest.fixture
+def unused_udp_port(unused_udp_port_factory):
+    return unused_udp_port_factory()

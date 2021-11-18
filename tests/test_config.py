@@ -3,12 +3,14 @@ import asyncio
 import pytest
 
 from vidhubcontrol.config import Config
+from vidhubcontrol.common import ConnectionState
 
 @pytest.mark.asyncio
 async def test_config_basic(tempconfig, missing_netifaces):
     from vidhubcontrol.backends import DummyBackend
 
     config = await Config.load_async(str(tempconfig))
+    assert config.connection_state == ConnectionState.connected
     await config.start()
 
     vidhub = await DummyBackend.create_async(device_id=None)
@@ -94,6 +96,7 @@ async def test_config_discovery(tempconfig,
 
     config = await Config.load_async(str(tempconfig))
     await config.start()
+    assert config.connection_state == ConnectionState.connected
 
     waiter.bind(config, 'vidhubs', 'smartviews', 'smartscopes')
 
@@ -117,6 +120,7 @@ async def test_config_discovery(tempconfig,
 
     # Stop and delete original config and publisher
     await config.stop()
+    assert config.connection_state == ConnectionState.not_connected
     await publisher.async_close()
 
     del config
@@ -129,14 +133,16 @@ async def test_config_discovery(tempconfig,
     publisher = AsyncZeroconf()
     config = await Config.load_async(str(tempconfig))
     await config.start()
+    assert config.connection_state == ConnectionState.connected
 
     assert set(config.all_devices.keys()) == set(device_ids)
 
     # Make sure the backends exist, but aren't connected
     await asyncio.sleep(5)
-    assert not config.vidhubs[vidhub_zeroconf_info['device_id']].backend.connected
-    assert not config.smartviews[smartview_zeroconf_info['device_id']].backend.connected
-    assert not config.smartscopes[smartscope_zeroconf_info['device_id']].backend.connected
+    for zc_data in zc_item_data:
+        obj = config.all_devices[zc_data['device_id']]
+        assert obj.connection_state == obj.backend.connection_state
+        assert ConnectionState.not_connected in obj.connection_state
 
     # Re-enable mocked telnet and publish the zeroconf services
     for info in zc_infos:
@@ -147,13 +153,15 @@ async def test_config_discovery(tempconfig,
 
     # Make sure the config reconnects the devices once discovered
     await asyncio.sleep(.5)
-    assert config.vidhubs[vidhub_zeroconf_info['device_id']].backend.connected
-    assert config.smartviews[smartview_zeroconf_info['device_id']].backend.connected
-    assert config.smartscopes[smartscope_zeroconf_info['device_id']].backend.connected
+
+    for zc_data in zc_item_data:
+        obj = config.all_devices[zc_data['device_id']]
+        assert obj.connection_state == obj.backend.connection_state == ConnectionState.connected
 
     assert set(config.all_devices.keys()) == set(device_ids)
 
     await config.stop()
+    assert config.connection_state == ConnectionState.not_connected
     await publisher.async_close()
 
 

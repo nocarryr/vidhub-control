@@ -10,10 +10,13 @@ from kivy.properties import (
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 
+from vidhubcontrol.common import ConnectionState
+
 class SmartViewWidget(BoxLayout):
     app = ObjectProperty(None)
     name = StringProperty('')
     connected = BooleanProperty(False)
+    connection_state = ObjectProperty(ConnectionState.not_connected)
     monitor_widgets = ListProperty()
     monitor_widget_container = ObjectProperty(None)
     device = ObjectProperty(None, allownone=True)
@@ -33,18 +36,30 @@ class SmartViewWidget(BoxLayout):
         self.device = device
     def on_device(self, *args):
         if self.device is None:
+            self.connection_state = ConnectionState.not_connected
             self.clear_monitors()
             return
         self.name = self.device.device_name
-        self.connected = self.device.connected
+        self.connection_state = self.device.connection_state
         self.device.bind(
             device_name=self.on_device_name,
-            connected=self.on_device_connected,
             num_monitors=self.build_monitors,
             monitors=self.build_monitors,
             prelude_parsed=self.build_monitors,
         )
-        if self.device.connected:
+        self.device.connection_manager.bind(state_changed=self._on_device_connection_state)
+        if self.connected:
+            self.build_monitors()
+    def on_connection_state(self, instance, state):
+        self.connected = state.is_connected
+    def _on_device_connection_state(self, instance, state, **kwargs):
+        if self.device is None:
+            return
+        if instance is not self.device.connection_manager:
+            return
+        self.connection_state = state
+        if state.is_connected:
+            self.clear_monitors()
             self.build_monitors()
     def clear_monitors(self, *args, **kwargs):
         for w in self.monitor_widgets:
@@ -54,7 +69,7 @@ class SmartViewWidget(BoxLayout):
     def build_monitors(self, *args, **kwargs):
         if self.monitor_widget_container is None:
             return
-        if not self.device.connected:
+        if not self.connected:
             return
         if not self.device.prelude_parsed:
             return
@@ -68,16 +83,10 @@ class SmartViewWidget(BoxLayout):
     def on_monitor_widget_container(self, *args):
         if len(self.monitor_widgets):
             return
-        if self.device and self.device.connected:
+        if self.device and self.connected:
             self.build_monitors()
     def on_device_name(self, instance, value, **kwargs):
         self.name = value
-    def on_device_connected(self, instance, value, **kwargs):
-        self.connected = value
-        if not value:
-            return
-        self.clear_monitors()
-        self.build_monitors()
     def on_edit_name_enabled(self, instance, value):
         if value:
             r = self.open_edit_name_popup()

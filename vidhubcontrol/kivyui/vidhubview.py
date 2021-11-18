@@ -14,6 +14,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 
+from vidhubcontrol.common import ConnectionState
+
 logger = logging.getLogger(__name__)
 
 class VidhubWidget(BoxLayout):
@@ -21,6 +23,7 @@ class VidhubWidget(BoxLayout):
     vidhub = ObjectProperty(None, allownone=True)
     name = StringProperty('')
     connected = BooleanProperty(False)
+    connection_state = ObjectProperty(ConnectionState.not_connected)
     input_button_grid = ObjectProperty(None)
     output_button_grid = ObjectProperty(None)
     crosspoints = ListProperty()
@@ -42,17 +45,25 @@ class VidhubWidget(BoxLayout):
     def on_vidhub(self, *args):
         if self.vidhub is None:
             self.name = ''
-            self.connected = False
+            self.connection_state = ConnectionState.not_connected
             self.crosspoints = []
             return
         self.name = self.vidhub.device_name
-        self.connected = self.vidhub.connected
+        self.connection_state = self.vidhub.connection_state
         self.crosspoints[:] = self.vidhub.crosspoints[:]
         self.vidhub.bind(
-            connected=self.on_vidhub_connected,
             device_name=self.on_vidhub_device_name,
             crosspoints=self.on_vidhub_crosspoints,
         )
+        self.vidhub.connection_manager.bind(state_changed=self._on_vidhub_connection_state)
+    def on_connection_state(self, instance, state):
+        self.connected = state == ConnectionState.connected
+    def _on_vidhub_connection_state(self, instance, state, **kwargs):
+        if self.vidhub is None:
+            return
+        if instance is not self.vidhub.connection_manager:
+            return
+        self.connection_state = state
     def on_app(self, *args):
         if self.app is None:
             return
@@ -63,6 +74,7 @@ class VidhubWidget(BoxLayout):
     def on_app_selected_device(self, instance, value):
         if self.vidhub is not None:
             self.vidhub.unbind(self)
+            self.vidhub.connection_manager.unbind(self)
             self.input_button_grid.unbind_vidhub()
             self.output_button_grid.unbind_vidhub()
             self.preset_button_grid.unbind_vidhub()
@@ -70,8 +82,6 @@ class VidhubWidget(BoxLayout):
             self.vidhub = value
         else:
             self.vidhub = None
-    def on_vidhub_connected(self, instance, value, **kwargs):
-        self.connected = value
     def on_vidhub_device_name(self, instance, value, **kwargs):
         self.name = value
     def on_vidhub_crosspoints(self, instance, value, **kwargs):

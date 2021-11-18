@@ -8,6 +8,7 @@ import jsonfactory
 from pydispatch import Dispatcher, Property
 from pydispatch.properties import ListProperty, DictProperty
 
+from vidhubcontrol.common import ConnectionState, ConnectionManager, SyncronizedConnectionManager
 from vidhubcontrol.discovery import BMDDiscovery
 from vidhubcontrol.backends import (
     DummyBackend,
@@ -67,15 +68,11 @@ class Config(ConfigBase):
             from vidhubcontrol.config import Config
 
             loop = asyncio.get_event_loop()
-            conf = loop.run_until_complete(Config.load_async(loop=loop))
+            conf = loop.run_until_complete(Config.load_async())
 
     Keyword Arguments:
         filename (:obj:`str`, optional): Filename to load/save config data to.
             If not given, defaults to :attr:`DEFAULT_FILENAME`
-        loop: The :class:`EventLoop <asyncio.BaseEventLoop>` to use. If not
-            given, the value from :func:`asyncio.get_event_loop` will be used.
-        auto_start (bool): If ``True`` (default), the :meth:`start` method will
-            be added to the asyncio event loop on initialization.
 
     Attributes:
         vidhubs: A :class:`~pydispatch.properties.DictProperty` of
@@ -98,6 +95,7 @@ class Config(ConfigBase):
     """
     DEFAULT_FILENAME = '~/vidhubcontrol.json'
     USE_DISCOVERY = True
+    connection_manager: ConnectionManager #: Connection manager
     vidhubs: Dict[str, 'VidhubConfig'] = DictProperty()
     smartviews: Dict[str, 'SmartViewConfig'] = DictProperty()
     smartscopes: Dict[str, 'SmartScopeConfig'] = DictProperty()
@@ -108,27 +106,21 @@ class Config(ConfigBase):
         'smartview':{'prop':'smartviews'},
         'smartscope':{'prop':'smartscopes'},
     }
-    loop = None
     def __init__(self, **kwargs):
         self.start_kwargs = kwargs.copy()
-        auto_start = kwargs.get('auto_start', True)
-        self.starting = asyncio.Event()
-        self.running = asyncio.Event()
-        self.stopped = asyncio.Event()
-        self.initialized = asyncio.Event()
+        self.connection_manager = ConnectionManager()
         self.filename = kwargs.get('filename', self.DEFAULT_FILENAME)
-        if 'loop' in kwargs:
-            Config.loop = kwargs['loop']
-        elif Config.loop is None:
-            Config.loop = asyncio.get_event_loop()
+        self.loop = asyncio.get_event_loop()
         self.discovery_listener = None
         self.discovery_lock = asyncio.Lock()
-        if auto_start:
-            self._start_fut = asyncio.ensure_future(self.start(**kwargs), loop=self.loop)
-        else:
-            async def _start_fut(config):
-                await config.running.wait()
-            self._start_fut = asyncio.ensure_future(_start_fut(self), loop=self.loop)
+
+    @property
+    def connection_state(self) -> ConnectionState:
+        """The current :attr:`~.common.ConnectionManager.state` of the
+        :attr:`connection_manager`
+        """
+        return self.connection_manager.state
+
     def id_for_device(self, device):
         if not isinstance(device, DeviceConfigBase):
             prop = getattr(self, self._device_type_map[device.device_type]['prop'])
@@ -183,7 +175,6 @@ class Config(ConfigBase):
                 tasks.append(task)
         if len(tasks):
             await asyncio.gather(*tasks)
-        self.initialized.set()
 
     async def start(self, **kwargs):
         """Starts the device backends and discovery routines
@@ -193,12 +184,13 @@ class Config(ConfigBase):
         :meth:`_initialize_backends`.
 
         """
-        if self.starting.is_set():
-            await self.running.wait()
-            return
-        if self.running.is_set():
-            return
-        self.starting.set()
+        manager = self.connection_manager
+        async with manager:
+            if ConnectionState.connecting in manager.state:
+                await manager.wait_for('connected')
+            if manager.state.is_connected:
+                return
+            await manager.set_state('connecting')
 
         logger.info('Config starting...')
         self.start_kwargs.update(kwargs)
@@ -206,12 +198,10 @@ class Config(ConfigBase):
 
         await self._initialize_backends(**kwargs)
         if not self.USE_DISCOVERY:
-            self.starting.clear()
-            self.running.set()
+            async with manager:
+                await manager.set_state('connected')
             return
-        if self.discovery_listener is not None:
-           await self.running.wait()
-           return
+        assert self.discovery_listener is None
         self.discovery_listener = BMDDiscovery(self.loop)
         self.discovery_listener.bind_async(
             self.loop,
@@ -219,26 +209,33 @@ class Config(ConfigBase):
             bmd_service_updated=self.on_discovery_service_updated,
         )
         await self.discovery_listener.start()
-        self.starting.clear()
-        self.running.set()
+        async with manager:
+            await manager.set_state('connected')
         logger.debug('Config started')
     async def stop(self):
         """Stops all device backends and discovery routines
         """
-        self.running.clear()
-        if self.discovery_listener is None:
-            return
+        async with self.connection_manager as manager:
+            if ConnectionState.waiting in manager.state:
+                await manager.wait_for('connected|not_connected')
+            if ConnectionState.not_connected in manager.state:
+                return
+            await manager.set_state('disconnecting')
         logger.debug('Config stopping...')
-        await self.discovery_listener.stop()
-        self.discovery_listener = None
+        if self.discovery_listener is not None:
+            await self.discovery_listener.stop()
+            self.discovery_listener = None
+        coros = set()
         for vidhub in self.vidhubs.values():
-            await vidhub.backend.disconnect()
+            coros.add(vidhub.close())
         for smartview in self.smartviews.values():
-            await smartview.backend.disconnect()
+            coros.add(smartview.close())
         for smartscope in self.smartscopes.values():
-            await smartscope.backend.disconnect()
-        self.stopped.set()
-        Config.loop = None
+            coros.add(smartscope.close())
+        if len(coros):
+            await asyncio.gather(*coros)
+        async with self.connection_manager as manager:
+            await manager.set_state('not_connected')
         logger.debug('Config stopped')
     async def build_backend(self, device_type, backend_name, **kwargs):
         """Creates a "backend" instance
@@ -333,7 +330,12 @@ class Config(ConfigBase):
         prop[value] = backend
         self.save()
     async def add_discovered_device(self, device_type, info, device_id):
-        await self.initialized.wait()
+        manager = self.connection_manager
+        async with manager:
+            if manager.state & (ConnectionState.disconnecting | ConnectionState.not_connected):
+                return
+            if ConnectionState.connecting in manager.state:
+                await manager.wait_for('connected')
         logger.debug(f'add_discovered_device: {device_type}, {info}, {device_id}')
         async with self.discovery_lock:
             prop = getattr(self, self._device_type_map[device_type]['prop'])
@@ -350,7 +352,7 @@ class Config(ConfigBase):
                 if obj.hostaddr != hostaddr or obj.hostport != hostport:
                     logger.debug('resetting hostaddr')
                     await obj.reset_hostaddr(hostaddr, hostport)
-                elif not obj.backend.connected:
+                elif not obj.connection_state.is_connected:
                     await obj.reconnect()
                 return
             backend = await cls.create_async(
@@ -375,6 +377,7 @@ class Config(ConfigBase):
 
     async def on_discovery_service_updated(self, info, **kwargs):
         logger.debug(f'update: {info!r}, {kwargs}')
+        await self.on_discovery_service_added(info, **kwargs)
 
     def on_device_trigger_save(self, *args, **kwargs):
         self.save()
@@ -442,11 +445,16 @@ class Config(ConfigBase):
 
         """
         kwargs = cls._prepare_load_params(filename, **kwargs)
-        kwargs['auto_start'] = False
         config = cls(**kwargs)
         await config.start()
-        await config._start_fut
         return config
+
+    async def __aenter__(self):
+        await self.start()
+        return self
+
+    async def __aexit__(self, *args):
+        await self.stop()
 
 
 class DeviceConfigBase(ConfigBase):
@@ -462,11 +470,8 @@ class DeviceConfigBase(ConfigBase):
         device_name: User-defined name to store with the device, defaults
             to the :attr:`device_id` value
         device_id: The unique id as reported by the device
-        backend_unavailable (bool): ``True`` if communication with the device
-            could not be established
 
     """
-    backend_unavailable = Property(False)
     config: Config = Property()
     backend: 'vidhubcontrol.backends.base.BackendBase' = Property()
     backend_name: str = Property()
@@ -482,10 +487,20 @@ class DeviceConfigBase(ConfigBase):
         'device_name',
         'device_id',
     ]
+    connection_manager: SyncronizedConnectionManager
+    """A connection manager that syncronizes its state with the :attr:`backend`
+    """
     def __init__(self, **kwargs):
         self.config = kwargs.get('config')
-        self.bind(backend=self.on_backend_set)
-        self.loop = kwargs.get('event_loop', Config.loop)
+        self.loop = asyncio.get_event_loop()
+        self.bind_async(self.loop, backend=self.on_backend_set)
+        self.connection_manager = SyncronizedConnectionManager()
+    @property
+    def connection_state(self) -> ConnectionState:
+        """The current :attr:`~.common.SyncronizedConnectionManager.state`
+        of the :attr:`connection_manager`
+        """
+        return self.connection_manager.state
     @classmethod
     async def create(cls, **kwargs):
         """Creates device config and backend instances asynchronously
@@ -505,11 +520,16 @@ class DeviceConfigBase(ConfigBase):
 
         """
         self = cls(**kwargs)
+        self.unbind(self.on_backend_set)
         for attr in self._conf_attrs:
             setattr(self, attr, kwargs.get(attr))
         self.backend = kwargs.get('backend')
-        if self.backend is None:
+        if self.backend is not None:
+            await self.on_backend_set(self, self.backend, old=None)
+        else:
             self.backend = await self.build_backend(**self._get_conf_data())
+            await self.on_backend_set(self, self.backend, old=None)
+        self.bind_async(self.loop, backend=self.on_backend_set)
         return self
     @classmethod
     async def from_existing(cls, backend, **kwargs):
@@ -537,6 +557,9 @@ class DeviceConfigBase(ConfigBase):
         kwargs['event_loop'] = backend.event_loop
         return await cls.create(**kwargs)
     async def reconnect(self):
+        async with self.connection_manager as manager:
+            if ConnectionState.waiting in manager.state:
+                await manager.wait_for('connected|failure')
         await self.backend.disconnect()
         await self.backend.connect()
     async def reset_hostaddr(self, hostaddr, hostport=None):
@@ -549,6 +572,10 @@ class DeviceConfigBase(ConfigBase):
         self.backend.hostport = hostport
         await self.backend.connect()
         self.emit('trigger_save')
+    async def close(self):
+        if self.backend is not None:
+            await self.backend.disconnect()
+        await self.connection_manager.set_other(None)
     async def build_backend(self, cls=None, **kwargs):
         """Creates a backend instance asynchronously
 
@@ -568,39 +595,49 @@ class DeviceConfigBase(ConfigBase):
         kwargs.setdefault('event_loop', self.loop)
         if cls is None:
             cls = BACKENDS[self.device_type][self.backend_name]
-        backend = await cls.create_async(**kwargs)
-        if backend is not None:
-            if backend.connection_unavailable:
-                self.backend_unavailable = True
+        await self.connection_manager.set_other(None)
+        async with self.connection_manager as manager:
+            await manager.set_state(ConnectionState.connecting)
+        backend = cls(**kwargs)
+        async def wait_for_connecting():
+            async with backend.connection_manager as backend_mgr:
+                state = await backend_mgr.wait_for('connecting')
+            await self.connection_manager.set_other(backend_mgr)
+        t = asyncio.ensure_future(backend.connect())
+        await wait_for_connecting()
+        await t
         return backend
     def on_backend_prop_change(self, instance, value, **kwargs):
         if instance is not self.backend:
             return
-        if not instance.connected:
+        if not instance.connection_state.is_connected:
             return
         prop = kwargs.get('property')
         setattr(self, prop.name, value)
         self.emit('trigger_save')
-    def on_backend_set(self, instance, backend, **kwargs):
+    async def on_backend_set(self, instance, backend, **kwargs):
         old = kwargs.get('old')
         if old is not None:
             old.unbind(self)
         if backend is None:
+            await self.connection_manager.set_other(None)
             return
-        if backend.connected:
+        if self.connection_manager.other is not backend.connection_manager:
+            await self.connection_manager.set_other(backend.connection_manager)
+        if backend.connection_state.is_connected:
             if self.backend.device_name != self.device_name:
                 self.device_name = self.backend.device_name
         if backend.device_id is None:
             if self.device_id is None:
                 self.device_id = self.config.id_for_device(self)
-        elif backend.connected:
+        elif backend.connection_state.is_connected:
             self.device_id = backend.device_id
         backend.bind(
             device_name=self.on_backend_prop_change,
             device_id=self._on_backend_device_id,
         )
         if hasattr(backend, 'hostport'):
-            if backend.connected:
+            if backend.connection_state.is_connected:
                 self.hostaddr = backend.hostaddr
                 self.hostport = backend.hostport
             backend.bind(
@@ -610,7 +647,7 @@ class DeviceConfigBase(ConfigBase):
     def _on_backend_device_id(self, backend, value, **kwargs):
         if backend is not self.backend:
             return
-        if not backend.connected:
+        if not backend.connection_state.is_connected:
             return
         if backend.device_id is None:
             if self.device_id is not None:
@@ -651,14 +688,13 @@ class VidhubConfig(DeviceConfigBase):
     async def build_backend(self, cls=None, **kwargs):
         kwargs['presets'] = kwargs['presets'][:]
         return await super().build_backend(cls, **kwargs)
-    def on_backend_set(self, instance, backend, **kwargs):
-        super().on_backend_set(instance, backend, **kwargs)
-        if self.backend is None:
-            return
-        pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
-        for preset in self.backend.presets:
-            preset.bind(**pkwargs)
-        self.backend.bind(on_preset_added=self.on_preset_added)
+    async def on_backend_set(self, instance, backend, **kwargs):
+        if backend is not None:
+            pkwargs = {k:self.on_preset_update for k in ['name', 'crosspoints']}
+            for preset in self.backend.presets:
+                preset.bind(**pkwargs)
+            self.backend.bind(on_preset_added=self.on_preset_added)
+        await super().on_backend_set(instance, backend, **kwargs)
     def on_preset_added(self, *args, **kwargs):
         preset = kwargs.get('preset')
         self.presets.append(dict(

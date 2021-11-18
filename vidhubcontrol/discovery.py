@@ -581,13 +581,13 @@ class BMDDiscovery(Listener):
                 o = self.vidhubs[bmd_id]
             elif bmd_id in self.smart_scopes:
                 device_type = 'smartscope'
-                o = self.smartscopes[bmd_id]
+                o = self.smart_scopes[bmd_id]
             elif bmd_id in self.smart_views:
                 device_type = 'smartview'
                 o = self.smart_views[bmd_id]
             else:
                 raise KeyError(f'Cannot find entry for "{info!r}"')
-        assert o is info
+        assert o.id == info.id
         kwargs['device_type'] = device_type
         self.emit('bmd_service_updated', info, **kwargs)
 

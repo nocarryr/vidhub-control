@@ -4,6 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_kv_smartscope(kivy_app, KvEventWaiter):
     from vidhubcontrol.backends import SmartViewDummyBackend, SmartScopeDummyBackend
+    from vidhubcontrol.common import ConnectionState
 
     kv_waiter = KvEventWaiter()
 
@@ -68,7 +69,9 @@ async def test_kv_smartscope(kivy_app, KvEventWaiter):
 
         def check_values():
             assert device.device_name == smartview_widget.name
-            assert device.connected == smartview_widget.connected
+            assert device.connection_state == smartview_widget.connection_state
+            connected = device.connection_state == ConnectionState.connected
+            assert smartview_widget.connected is connected
 
             for monitor in device.monitors:
                 monitor_widget = smartview_widget.monitor_widgets[monitor.index]

@@ -2,6 +2,7 @@ import asyncio
 from loguru import logger
 import string
 import errno
+from typing import Optional
 
 from pydispatch import Property
 
@@ -12,6 +13,7 @@ from .base import (
     SmartScopeBackendBase,
     MONITOR_PROPERTY_MAP,
 )
+from vidhubcontrol.common import ConnectionState
 
 
 class TelnetBackendBase(object):
@@ -44,8 +46,7 @@ class TelnetBackendBase(object):
                 await self.client.wait_for_data()
             except Exception as e:
                 logger.error(e)
-                await self._close_client()
-                self._catch_exception(e)
+                await self._catch_exception(e)
                 return
             if not self.read_enabled:
                 break
@@ -53,8 +54,7 @@ class TelnetBackendBase(object):
                 rx_bfr = await self.client.read_very_eager()
             except Exception as e:
                 logger.error(e)
-                await self._close_client()
-                self._catch_exception(e)
+                await self._catch_exception(e)
                 return
             if len(rx_bfr):
                 self.rx_bfr += rx_bfr
@@ -62,7 +62,9 @@ class TelnetBackendBase(object):
                 await self.parse_rx_bfr()
                 self.rx_bfr = b''
     async def send_to_client(self, data):
-        if not self.connected:
+        if ConnectionState.failure in self.connection_state:
+            return
+        if not self.connection_state.is_connected:
             c = await self.connect()
         c = self.client
         if not c:
@@ -73,8 +75,7 @@ class TelnetBackendBase(object):
             await c.write(data)
         except Exception as e:
             logger.error(e)
-            await self._close_client()
-            self._catch_exception(e)
+            await self._catch_exception(e)
     async def do_connect(self):
         self.ack_or_nak_event = asyncio.Event()
         self.response_ready = asyncio.Event()
@@ -85,7 +86,7 @@ class TelnetBackendBase(object):
         except OSError as e:
             logger.error(e)
             self.client = None
-            self._catch_exception(e)
+            await self._catch_exception(e)
             return False
         self.prelude_parsed = False
         self.read_enabled = True
@@ -93,24 +94,13 @@ class TelnetBackendBase(object):
         await self.wait_for_response(prelude=True)
         logger.debug('prelude parsed')
         return c
-    async def _close_client(self):
-        logger.info('close_client')
-        self.read_enabled = False
-        self.response_ready.set()
-        if self.client is not None:
-            try:
-                await self.client.close_async()
-            except Exception as e:
-                logger.error(e)
-            self.client = None
-        self.connected = False
     async def do_disconnect(self):
         logger.debug('disconnecting')
         self.read_enabled = False
         if self.client is not None:
             await self.client.close_async()
         if self.read_coro is not None:
-            await asyncio.wait([self.read_coro], loop=self.event_loop)
+            await self.read_coro
             self.read_coro = None
         self.client = None
         logger.debug('disconnected')
@@ -132,6 +122,8 @@ class TelnetBackendBase(object):
                 return resp
     async def wait_for_ack_or_nak(self):
         logger.debug('wait_for_ack_or_nak...')
+        if ConnectionState.failure in self.connection_state:
+            return False
         await self.ack_or_nak_event.wait()
         resp = self.ack_or_nak
         self.ack_or_nak = None
@@ -155,12 +147,12 @@ class TelnetBackend(TelnetBackendBase, VidhubBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
-    def _catch_exception(self, e):
-        super()._catch_exception(e)
+    async def _catch_exception(self, e: Exception, is_error: Optional[bool] = False):
         if isinstance(e, OSError):
             err = e.args[0]
             if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
-                self.connection_unavailable = True
+                is_error = True
+        await super()._catch_exception(e, is_error)
     async def parse_rx_bfr(self):
         def split_value(line):
             return line.split(':')[1].strip(' ')
@@ -383,20 +375,20 @@ class SmartViewTelnetBackend(SmartViewTelnetBackendBase, SmartViewBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
-    def _catch_exception(self, e):
-        super()._catch_exception(e)
+    async def _catch_exception(self, e: Exception, is_error: Optional[bool] = False):
         if isinstance(e, OSError):
             err = e.args[0]
             if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
-                self.connection_unavailable = True
+                is_error = True
+        await super()._catch_exception(e, is_error)
 
 class SmartScopeTelnetBackend(SmartViewTelnetBackendBase, SmartScopeBackendBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._telnet_init(**kwargs)
-    def _catch_exception(self, e):
-        super()._catch_exception(e)
+    async def _catch_exception(self, e: Exception, is_error: Optional[bool] = False):
         if isinstance(e, OSError):
             err = e.args[0]
             if err in [errno.EHOSTUNREACH, errno.ECONNREFUSED]:
-                self.connection_unavailable = True
+                is_error = True
+        await super()._catch_exception(e, is_error)
