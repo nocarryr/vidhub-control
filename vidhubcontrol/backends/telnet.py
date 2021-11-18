@@ -100,7 +100,7 @@ class TelnetBackendBase(object):
         if self.client is not None:
             await self.client.close_async()
         if self.read_coro is not None:
-            await asyncio.wait([self.read_coro], loop=self.event_loop)
+            await self.read_coro
             self.read_coro = None
         self.client = None
         logger.debug('disconnected')
