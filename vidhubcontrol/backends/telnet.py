@@ -13,6 +13,7 @@ from .base import (
     SmartScopeBackendBase,
     MONITOR_PROPERTY_MAP,
 )
+from vidhubcontrol.common import ConnectionState
 
 
 class TelnetBackendBase(object):
@@ -61,6 +62,8 @@ class TelnetBackendBase(object):
                 await self.parse_rx_bfr()
                 self.rx_bfr = b''
     async def send_to_client(self, data):
+        if ConnectionState.failure in self.connection_state:
+            return
         if not self.connection_state.is_connected:
             c = await self.connect()
         c = self.client
@@ -119,6 +122,8 @@ class TelnetBackendBase(object):
                 return resp
     async def wait_for_ack_or_nak(self):
         logger.debug('wait_for_ack_or_nak...')
+        if ConnectionState.failure in self.connection_state:
+            return False
         await self.ack_or_nak_event.wait()
         resp = self.ack_or_nak
         self.ack_or_nak = None
